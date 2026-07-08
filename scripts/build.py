@@ -169,6 +169,8 @@ def _write(out):
     os.makedirs(os.path.dirname(OUT_PATH), exist_ok=True)
     with open(OUT_PATH, "w") as f:
         json.dump(out, f, separators=(",", ":"))
+    if "regression" in out:
+        print("regression:", out["regression"], "| weekly:", out["weekly"], "| calibration ratio:", out["calibration"]["ratio"])
     print(f"wrote {OUT_PATH}")
     if "error" in out:
         print("ERROR:", out["error"])
