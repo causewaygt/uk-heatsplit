@@ -1,26 +1,34 @@
 """Fetch daily GB gas demand from the National Gas Transmission REST API.
 
-Pinned by exact publication name with catalogue verification, falling back to
-pattern matching if the name changes. Units auto-detected (GWh vs mcm).
-Fair use: one data request per day.
+Two things fetched daily:
+- Total NTS actual demand (context/display)
+- Sum of all LDZ actual offtakes (NDM + DM, all zones) = gas to buildings,
+  the regression target; excludes directly-connected power stations, so the
+  temperature slope is not contaminated by CCGT dispatch.
+
+LDZ publications are self-discovered from the catalogue. Requests are chunked
+to respect the ~3,600-record cap. Units auto-detected (kWh / GWh / mcm).
 """
 
 import datetime as dt
 import json
+import re
 import requests
 
 BASE = "https://api.nationalgas.com/operationaldata/v1"
 CATALOGUE_URL = f"{BASE}/publications/catalogue"
 GASDAY_URL = f"{BASE}/publications/gasday"
 
-# Exact names in priority order; verified against the live catalogue each run.
 NTS_PREFERRED_NAMES = [
-    "Demand Actual, NTS, D+1 (Energy)",   # PUBOBJ1030 - daily actual, energy units
-    "Demand Actual, NTS, D+1",            # volume-units fallback
-    "Demand Actual, NTS, D+6",            # later-vintage fallback
+    "Demand Actual, NTS, D+1 (Energy)",
+    "Demand Actual, NTS, D+1",
+    "Demand Actual, NTS, D+6",
 ]
+LDZ_PATTERN = re.compile(
+    r"^Demand, Actual (NDM|DM), LDZ\(([A-Z]{2})\), D\+1$")
 
 MCM_TO_GWH = 11.056
+CHUNK = 8  # publications per request
 
 
 def _harvest(node, found):
@@ -38,7 +46,33 @@ def _harvest(node, found):
             _harvest(v, found)
 
 
-def resolve_nts_publication():
+def _autoscale(values_by_date, label):
+    vals = sorted(values_by_date.values())
+    if not vals:
+        raise RuntimeError(f"{label}: no records returned")
+    median = vals[len(vals) // 2]
+    if median > 1e8:
+        factor, unit = 1e-6, "kWh -> GWh"
+    elif median > 1000:
+        factor, unit = 1.0, "GWh"
+    else:
+        factor, unit = MCM_TO_GWH, "mcm -> GWh"
+    print(f"{label}: median raw {median:.1f} treated as {unit}; "
+          f"{len(vals)} days, {len(set(vals))} distinct")
+    return {d: round(v * factor, 1) for d, v in values_by_date.items()}
+
+
+def _post_gasday(pub_ids, start, end):
+    r = requests.post(GASDAY_URL, json={
+        "fromDate": start.isoformat(), "toDate": end.isoformat(),
+        "publicationIds": pub_ids, "latestValue": "Y",
+    }, headers={"Content-Type": "application/json"}, timeout=120)
+    r.raise_for_status()
+    payload = r.json()
+    return payload if isinstance(payload, list) else payload.get("data", [])
+
+
+def fetch_gas_demand(days=400):
     r = requests.get(CATALOGUE_URL, timeout=60)
     r.raise_for_status()
     catalogue = []
@@ -46,65 +80,55 @@ def resolve_nts_publication():
     catalogue = sorted(set(catalogue))
     by_name = {name: pid for pid, name in catalogue}
 
+    nts_id = nts_name = None
     for name in NTS_PREFERRED_NAMES:
         if name in by_name:
-            print(f"Using publication: {by_name[name]} | {name}")
-            return by_name[name], name
+            nts_id, nts_name = by_name[name], name
+            break
+    if not nts_id:
+        raise RuntimeError("No preferred NTS publication in catalogue")
 
-    demand_names = "\n".join(f"{i} | {n}" for i, n in catalogue
-                             if "demand" in n.lower() and "actual" in n.lower())
-    raise RuntimeError(
-        "No preferred NTS publication found. Actual-demand items available:\n"
-        + demand_names)
+    ldz_pubs, zones = [], set()
+    for pid, name in catalogue:
+        m = LDZ_PATTERN.match(name)
+        if m:
+            ldz_pubs.append((pid, name))
+            zones.add(m.group(2))
+    print(f"NTS: {nts_id} | {nts_name}")
+    print(f"LDZ publications: {len(ldz_pubs)} across zones {sorted(zones)}")
+    if len(zones) < 10:
+        print("WARNING: fewer LDZ zones than expected (13); "
+              "sum may understate buildings demand")
 
-
-def fetch_gas_demand(days=400):
-    pid, name = resolve_nts_publication()
     end = dt.date.today()
     start = end - dt.timedelta(days=days)
 
-    body = {
-        "fromDate": start.isoformat(),
-        "toDate": end.isoformat(),
-        "publicationIds": [pid],
-        "latestValue": "Y",
-    }
-    r = requests.post(GASDAY_URL, json=body,
-                      headers={"Content-Type": "application/json"}, timeout=120)
-    r.raise_for_status()
-    payload = r.json()
+    all_ids = [nts_id] + [pid for pid, _ in ldz_pubs]
+    raw = {}  # pid -> {date: value}
+    for i in range(0, len(all_ids), CHUNK):
+        for block in _post_gasday(all_ids[i:i + CHUNK], start, end):
+            pid = block.get("publicationId")
+            recs = raw.setdefault(pid, {})
+            for rec in block.get("publications", []):
+                try:
+                    recs[rec.get("applicableFor")] = float(rec.get("value"))
+                except (TypeError, ValueError):
+                    continue
 
-    raw = {}
-    blocks = payload if isinstance(payload, list) else payload.get("data", [])
-    for block in blocks:
-        if block.get("publicationId") != pid:
-            continue
-        for rec in block.get("publications", []):
-            date = rec.get("applicableFor")
-            try:
-                raw[date] = float(rec.get("value"))
-            except (TypeError, ValueError):
-                continue
+    nts = _autoscale(raw.get(nts_id, {}), "NTS total")
 
-    if not raw:
-        raise RuntimeError(f"Publication {pid} returned no records")
+    ldz_raw_sum = {}
+    for pid, _ in ldz_pubs:
+        for d, v in raw.get(pid, {}).items():
+            ldz_raw_sum[d] = ldz_raw_sum.get(d, 0.0) + v
+    ldz = _autoscale(ldz_raw_sum, "LDZ sum (buildings)")
 
-    vals = sorted(raw.values())
-    median = vals[len(vals) // 2]
-    if median > 1e8:           # kWh/day (National Gas energy basis)
-        factor, unit = 1e-6, "kWh -> GWh"
-    elif median > 1000:        # already GWh/day
-        factor, unit = 1.0, "GWh (no conversion)"
-    else:                      # volume units (mcm/day)
-        factor, unit = MCM_TO_GWH, f"mcm x {MCM_TO_GWH}"
-    print(f"gas units: median raw {median:.1f} -> treating as {unit}; "
-          f"{len(raw)} days, {min(raw)} to {max(raw)}, "
-          f"{len(set(vals))} distinct values")
-
-    nts = {d: round(v * factor, 1) for d, v in raw.items()}
     return {"nts_demand_actual": nts,
-            "_meta": {"nts_demand_actual":
-                      {"publicationId": pid, "publicationName": name}}}
+            "ldz_sum": ldz,
+            "_meta": {"nts": {"publicationId": nts_id,
+                              "publicationName": nts_name},
+                      "ldz_zones": sorted(zones),
+                      "ldz_publication_count": len(ldz_pubs)}}
 
 
 if __name__ == "__main__":
