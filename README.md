@@ -1,30 +1,38 @@
-# UK Heat Split — weekly estimate
+# UK Heat Split — a weekly estimate of how Britain heats itself
 
-Static dashboard estimating GB heating energy split from live gas demand and
-ERA5 degree days, calibrated to annual ECUK/DUKES structure. Phase 1: gas only.
+Most of Britain's heat still comes from burning gas, and a material share of
+every unit burned never becomes useful heat. This site turns live operational
+data into a weekly estimate of the GB heating energy split — and, in later
+phases, the role geothermal heat (deep, mine water, and ground source heat
+pumps) plays and could play in replacing combustion.
 
-## Setup (once)
-1. Create a **public** GitHub repo and push this tree.
-2. Settings → Pages → Deploy from branch → `main` / `/docs`.
-3. Actions tab → run **Update heat split** manually (`workflow_dispatch`) once.
-   - If the National Gas catalogue name-matching fails, the log prints every
-     available publication name — adjust `TARGETS` in `scripts/fetch_gas.py`.
-4. Confirm `docs/data.json` was committed and the page renders.
+**Live site:** https://toddsp.github.io/uk-heatsplit/
 
-Daily cron then runs at 06:17 UTC. The daily commit keeps the repo active,
-which prevents GitHub's 60-day auto-disable of scheduled workflows.
-
-## Before publishing (Phase 1 go/no-go)
-- Replace `ECUK_ANNUAL_GAS_HEAT_TWH` placeholder in `scripts/build.py` with the
-  sourced ECUK Table U3 value; require calibration ratio within ±10%.
-- Confirm the National Gas attribution string (portal disclaimer page /
-  box.operationalliaison@nationalgas.com) and update the footer.
-- Sanity-check `MCM_TO_GWH` against the DESNZ annual calorific value.
-
-## Fallback behaviour
-Feed failure → previous values retained, source marked `stale`, status light
-shown on page. Both feeds missing on first run → build exits with error.
+## Method in one paragraph
+Daily National Transmission System gas demand is regressed against
+population-weighted GB heating degree days (ERA5 reanalysis via Open-Meteo).
+The temperature-sensitive component is attributed to space heating; the flat
+baseline is hot water, cooking, industrial and power-station gas. The split is
+calibrated against the annual DESNZ ECUK/DUKES structure. The approach follows
+the published Watson/Sansom method. **Every live figure is a model estimate,
+not a measurement** — uncertainties and caveats are stated on the site.
 
 ## Roadmap
-Phase 2 electricity heating (NESO/Elexon) · Phase 3 geothermal panel with
-tagged forecasts · Phase 4 cooling sliver.
+- **Phase 1 (live):** gas-driven heating estimate + boiler-waste comparison
+- **Phase 2:** electric heating layer (NESO/Elexon)
+- **Phase 3:** geothermal panel — estimated actuals plus source-tagged
+  12-month and 5-year forecasts (CCC, DESNZ, Project InnerSpace)
+- **Phase 4:** cooling sliver (weakest data, widest error bars)
+
+## Data sources & licences
+National Gas Transmission open data · Elexon BMRS (© Elexon Ltd) · NESO Open
+Licence · Open-Meteo.com (CC BY 4.0) / Copernicus ERA5 · DESNZ statistics under
+the Open Government Licence v3.0.
+
+## Running it
+A GitHub Actions cron (`.github/workflows/update.yml`) runs daily, rebuilding
+`docs/data.json` via `scripts/build.py`. Fork-friendly; no API keys required.
+Before treating outputs as publishable: replace the ECUK anchor placeholder in
+`scripts/build.py` and confirm the calibration ratio is within ±10%.
+
+*A Causeway Energies public-interest tool.*
