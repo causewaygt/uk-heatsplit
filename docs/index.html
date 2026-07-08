@@ -29,8 +29,11 @@
   .fig{font-family:"IBM Plex Mono";font-size:clamp(30px,6vw,46px);font-weight:500;margin-top:26px}
   .fig small{font-size:.42em;color:var(--muted);font-family:"IBM Plex Sans"}
   .context{font-family:"IBM Plex Mono";font-size:13px;color:var(--geo);margin-top:6px}
-  .mixbar{margin:26px 0 6px;height:52px;display:flex;border-radius:4px;overflow:hidden;
-          border:1px solid var(--line)}
+  .barlabel{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.06em;
+            color:var(--muted);margin:22px 0 4px}
+  .mixbar{height:44px;display:flex;border-radius:4px;overflow:hidden;
+          border:1px solid var(--line);margin-bottom:2px}
+  .seg.hatch{background:repeating-linear-gradient(135deg,#3a3128 0 5px,#2a241d 5px 10px)}
   .mixbar .seg{transition:width 1.1s cubic-bezier(.2,.7,.2,1);min-width:0}
   .legend{display:flex;gap:14px 20px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-bottom:8px}
   .legend b{color:var(--paper);font-weight:500}
@@ -70,7 +73,10 @@
       shaped by this week's weather. Estimates, not measurements.</p>
     <div class="fig" id="wkfig">—<small> GWh of heating &amp; cooling energy this week</small></div>
     <div class="context" id="peakctx"></div>
-    <div class="mixbar" id="mixbar" aria-label="This week's heat and cooling mix"></div>
+    <div class="barlabel">ENERGY IN — fuel &amp; electricity purchased</div>
+    <div class="mixbar" id="mixbar" aria-label="This week's heat and cooling mix — energy in"></div>
+    <div class="barlabel">USEFUL HEAT &amp; COOL OUT — after boiler losses, heat-pump harvest and cooling delivery</div>
+    <div class="mixbar" id="usebar" aria-label="This week's useful heat and cooling delivered"></div>
     <div class="legend" id="mixlegend"></div>
     <div class="combline" id="combline"></div>
   </div>
@@ -103,6 +109,16 @@
       cooling demand is poorly measured. Electric heating counts the electricity
       into heat pumps, not the ambient heat they harvest — so the useful heat
       delivered by heat pumps is understated for now.</p>
+    <p><b>The two bars.</b> The top bar is final energy — fuel and electricity
+      purchased. The bottom bar is useful heat and cooling delivered: combustion
+      derated by measured in-situ efficiencies (gas 83.5%, oil 82%, bio 70%,
+      solid 55% — the last three are estimates), heat networks shown at delivered
+      heat, resistive electric at 100%, heat pumps multiplied by a blended SPF of
+      2.8 (Energy Systems Catapult field data) with the harvested ambient heat
+      shown in teal, and the weather-driven half of cooling multiplied by an
+      assumed EER of 3. Heat-pump electricity is the ECUK 2025 domestic figure
+      (2.0 TWh, 2024); non-domestic heat pumps are not yet counted, so the teal
+      segment is understated.</p>
     <p><b>Known biases.</b> Hot-water heating is treated as flat but is mildly
       seasonal (colder mains water in winter), so gas space heating carries a
       small upward bias. The boiler-waste band uses in-situ UK boiler efficiency
@@ -141,30 +157,85 @@ fetch('data.json').then(r=>r.json()).then(d=>{
   document.getElementById('stamp').textContent =
     'updated ' + (d.updated||'').slice(0,10) + ' · week ending ' + (d.weekly?.week_ending||'—');
 
-  const m = d.weekly_mix;
+  const m = d.weekly_mix, u = d.weekly_useful;
   if(m){
-    const total = m.total_GWh || 1;
+    const IN_DEF = [
+      ["gas_space","Gas — space heating","--ember"],
+      ["gas_dhw","Gas — hot water","--gasdhw"],
+      ["oil","Oil","--oil"],
+      ["bio_other","Bioenergy & other","--bio"],
+      ["solid","Solid fuel","--solid"],
+      ["heat_networks","Heat networks","--dh"],
+      ["elec_heat","Electric heating","--elec"],
+      ["cooling","Cooling & ventilation (electricity)","--cool"],
+    ];
+    const OUT_DEF = u ? [
+      ["gas_space","Gas — space heating","--ember"],
+      ["gas_dhw","Gas — hot water","--gasdhw"],
+      ["oil","Oil","--oil"],
+      ["bio_other","Bioenergy & other","--bio"],
+      ["solid","Solid fuel","--solid"],
+      ["heat_networks","Heat networks","--dh"],
+      ["elec_resistive","Resistive electric","--elec"],
+      ["hp_electricity","Heat pumps — electricity","--elec"],
+      ["hp_ambient","Heat pumps — ambient heat harvested","--geo"],
+      ["cooling_delivered","Cooling & ventilation delivered","--cool"],
+    ] : null;
+    const totalIn = m.total_GWh || 1;
+    const totalOut = u ? (u.total_GWh || 1) : 0;
+    const scale = Math.max(totalIn, totalOut);   // same scale, honest lengths
+
     document.getElementById('wkfig').innerHTML =
-      fmt(total) + '<small> GWh of heating &amp; cooling energy this week</small>';
-    const bar = document.getElementById('mixbar');
-    const leg = document.getElementById('mixlegend');
-    MIX_DEF.forEach(([key,label,varname])=>{
-      const v = m.components_GWh[key] || 0;
-      const seg = document.createElement('div');
-      seg.className = 'seg';
-      seg.style.background = css(varname);
-      seg.style.width = '0%';
-      seg.title = label + ': ' + fmt(v) + ' GWh';
-      bar.appendChild(seg);
-      requestAnimationFrame(()=>{ seg.style.width = (100*v/total)+'%'; });
-      leg.insertAdjacentHTML('beforeend',
-        `<span><span class="key" style="background:${css(varname)}"></span>` +
-        `<b>${label}</b> ${fmt(v)} GWh</span>`);
-    });
+      fmt(totalIn) + '<small> GWh of heating &amp; cooling energy purchased this week</small>';
+
+    const seen = {};
+    function renderBar(el, def, comp, wasted){
+      def.forEach(([key,label,varname])=>{
+        const v = comp[key] || 0;
+        if(v <= 0) return;
+        const seg = document.createElement('div');
+        seg.className = 'seg';
+        seg.style.background = css(varname);
+        seg.style.width = '0%';
+        seg.title = label + ': ' + fmt(v) + ' GWh';
+        el.appendChild(seg);
+        requestAnimationFrame(()=>{ seg.style.width = (100*v/scale)+'%'; });
+        if(!seen[label]){
+          seen[label] = true;
+          document.getElementById('mixlegend').insertAdjacentHTML('beforeend',
+            `<span><span class="key" style="background:${css(varname)}"></span>` +
+            `<b>${label}</b></span>`);
+        }
+      });
+      if(wasted > 0){
+        const seg = document.createElement('div');
+        seg.className = 'seg hatch';
+        seg.style.width = '0%';
+        seg.title = 'Combustion losses: ' + fmt(wasted) + ' GWh';
+        el.appendChild(seg);
+        requestAnimationFrame(()=>{ seg.style.width = (100*wasted/scale)+'%'; });
+        if(!seen['lost']){
+          seen['lost'] = true;
+          document.getElementById('mixlegend').insertAdjacentHTML('beforeend',
+            `<span><span class="key hatch" style="width:11px;height:11px"></span>` +
+            `<b>Lost in combustion</b></span>`);
+        }
+      }
+    }
+    renderBar(document.getElementById('mixbar'), IN_DEF, m.components_GWh, 0);
+    if(u){
+      renderBar(document.getElementById('usebar'), OUT_DEF,
+                u.components_GWh, u.wasted_GWh);
+    }
     if(m.combustion_share != null){
-      document.getElementById('combline').innerHTML =
-        'Combustion share of this week\'s total: <b>' +
+      let line = 'Combustion share of energy in: <b>' +
         (100*m.combustion_share).toFixed(0) + '%</b>';
+      if(u && u.components_GWh.hp_ambient > 0){
+        line += ' · Ambient heat harvested by heat pumps this week: ' +
+          '<b style="color:'+css('--geo')+'">' +
+          fmt(u.components_GWh.hp_ambient) + ' GWh — free heat from the environment</b>';
+      }
+      document.getElementById('combline').innerHTML = line;
     }
   }
 
