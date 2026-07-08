@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UK Heat Split — weekly estimate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+<style>
+  :root{
+    --ink:#101418; --surface:#1a2129; --line:#2a333d;
+    --ember:#e4572e; --ash:#5c6672; --geo:#1fa396;
+    --paper:#eae6de; --muted:#8b95a0;
+  }
+  *{box-sizing:border-box;margin:0}
+  body{background:var(--ink);color:var(--paper);
+       font:16px/1.55 "IBM Plex Sans",system-ui,sans-serif}
+  .wrap{max-width:880px;margin:0 auto;padding:0 20px}
+  header{border-bottom:1px solid var(--line);padding:18px 0}
+  header .wrap{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+  .brand{font-family:Archivo;font-weight:800;letter-spacing:.02em}
+  .stamp{font-family:"IBM Plex Mono";font-size:12px;color:var(--muted)}
+  .hero{padding:44px 0 8px}
+  h1{font-family:Archivo;font-weight:800;font-size:clamp(26px,5vw,40px);line-height:1.12}
+  h1 .ember{color:var(--ember)}
+  .sub{color:var(--muted);margin-top:10px;max-width:60ch}
+  .fig{font-family:"IBM Plex Mono";font-size:clamp(30px,6vw,46px);font-weight:500;margin-top:26px}
+  .fig small{font-size:.42em;color:var(--muted);font-family:"IBM Plex Sans"}
+  /* signature: the burn bar */
+  .burnbar{margin:26px 0 6px;height:44px;display:flex;border-radius:4px;overflow:hidden;
+           border:1px solid var(--line)}
+  .burnbar .seg{transition:width 1.1s cubic-bezier(.2,.7,.2,1)}
+  .seg.space{background:var(--ember)}
+  .seg.waste{background:repeating-linear-gradient(135deg,#b83f1e 0 6px,#7e2c15 6px 12px)}
+  .seg.base{background:var(--ash)}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-bottom:36px}
+  .legend b{color:var(--paper);font-weight:500}
+  .key{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+  section{border-top:1px solid var(--line);padding:34px 0}
+  h2{font-family:Archivo;font-weight:700;font-size:19px;margin-bottom:14px}
+  #ts{width:100%;height:340px}
+  .status{display:flex;gap:16px;flex-wrap:wrap;font-family:"IBM Plex Mono";font-size:12px}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+  .ok{background:var(--geo)} .stale{background:var(--ember)}
+  .method p{color:var(--muted);font-size:14px;margin-bottom:10px;max-width:72ch}
+  .method b{color:var(--paper);font-weight:500}
+  footer{padding:26px 0 48px;color:var(--muted);font-size:12.5px;border-top:1px solid var(--line)}
+  @media (prefers-reduced-motion:reduce){.burnbar .seg{transition:none}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <div class="brand">UK HEAT SPLIT</div>
+  <div class="stamp" id="stamp">loading…</div>
+</div></header>
+
+<div class="wrap">
+  <div class="hero">
+    <h1>Most of Britain's heat still comes from <span class="ember">burning gas</span>.</h1>
+    <p class="sub">A weekly, temperature-driven estimate of GB gas demand split into
+      space heating and everything else — and how much of that burn never becomes
+      useful heat. All figures are model estimates, not measurements.</p>
+    <div class="fig" id="wkfig">—<small> GWh of gas burned for space heating this week</small></div>
+    <div class="burnbar" id="burnbar" aria-label="This week's gas split">
+      <div class="seg space" style="width:0%"></div>
+      <div class="seg waste" style="width:0%"></div>
+      <div class="seg base"  style="width:0%"></div>
+    </div>
+    <div class="legend">
+      <span><span class="key" style="background:var(--ember)"></span><b>Space heating</b> (useful)</span>
+      <span><span class="key" style="background:repeating-linear-gradient(135deg,#b83f1e 0 4px,#7e2c15 4px 8px)"></span><b>Wasted at the boiler</b> (~15–17.5%)</span>
+      <span><span class="key" style="background:var(--ash)"></span><b>Non-weather gas</b> (hot water, cooking, industry, power)</span>
+    </div>
+  </div>
+
+  <section>
+    <h2>Daily gas demand vs the heating signal</h2>
+    <div id="ts"></div>
+  </section>
+
+  <section class="method">
+    <h2>Method &amp; honesty panel</h2>
+    <p><b>How this works.</b> Daily National Transmission System gas demand is regressed
+      against population-weighted GB heating degree days (ERA5 reanalysis via Open-Meteo).
+      The temperature-sensitive component is attributed to space heating; the flat baseline
+      is everything else. The approach follows the published Watson/Sansom method.</p>
+    <p><b>What it is not.</b> No heat is metered here. Figures are estimates with material
+      uncertainty; the boiler-waste band uses in-situ UK boiler efficiency measurements
+      (82.5–85%), not nameplate values.</p>
+    <p><b>Northern Ireland.</b> NI is not on the GB gas network shown here. NI heating is
+      estimated annually from subnational consumption statistics scaled by NI degree days.</p>
+    <p><b>Calibration.</b> <span id="calib">—</span></p>
+    <div class="status" id="status"></div>
+  </section>
+</div>
+
+<footer><div class="wrap">
+  Contains data from National Gas Transmission open data · Weather: Open-Meteo.com
+  (CC BY 4.0) / Copernicus ERA5 · Contains public sector information licensed under
+  the Open Government Licence v3.0 · A Causeway Energies public-interest tool.
+</div></footer>
+
+<script>
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+fetch('data.json').then(r=>r.json()).then(d=>{
+  document.getElementById('stamp').textContent =
+    'updated ' + (d.updated||'').slice(0,10) + ' · week ending ' + (d.weekly?.week_ending||'—');
+
+  if(d.weekly){
+    const w=d.weekly, total=w.gas_total_GWh;
+    const useful=w.gas_space_heat_GWh*0.835, waste=w.gas_space_heat_GWh*0.165;
+    document.getElementById('wkfig').innerHTML =
+      Math.round(w.gas_space_heat_GWh).toLocaleString('en-GB') +
+      '<small> GWh of gas burned for space heating this week</small>';
+    const segs=document.querySelectorAll('#burnbar .seg');
+    requestAnimationFrame(()=>{ 
+      segs[0].style.width=(100*useful/total)+'%';
+      segs[1].style.width=(100*waste/total)+'%';
+      segs[2].style.width=(100*w.gas_baseline_GWh/total)+'%';
+    });
+  }
+
+  if(d.series){
+    Plotly.newPlot('ts',[
+      {x:d.series.dates,y:d.series.gas_GWh,name:'Total gas demand',
+       mode:'lines',line:{color:css('--ash'),width:1.5}},
+      {x:d.series.dates,y:d.series.space_heat_GWh,name:'Space-heating estimate',
+       mode:'lines',fill:'tozeroy',line:{color:css('--ember'),width:2},
+       fillcolor:'rgba(228,87,46,.18)'}
+    ],{
+      paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',
+      font:{family:'IBM Plex Sans',color:css('--muted'),size:12},
+      margin:{l:52,r:10,t:10,b:40},
+      yaxis:{title:'GWh/day',gridcolor:css('--line')},
+      xaxis:{gridcolor:css('--line')},
+      legend:{orientation:'h',y:1.12}
+    },{displayModeBar:false,responsive:true});
+  }
+
+  const c=d.calibration;
+  if(c){
+    document.getElementById('calib').textContent =
+      `Trailing 12-month model total ${c.model_12m_gas_space_heat_TWh} TWh vs annual anchor ` +
+      `${c.ecuk_anchor_TWh} TWh (ratio ${c.ratio}). ` +
+      (c.anchor_status.includes('placeholder')
+        ? 'Anchor is a placeholder pending ECUK extraction — treat the split as provisional.'
+        : (c.within_10pct ? 'Within the ±10% publication threshold.'
+                          : 'OUTSIDE the ±10% threshold — split under review.'));
+  }
+  const st=document.getElementById('status');
+  Object.entries(d.sources||{}).forEach(([k,v])=>{
+    st.insertAdjacentHTML('beforeend',
+      `<span><span class="dot ${v.status==='ok'?'ok':'stale'}"></span>${k}: ${v.status}` +
+      (v.last_good?` (last good ${v.last_good})`:'')+'</span>');
+  });
+}).catch(()=>{document.getElementById('stamp').textContent='data.json not found — run the workflow once';});
+</script>
+</body>
+</html>
