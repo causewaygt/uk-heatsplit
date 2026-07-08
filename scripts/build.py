@@ -1,13 +1,14 @@
-"""Build data.json: fetch feeds, regress LDZ (buildings) gas on HDD, write.
+"""Build data.json: fetch feeds, regress LDZ (buildings) gas on HDD, compute
+the weekly GB heat & cooling mix, write output.
 
-Regression target: summed LDZ offtake (excludes power stations).
-NTS total retained for context. DHW sits in the flat baseline; see site
-methodology panel for known biases.
+Gas space heating: live regression (LDZ offtake vs HDD).
+Other fuels & cooling: level from ECUK 2025 End Use tables (calendar 2024,
+UK, rev. 20 Apr 2026), weekly shape from HDD (heating) / CDD base 18
+(cooling); DHW components flat. Cooling & ventilation split 50% flat
+ventilation / 50% CDD-shaped cooling (stated assumption).
 
-Calibration anchor: ECUK 2025 End Use tables (rev. 20 Apr 2026), calendar
-2024, UK: Table U3 domestic natural gas space heating 189.6 TWh + Table U5
-services natural gas heating 68.5 TWh = 258.1 TWh. Adjusted to GB and
-weather-normalised by the ratio of trailing-12-month HDD to calendar-2024 HDD.
+Calibration anchor: ECUK U3 domestic gas space heating 189.6 TWh + U5
+services gas heating 68.5 TWh = 258.1 TWh, GB-adjusted, weather-normalised.
 """
 
 import datetime as dt
@@ -22,11 +23,27 @@ from fetch_gas import fetch_gas_demand                       # noqa: E402
 
 OUT_PATH = os.path.join(os.path.dirname(__file__), "..", "docs", "data.json")
 WINDOW_DAYS = 365
+COOL_BASE = "18.0"
 
 ECUK_UK_GAS_SPACE_HEAT_TWH_2024 = 258.1
-GB_SHARE_OF_UK_GAS_HEAT = 0.985   # NI gas heating excluded from GB LDZ; estimate
+GB_SHARE_OF_UK_GAS_HEAT = 0.985   # NI excluded from GB LDZ; estimate
 ECUK_ANCHOR_STATUS = ("ECUK 2025 U3+U5, calendar 2024, UK; GB share and "
                       "weather normalisation applied")
+
+# UK TWh, ECUK 2025 End Use tables (calendar 2024). space = HDD-shaped,
+# dhw/flat = constant, cool = 50% flat + 50% CDD-shaped.
+ANNUAL_TWH = {
+    "gas_dhw":       64.7,   # U3 55.6 + U5 hot water 9.1
+    "elec_space":    21.2,   # U3 13.7 + U5 heating 7.5
+    "elec_dhw":       5.4,   # U3 3.8 + U5 1.6
+    "oil_space":     45.7,   # U3 21.9 + U5 23.8
+    "oil_dhw":        5.3,
+    "bio_space":     23.8,   # U3 bio 12.1 + U5 'other' 11.7
+    "bio_dhw":        3.5,
+    "heat_networks":  6.2,   # U3 3.2 + U5 3.0
+    "solid":          2.0,
+    "cooling_vent":  10.4,   # U5 cooling & ventilation electricity
+}
 
 
 def ols(x, y):
@@ -56,7 +73,7 @@ def main():
            "sources": {}}
 
     try:
-        dd = fetch_degree_days(days=940)  # back to Dec 2023 for 2024 HDD baseline
+        dd = fetch_degree_days(days=940)  # covers calendar 2024 for anchor
         out["sources"]["degree_days"] = {"status": "ok",
                                          "last_good": dd["dates"][-1]}
     except Exception:
@@ -111,7 +128,9 @@ def main():
     hdd_series = [dd["hdd"][base][dd_idx[d]] for d in common]
     space_heat = [round(max(0.0, best["slope_GWh_per_HDD"] * h), 1)
                   for h in hdd_series]
+    cdd_series = [dd["cdd"][COOL_BASE][dd_idx[d]] for d in common]
 
+    # --- calibration (weather-normalised ECUK anchor) -------------------------
     annual_space_twh = sum(space_heat) / 1000.0
     hdd_all = dd["hdd"][base]
     hdd_2024 = sum(h for d_, h in zip(dd["dates"], hdd_all)
@@ -132,6 +151,7 @@ def main():
         "within_10pct": abs(ratio - 1.0) <= 0.10,
     }
 
+    # --- weekly gas headline ---------------------------------------------------
     wk = common[-7:]
     wk_i = [common.index(d) for d in wk]
     weekly = {
@@ -139,9 +159,44 @@ def main():
         "gas_total_GWh": round(sum(y[i] for i in wk_i), 0),
         "gas_space_heat_GWh": round(sum(space_heat[i] for i in wk_i), 0),
         "hdd_total": round(sum(hdd_series[i] for i in wk_i), 1),
+        "cdd_total": round(sum(cdd_series[i] for i in wk_i), 1),
     }
     weekly["gas_baseline_GWh"] = round(
         weekly["gas_total_GWh"] - weekly["gas_space_heat_GWh"], 0)
+
+    # --- weekly GB heat & cooling mix -----------------------------------------
+    g = GB_SHARE_OF_UK_GAS_HEAT
+    f_flat = 7.0 / 365.0
+    f_h = (weekly["hdd_total"] / hdd_12m) if hdd_12m else 0.0
+    cdd_12m = sum(cdd_series)
+    f_c = (weekly["cdd_total"] / cdd_12m) if cdd_12m else 0.0
+    A = {k: v * g * 1000.0 for k, v in ANNUAL_TWH.items()}  # GWh, GB
+
+    mix = {
+        "gas_space": weekly["gas_space_heat_GWh"],          # live estimate
+        "gas_dhw": round(A["gas_dhw"] * f_flat, 0),
+        "oil": round(A["oil_space"] * f_h + A["oil_dhw"] * f_flat, 0),
+        "elec_heat": round(A["elec_space"] * f_h + A["elec_dhw"] * f_flat, 0),
+        "bio_other": round(A["bio_space"] * f_h + A["bio_dhw"] * f_flat, 0),
+        "heat_networks": round(A["heat_networks"] * f_h, 0),
+        "solid": round(A["solid"] * f_h, 0),
+        "cooling": round(A["cooling_vent"] * (0.5 * f_flat + 0.5 * f_c), 0),
+    }
+    combustion = (mix["gas_space"] + mix["gas_dhw"] + mix["oil"]
+                  + mix["bio_other"] + mix["solid"])
+    total = sum(mix.values())
+    weekly_mix = {
+        "components_GWh": mix,
+        "total_GWh": round(total, 0),
+        "combustion_share": round(combustion / total, 3) if total else None,
+        "shape_factors": {"f_heating": round(f_h, 4),
+                          "f_cooling": round(f_c, 4)},
+        "note": ("Gas space heating is a live regression estimate; other "
+                 "components are ECUK 2024 annual levels shaped by HDD/CDD. "
+                 "Cooling & ventilation split 50% flat / 50% CDD-shaped "
+                 "(assumption). Electric heating includes heat pump input "
+                 "electricity only (ambient heat not yet counted)."),
+    }
 
     # winter context for summer visitors
     peak_i = max(range(len(space_heat) - 6),
@@ -155,12 +210,14 @@ def main():
         "regression": best,
         "calibration": calibration,
         "weekly": weekly,
+        "weekly_mix": weekly_mix,
         "peak_week": peak_week,
         "series": {
             "dates": common,
             "gas_GWh": [round(v, 1) for v in y],
             "nts_GWh": [nts.get(d) for d in common],
             "hdd": hdd_series,
+            "cdd": cdd_series,
             "space_heat_GWh": space_heat,
         },
         "ni_note": {
@@ -173,8 +230,13 @@ def main():
         "_gas": gas,
     })
 
-    print("regression:", best, "| weekly:", weekly,
-          "| calibration:", calibration, "| peak week:", peak_week)
+    print("regression:", best)
+    print("calibration:", calibration)
+    print("weekly:", weekly)
+    print("weekly_mix:", weekly_mix["components_GWh"],
+          "total", weekly_mix["total_GWh"],
+          "combustion", weekly_mix["combustion_share"])
+    print("peak week:", peak_week)
     _write(out)
 
 
