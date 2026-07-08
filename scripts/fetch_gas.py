@@ -121,4 +121,5 @@ def fetch_gas_demand(days=400):
 
 
 if __name__ == "__main__":
-    data =
+    data = fetch_gas_demand(days=14)
+    print(json.dumps(data["_meta"], indent=2))
