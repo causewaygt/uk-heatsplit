@@ -91,7 +91,9 @@ def fetch_gas_demand(days=400):
 
     vals = sorted(raw.values())
     median = vals[len(vals) // 2]
-    if median > 1000:          # already energy units (GWh/day)
+    if median > 1e8:           # kWh/day (National Gas energy basis)
+        factor, unit = 1e-6, "kWh -> GWh"
+    elif median > 1000:        # already GWh/day
         factor, unit = 1.0, "GWh (no conversion)"
     else:                      # volume units (mcm/day)
         factor, unit = MCM_TO_GWH, f"mcm x {MCM_TO_GWH}"
