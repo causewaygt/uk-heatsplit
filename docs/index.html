@@ -49,6 +49,14 @@
   .seg.space{background:var(--ember)}
   .seg.waste{background:repeating-linear-gradient(135deg,#b83f1e 0 6px,#7e2c15 6px 12px)}
   .seg.base{background:var(--ash)}
+  .costtable{width:100%;border-collapse:collapse;font-size:14px;margin:12px 0 6px}
+  .costtable td,.costtable th{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left}
+  .costtable th{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.06em;color:var(--muted);font-weight:400}
+  .costtable .num{font-family:"IBM Plex Mono";text-align:right;white-space:nowrap}
+  .costtable tr.geo-row td{color:var(--geo);font-weight:500}
+  .costnote{font-size:12.5px;color:var(--muted);max-width:72ch}
+  .billline{font-family:"IBM Plex Mono";font-size:14px;margin:14px 0 4px}
+  .billline b{color:var(--paper)}
   .geo{border:1px solid var(--geo);border-radius:6px;padding:22px 22px 18px;margin-top:6px;
        background:linear-gradient(180deg,rgba(31,163,150,.06),rgba(31,163,150,.015))}
   .geo h2{color:var(--geo)}
@@ -103,6 +111,16 @@
       <span><span class="key" style="background:repeating-linear-gradient(135deg,#b83f1e 0 4px,#7e2c15 4px 8px)"></span><b>Wasted at the boiler</b> (~15–17.5%)</span>
       <span><span class="key" style="background:var(--ash)"></span><b>Non-weather gas to buildings</b> (hot water, cooking, industry on the distribution network)</span>
     </div>
+  </section>
+
+  <section>
+    <h2>What heat costs</h2>
+    <div class="billline" id="billline"></div>
+    <table class="costtable">
+      <thead><tr><th>Route</th><th class="num">p per useful kWh</th><th>Basis</th></tr></thead>
+      <tbody id="costrows"></tbody>
+    </table>
+    <p class="costnote" id="costnote"></p>
   </section>
 
   <section>
@@ -315,6 +333,29 @@ fetch('data.json').then(r=>r.json()).then(d=>{
       xaxis:{gridcolor:css('--line')},
       legend:{orientation:'h',y:1.14}
     },{displayModeBar:false,responsive:true});
+  }
+
+  const cost = d.cost;
+  if(cost){
+    document.getElementById('billline').innerHTML =
+      'Britain\'s estimated heating &amp; cooling energy bill this week: <b>~£' +
+      fmt(cost.national_week_total_Mgbp) + ' million</b>' +
+      (cost.gshp_vs_gas_boiler && cost.gshp_vs_gas_boiler.gshp_cheaper
+        ? ' · At current capped prices, ground-source heat (' +
+          cost.gshp_vs_gas_boiler.gshp + 'p/useful kWh) is <b style="color:' +
+          css('--geo') + '">cheaper than a gas boiler</b> (' +
+          cost.gshp_vs_gas_boiler.gas_boiler + 'p).'
+        : '');
+    const rows = document.getElementById('costrows');
+    (cost.household_p_per_useful_kwh || []).forEach(r=>{
+      const isGeo = r.route.toLowerCase().includes('ground');
+      rows.insertAdjacentHTML('beforeend',
+        `<tr${isGeo?' class="geo-row"':''}><td>${r.route}</td>` +
+        `<td class="num">${r.p_per_useful_kwh}p</td>` +
+        `<td style="color:var(--muted);font-size:12.5px">${r.basis}</td></tr>`);
+    });
+    document.getElementById('costnote').textContent =
+      cost.price_tag + '. ' + cost.note;
   }
 
   const geo = d.geothermal;
