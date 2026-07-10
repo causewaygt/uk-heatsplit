@@ -129,6 +129,8 @@
       <div class="geofig" id="geofig">—<small> GWh of heat from the ground this week (estimate)</small></div>
       <p class="geosub" id="geoshare"></p>
       <div class="geobars" id="geobars"></div>
+      <div class="billline" id="geowhatif" style="margin-top:18px"></div>
+      <p class="geosub" id="geowhatifnote"></p>
       <p class="geosub" style="margin-top:16px">Heat from the ground is steady,
         local, combustion-free — and the same boreholes and aquifers that heat in
         winter cool in summer, rejecting heat to ~12°C ground instead of 30°C
@@ -340,6 +342,10 @@ fetch('data.json').then(r=>r.json()).then(d=>{
     document.getElementById('billline').innerHTML =
       'Britain\'s estimated heating &amp; cooling energy bill this week: <b>~£' +
       fmt(cost.national_week_total_Mgbp) + ' million</b>' +
+      (cost.national_week_heat_Mgbp != null
+        ? ' (heat ~£' + fmt(cost.national_week_heat_Mgbp) +
+          'm · cooling ~£' + fmt(cost.national_week_cool_Mgbp) + 'm)'
+        : '') +
       (cost.gshp_vs_gas_boiler && cost.gshp_vs_gas_boiler.gshp_cheaper
         ? ' · At current capped prices, ground-source heat (' +
           cost.gshp_vs_gas_boiler.gshp + 'p/useful kWh) is <b style="color:' +
@@ -374,6 +380,17 @@ fetch('data.json').then(r=>r.json()).then(d=>{
           'and the clearest growth headroom of all).';
       }
       document.getElementById('geoshare').textContent = t;
+    }
+    const wf = d.cost && d.cost.whatif_geothermal;
+    if(wf && d.cost.national_week_total_Mgbp){
+      const actual = d.cost.national_week_total_Mgbp;
+      const saving = actual - wf.cost_Mgbp;
+      document.getElementById('geowhatif').innerHTML =
+        'What if? The same useful heat and cooling delivered by geothermal ' +
+        'networks would have cost <b style="color:' + css('--geo') + '">~£' +
+        fmt(wf.cost_Mgbp) + ' million</b> this week instead of ~£' +
+        fmt(actual) + 'm — a saving of <b>~£' + fmt(saving) + ' million</b>.';
+      document.getElementById('geowhatifnote').textContent = wf.assumptions;
     }
     const rows = [
       ["Today",  geo.annual_TWh.today,         false, geo.tags.today],
