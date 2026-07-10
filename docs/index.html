@@ -19,7 +19,7 @@
        font:16px/1.55 "IBM Plex Sans",system-ui,sans-serif}
   .wrap{max-width:880px;margin:0 auto;padding:0 20px}
   header{border-bottom:1px solid var(--line);padding:18px 0}
-  header .wrap{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+  header .wrap{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
   .brandbox{display:flex;align-items:center;gap:14px}
   .logo img{height:30px;display:block}
   .logo{text-decoration:none}
@@ -27,8 +27,13 @@
   .wordmark em{font-style:normal;color:var(--paper);font-weight:500;margin-left:5px}
   .brand{font-family:Archivo;font-weight:800;letter-spacing:.02em;border-left:1px solid var(--line);padding-left:14px}
   .tickbox{text-align:right}
-  .ticker{font-family:"IBM Plex Mono";font-size:12.5px;margin-bottom:2px}
-  .ticker b{color:var(--geo)} .ticker .neg{color:var(--ember)}
+  .ticker{font-family:"IBM Plex Mono";font-size:15px;line-height:1.55;
+          border:1px solid var(--geo);border-radius:6px;padding:12px 16px;
+          max-width:360px;background:linear-gradient(180deg,rgba(31,163,150,.08),rgba(31,163,150,.02));
+          text-align:left;margin-bottom:4px}
+  .ticker b{color:var(--geo);font-size:1.35em}
+  .ticker .neg{color:var(--ember);font-size:1.35em}
+  @media (max-width:720px){.tickbox{width:100%}.ticker{max-width:none}}
   .stamp{font-family:"IBM Plex Mono";font-size:12px;color:var(--muted)}
   .hero{padding:44px 0 8px}
   h1{font-family:Archivo;font-weight:800;font-size:clamp(26px,5vw,40px);line-height:1.12}
@@ -195,7 +200,7 @@
   </section>
 
   <section class="method">
-    <h2>Method &amp; honesty panel</h2>
+    <h2>Method &amp; caveats</h2>
     <p><b>Gas (live).</b> Daily gas offtake to Britain's local distribution zones
       (LDZ — the network serving homes and most businesses) is regressed against
       population-weighted GB heating degree days (ERA5 reanalysis via Open-Meteo).
@@ -292,7 +297,7 @@ fetch('data.json').then(r=>r.json()).then(d=>{
     ] : null;
     const totalIn = m.total_GWh || 1;
     const totalOut = u ? (u.total_GWh || 1) : 0;
-    const scale = Math.max(totalIn, totalOut);   // same scale, honest lengths
+    const scale = Math.max(totalIn, totalOut);
 
     document.getElementById('st_energy').textContent = fmt(totalIn);
     const hh = d.headlines;
