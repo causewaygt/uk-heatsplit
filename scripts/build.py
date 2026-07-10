@@ -274,14 +274,20 @@ def main():
                                     # rising to ~5% + deep pipeline; range 3.5-6
         "f2050_TWh": 40.0,          # Project InnerSpace / REA / ARUP (Feb 2026):
                                     # 15 GWth ambition ~= ~40 TWh/yr heat
+        "today_cool_TWh": 0.1,      # est. range 0.05-0.2: reversible GSHP +
+                                    # ATES (mostly London Chalk); no national
+                                    # statistic exists - flagged estimate
     }
     geo_today = GEO["today_gshp_TWh"] + GEO["today_deep_TWh"]
     geo_week = geo_today * g * 1000.0 * (0.85 * f_h + 0.15 * f_flat)
+    geo_cool_week = GEO["today_cool_TWh"] * g * 1000.0 * f_c
     heat_week_total = (mix["gas_space"] + mix["gas_dhw"] + mix["oil"]
                        + mix["elec_heat"] + mix["bio_other"]
                        + mix["heat_networks"] + mix["solid"])
     geothermal = {
         "week_GWh": round(geo_week, 0),
+        "week_cool_GWh": round(geo_cool_week, 0),
+        "cool_today_TWh": GEO["today_cool_TWh"],
         "week_share_of_heat": round(geo_week / heat_week_total, 4)
                               if heat_week_total else None,
         "annual_TWh": {
