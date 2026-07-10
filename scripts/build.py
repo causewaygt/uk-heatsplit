@@ -419,6 +419,69 @@ def main():
                  "further toward heat pumps."),
     }
 
+    # --- headline stats: indigenous share + 20% geothermal what-if -------------
+    # Indigenous (UK-origin) shares of purchased energy - flagged estimates:
+    #  gas ~38% UKCS (DUKES supply balance); oil ~30%; bio ~80% (domestic
+    #  wood); solid ~20%; heat networks ~40% (gas-driven); electricity ~75%
+    #  (net imports ~10% + imported-gas share of CCGT). Ambient/ground heat
+    #  is 100% indigenous but is not purchased energy.
+    INDIG = {"gas": 0.38, "oil": 0.30, "bio": 0.80, "solid": 0.20,
+             "heat_networks": 0.40, "elec": 0.75}
+
+    def _indig_pct(gas_gwh, oil_gwh, bio_gwh, solid_gwh, hn_gwh, elec_gwh,
+                   total_gwh):
+        if not total_gwh:
+            return None
+        e = (gas_gwh * INDIG["gas"] + oil_gwh * INDIG["oil"]
+             + bio_gwh * INDIG["bio"] + solid_gwh * INDIG["solid"]
+             + hn_gwh * INDIG["heat_networks"] + elec_gwh * INDIG["elec"])
+        return round(100.0 * e / total_gwh, 0)
+
+    total_in = sum(mix.values())
+    indig_now = _indig_pct(mix["gas_space"] + mix["gas_dhw"], mix["oil"],
+                           mix["bio_other"], mix["solid"],
+                           mix["heat_networks"],
+                           mix["elec_heat"] + mix["cooling"], total_in)
+
+    # what-if: 20% of heat & cooling service moved to geothermal networks
+    R = 0.20
+    heat_repl_elec = (useful_heat_wk * R) / GEO_NETWORK_SCOP
+    cool_repl_elec = (useful["cooling_delivered"] * R) / PASSIVE_COOL_COP
+    adj = {
+        "gas": (mix["gas_space"] + mix["gas_dhw"]) * (1 - R),
+        "oil": mix["oil"] * (1 - R),
+        "bio": mix["bio_other"] * (1 - R),
+        "solid": mix["solid"] * (1 - R),
+        "hn": mix["heat_networks"] * (1 - R),
+        "elec": (mix["elec_heat"] * (1 - R) + mix["cooling"] * (1 - R)
+                 + heat_repl_elec + cool_repl_elec),
+    }
+    new_total = sum(adj.values())
+    indig_20 = _indig_pct(adj["gas"], adj["oil"], adj["bio"], adj["solid"],
+                          adj["hn"], adj["elec"], new_total)
+    bill_20 = (_cost_m(adj["gas"], p["gas"]) + _cost_m(adj["oil"], p["oil"])
+               + _cost_m(adj["bio"], p["bio"])
+               + _cost_m(adj["solid"], p["solid"])
+               + _cost_m(adj["hn"], p["heat_networks"])
+               + _cost_m(adj["elec"], p["elec"]))
+    headlines = {
+        "purchased_GWh": round(total_in, 0),
+        "indigenous_pct": indig_now,
+        "whatif_20pct_geothermal": {
+            "purchased_GWh": round(new_total, 0),
+            "indigenous_pct": indig_20,
+            "bill_Mgbp": round(bill_20, 0),
+        },
+        "indig_note": ("Indigenous = estimated UK-origin share of purchased "
+                       "energy (gas ~38% UKCS, electricity ~75%, others "
+                       "flagged estimates). Ground heat is 100% indigenous "
+                       "but free, so shifting to geothermal shrinks imports "
+                       "twice over. 20% what-if: one-fifth of heat and "
+                       "cooling service via geothermal networks (SCOP 5 / "
+                       "passive COP 20), current cap prices, running cost "
+                       "only."),
+    }
+
     # winter context for summer visitors
     peak_i = max(range(len(space_heat) - 6),
                  key=lambda i: sum(space_heat[i:i + 7]))
@@ -435,6 +498,7 @@ def main():
         "weekly_useful": weekly_useful,
         "geothermal": geothermal,
         "cost": cost,
+        "headlines": headlines,
         "peak_week": peak_week,
         "series": {
             "dates": common,
@@ -465,6 +529,7 @@ def main():
           "wasted", weekly_useful["wasted_GWh"])
     print("geothermal:", geothermal)
     print("cost:", {k: cost[k] for k in ("gshp_vs_gas_boiler","national_week_total_Mgbp")})
+    print("headlines:", headlines)
     print("peak week:", peak_week)
     _write(out)
 
