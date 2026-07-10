@@ -113,8 +113,13 @@
       <div class="geobars" id="geobars"></div>
       <p class="geosub" style="margin-top:16px">Heat from the ground is steady,
         local, combustion-free — and the same boreholes and aquifers that heat in
-        winter can cool in summer. Solid bars are estimated actuals; hatched bars
-        are third-party forecasts and ambitions, each tagged with its source.</p>
+        winter cool in summer, rejecting heat to ~12°C ground instead of 30°C
+        summer air. Active ground-source cooling beats air-cooled chillers on
+        efficiency; passive borehole cooling (circulation only, no compressor)
+        can deliver cooling at COPs of 15–30. Solid bars are estimated actuals;
+        hatched bars are third-party forecasts and ambitions, each tagged with
+        its source. Forecast bars are heat only — no published UK geothermal
+        cooling forecast exists to cite.</p>
     </div>
   </section>
 
@@ -317,11 +322,17 @@ fetch('data.json').then(r=>r.json()).then(d=>{
     document.getElementById('geofig').innerHTML =
       fmt(geo.week_GWh) + '<small> GWh of heat from the ground this week (estimate)</small>';
     if(geo.week_share_of_heat != null){
-      document.getElementById('geoshare').textContent =
-        'That is ~' + (100*geo.week_share_of_heat).toFixed(1) +
+      let t = 'That is ~' + (100*geo.week_share_of_heat).toFixed(1) +
         '% of Britain\'s building heat this week. Deep and mine-water schemes ' +
         'contribute ~' + geo.annual_TWh.today_deep_only +
         ' TWh/yr of the ' + geo.annual_TWh.today + ' TWh/yr total today.';
+      if(geo.week_cool_GWh > 0){
+        t += ' The ground also supplied an estimated ' + fmt(geo.week_cool_GWh) +
+          ' GWh of cooling this week (reversible ground-source systems and ' +
+          'aquifer storage, ~' + geo.cool_today_TWh + ' TWh/yr — barely measured, ' +
+          'and the clearest growth headroom of all).';
+      }
+      document.getElementById('geoshare').textContent = t;
     }
     const rows = [
       ["Today",  geo.annual_TWh.today,         false, geo.tags.today],
