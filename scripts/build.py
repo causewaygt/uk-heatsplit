@@ -330,6 +330,7 @@ def main():
     GSHP_SPF = 3.24   # Energy Systems Catapult in-situ GSHP average
     ASHP_SPF = 2.80   # ESC Electrification of Heat median
     PASSIVE_COOL_COP = 20.0  # illustrative mid-range of 15-30
+    GEO_NETWORK_SCOP = 5.0   # networked geothermal (shared ambient loop)
 
     p = PRICES_P_PER_KWH
     household = [
@@ -348,6 +349,10 @@ def main():
         {"route": "Ground-source / geothermal", "p_per_useful_kwh":
             round(p["elec"] / GSHP_SPF, 1),
          "basis": "cap electricity / SPF 3.24 (ESC field data)"},
+        {"route": "Geothermal heat/cool network", "p_per_useful_kwh":
+            round(p["elec"] / GEO_NETWORK_SCOP, 1),
+         "basis": "cap electricity / SCOP 5.0 (networked ambient loop, "
+                  "shared boreholes/aquifer)"},
         {"route": "Passive ground cooling", "p_per_useful_kwh":
             round(p["elec"] / PASSIVE_COOL_COP, 1),
          "basis": "cap electricity / COP ~20 (circulation only)"},
@@ -368,6 +373,32 @@ def main():
         "solid": round(_cost_m(mix["solid"], p["solid"]), 0),
         "cooling": round(_cost_m(mix["cooling"], p["elec"]), 0),
     }
+    bill_heat = round(bill["gas"] + bill["oil"] + bill["electric_heat"]
+                      + bill["bio_other"] + bill["heat_networks"]
+                      + bill["solid"], 0)
+    bill_cool = bill["cooling"]
+
+    # 3) what-if: same useful heat & cool delivered via geothermal networks
+    useful_heat_wk = (useful["gas_space"] + useful["gas_dhw"] + useful["oil"]
+                      + useful["bio_other"] + useful["solid"]
+                      + useful["heat_networks"] + useful["elec_resistive"]
+                      + useful["hp_electricity"] + useful["hp_ambient"])
+    whatif_heat_m = _cost_m(useful_heat_wk / GEO_NETWORK_SCOP, p["elec"])
+    whatif_cool_m = _cost_m(useful["cooling_delivered"] / PASSIVE_COOL_COP,
+                            p["elec"])
+    whatif = {
+        "useful_heat_GWh": round(useful_heat_wk, 0),
+        "useful_cool_GWh": useful["cooling_delivered"],
+        "cost_Mgbp": round(whatif_heat_m + whatif_cool_m, 0),
+        "heat_Mgbp": round(whatif_heat_m, 0),
+        "cool_Mgbp": round(whatif_cool_m, 0),
+        "assumptions": ("Illustrative Causeway what-if: identical useful heat "
+                        "and cooling delivered via geothermal networks - heat "
+                        "at SCOP 5.0, cooling passively at COP ~20, current "
+                        "capped electricity price. Running cost only; no "
+                        "capex, network build, or price feedbacks."),
+    }
+
     cost = {
         "price_tag": PRICE_TAG,
         "household_p_per_useful_kwh": household,
@@ -377,7 +408,10 @@ def main():
             "gshp_cheaper": (p["elec"] / GSHP_SPF) < (p["gas"] / EFF["gas"]),
         },
         "national_week_Mgbp": bill,
+        "national_week_heat_Mgbp": bill_heat,
+        "national_week_cool_Mgbp": bill_cool,
         "national_week_total_Mgbp": round(sum(bill.values()), 0),
+        "whatif_geothermal": whatif,
         "note": ("Running cost only: no capex, grants, or standing charges. "
                  "Domestic cap rates used as proxy for all sectors. "
                  "The electricity/gas price ratio embeds policy levies on "
