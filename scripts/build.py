@@ -20,6 +20,7 @@ import traceback
 sys.path.insert(0, os.path.dirname(__file__))
 from fetch_degree_days import fetch_degree_days, HDD_BASES  # noqa: E402
 from fetch_gas import fetch_gas_demand                       # noqa: E402
+from fetch_prices import fetch_gas_sap, fetch_elec_mid        # noqa: E402
 
 OUT_PATH = os.path.join(os.path.dirname(__file__), "..", "docs", "data.json")
 WINDOW_DAYS = 365
@@ -482,6 +483,52 @@ def main():
                        "only."),
     }
 
+    # --- daily heat spark gap (wholesale basis; optional feeds) ----------------
+    spark = None
+    try:
+        sap = fetch_gas_sap()
+        mid = fetch_elec_mid()
+        gas_heat = sap["gbp_per_mwh"] / EFF["gas"]
+        hp_heat = mid["gbp_per_mwh"] / GSHP_SPF
+        spark = {
+            "date": max(sap["date"], mid["date"]),
+            "gas_boiler_heat_gbp_mwh": round(gas_heat, 1),
+            "gshp_heat_gbp_mwh": round(hp_heat, 1),
+            "gap_gbp_mwh": round(gas_heat - hp_heat, 1),
+            "basis": ("Wholesale daily: gas SAP / 0.835 boiler efficiency vs "
+                      "electricity market index / SPF 3.24. Commodity cost "
+                      "only - excludes network, policy and supply costs."),
+        }
+        out["sources"]["prices"] = {"status": "ok", "last_good": spark["date"]}
+    except Exception:
+        traceback.print_exc()
+        spark = (prev.get("spark") or None)
+        out["sources"]["prices"] = {
+            "status": "stale" if spark else "unavailable",
+            "last_good": spark.get("date") if spark else None}
+
+    # --- Northern Ireland summary ----------------------------------------------
+    # NI is on separate gas (mutual networks, no GB LDZ) and electricity (SEM)
+    # systems - the live GB feeds above do not cover it.
+    NI_ANNUAL_HEAT_TWH = 14.0   # est. NI buildings heat; ~62% of homes
+                                # oil-heated - flagged estimates, refine from
+                                # NISRA/subnational statistics
+    ni_hdd = dd["ni"]["hdd_15_5"]
+    ni_wk_hdd = round(sum(ni_hdd[-7:]), 1) if len(ni_hdd) >= 7 else None
+    ni_12m = sum(ni_hdd[-365:]) if len(ni_hdd) >= 300 else None
+    ni_f = (sum(ni_hdd[-7:]) / ni_12m) if ni_12m else 0.0
+    ni_week_heat = NI_ANNUAL_HEAT_TWH * 1000.0 * (0.8 * ni_f + 0.2 * f_flat)
+    ni_panel = {
+        "week_hdd": ni_wk_hdd,
+        "week_heat_GWh_est": round(ni_week_heat, 0),
+        "annual_TWh_est": NI_ANNUAL_HEAT_TWH,
+        "oil_share_note": "~62% of NI homes heat with oil (est.)",
+        "why_separate": ("NI runs on separate gas and electricity systems "
+                         "(no GB LDZ, SEM market), so the live GB feeds "
+                         "on this page do not cover it - NI is estimated "
+                         "from annual statistics shaped by NI degree days."),
+    }
+
     # winter context for summer visitors
     peak_i = max(range(len(space_heat) - 6),
                  key=lambda i: sum(space_heat[i:i + 7]))
@@ -499,6 +546,8 @@ def main():
         "geothermal": geothermal,
         "cost": cost,
         "headlines": headlines,
+        "spark": spark,
+        "ni_panel": ni_panel,
         "peak_week": peak_week,
         "series": {
             "dates": common,
@@ -530,6 +579,8 @@ def main():
     print("geothermal:", geothermal)
     print("cost:", {k: cost[k] for k in ("gshp_vs_gas_boiler","national_week_total_Mgbp")})
     print("headlines:", headlines)
+    print("spark:", spark)
+    print("ni_panel:", ni_panel)
     print("peak week:", peak_week)
     _write(out)
 
