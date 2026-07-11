@@ -264,13 +264,22 @@
 <footer><div class="wrap">
   † Causeway Energies estimate – challenge and input welcome:
   <a href="mailto:contact@causewaygt.com" style="color:var(--geo)">contact@causewaygt.com</a><br>
-  Contains data from National Gas Transmission open data · Weather: Open-Meteo.com
+  <span id="siteversion"></span>Contains data from National Gas Transmission open data · Weather: Open-Meteo.com
   (CC BY 4.0) / Copernicus ERA5 · Contains public sector information licensed under
   the Open Government Licence v3.0 (DESNZ ECUK 2025) · A Causeway Energies
   public-interest tool.
 </div></footer>
 
 <script>
+// SITE_VERSION x.y.z - bump on every commit that changes the page:
+//   x: major - new data source or new panel
+//   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
+//   z: patch - wording or formatting change
+const SITE_VERSION = '1.0.0';
+document.addEventListener('DOMContentLoaded', () => {
+  const el = document.getElementById('siteversion');
+  if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
+});
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const fmt = n => Math.round(n).toLocaleString('en-GB');
 
