@@ -188,6 +188,16 @@
   </section>
 
   <section>
+    <h2>What heat emits</h2>
+    <div class="billline" id="carbline"></div>
+    <table class="costtable">
+      <thead><tr><th>Route</th><th class="num">gCO2e per useful kWh</th></tr></thead>
+      <tbody id="carbrows"></tbody>
+    </table>
+    <p class="costnote" id="carbnote"></p>
+  </section>
+
+  <section>
     <div class="geo">
       <h2>Geothermal &amp; ground source — now and next</h2>
       <div class="geofig" id="geofig">—<small> GWh of heat from geothermal this week (estimate)</small></div>
@@ -275,7 +285,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '1.0.0';
+const SITE_VERSION = '2.0.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -469,6 +479,26 @@ fetch('data.json').then(r=>r.json()).then(d=>{
     });
     document.getElementById('costnote').textContent =
       cost.price_tag + '. ' + cost.note;
+  }
+
+  const cb = d.carbon;
+  if(cb && cb.week_kt != null){
+    document.getElementById('carbline').innerHTML =
+      'Estimated heating &amp; cooling emissions this week: <b>~' +
+      fmt(cb.week_kt) + ' kt CO2e</b> (heat ' + fmt(cb.week_heat_kt) +
+      ' kt · cooling ' + fmt(cb.week_cool_kt) + ' kt) · 20% geothermal ' +
+      'what-if saves <b style="color:' + css('--geo') + '">~' +
+      fmt(cb.whatif_saving_kt) + ' kt</b> · grid intensity ' +
+      cb.grid_ci_g_per_kwh + ' g/kWh (7-day mean)';
+    const rows = document.getElementById('carbrows');
+    (cb.routes_g_per_useful_kwh || []).forEach(r=>{
+      const isGeo = r.route.toLowerCase().includes('ground') ||
+                    r.route.toLowerCase().includes('geothermal');
+      rows.insertAdjacentHTML('beforeend',
+        `<tr${isGeo?' class="geo-row"':''}><td>${r.route}</td>` +
+        `<td class="num">${r.g_per_useful_kwh}g</td></tr>`);
+    });
+    document.getElementById('carbnote').textContent = cb.note;
   }
 
   const geo = d.geothermal;
