@@ -33,4 +33,7 @@ jobs:
 
       - name: Failure marker
         if: failure()
-        run: echo "::error::heatsplit daily build failed - check feed status"
+        run: |
+          echo "::error::heatsplit daily build failed - check feed status"
+          curl -s -d "uk-heatsplit daily build FAILED $(date -u +%F) - check Actions log" ntfy.sh/uk-heatsplit-simon-a7k2
+        continue-on-error: true
