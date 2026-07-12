@@ -636,19 +636,25 @@ def main():
         summer = [d_ for d_ in cdd_by_date
                   if 5 <= int(d_[5:7]) <= 9]
         if len(summer) >= 60:
-            wd = [d_ for d_ in summer
-                  if dt.date.fromisoformat(d_).weekday() < 5]
-            we = [d_ for d_ in summer
-                  if dt.date.fromisoformat(d_).weekday() >= 5]
-            we_adj = ((sum(elec[d_] for d_ in wd) / len(wd))
-                      - (sum(elec[d_] for d_ in we) / len(we))) if we else 0.0
-            # weekend days lifted to weekday-equivalent
-            adj = {d_: elec[d_] + (we_adj if
-                   dt.date.fromisoformat(d_).weekday() >= 5 else 0.0)
-                   for d_ in summer}
-            # CDD bins: 0,(0-1],(1-2],(2-3],(3-4],>4
+            # demean within (month, weekend-class) cells: hot-vs-cool
+            # contrasts are made within the same month, removing the
+            # holiday/seasonal baseline confound (Aug demand is depressed
+            # exactly when CDD is highest)
+            cells = {}
+            for d_ in summer:
+                dtd = dt.date.fromisoformat(d_)
+                key = (d_[5:7], dtd.weekday() >= 5)
+                cells.setdefault(key, []).append(d_)
+            anomaly = {}
+            for key, days in cells.items():
+                if len(days) < 4:
+                    continue
+                mean = sum(elec[d_] for d_ in days) / len(days)
+                for d_ in days:
+                    anomaly[d_] = elec[d_] - mean
+            # bin anomalies by CDD
             bins = {}
-            for d_, v in adj.items():
+            for d_, v in anomaly.items():
                 c = cdd_by_date[d_]
                 b = 0 if c == 0 else min(5, int(c) + 1)
                 bins.setdefault(b, []).append(v)
@@ -659,36 +665,44 @@ def main():
                 curve = {b: round(m - base, 1)
                          for b, m in sorted(bin_mean.items()) if b > 0}
                 bin_n = {b: len(v) for b, v in bins.items()}
-                # latent slope from the first populated bin (GWh per CDD,
-                # bin b spans roughly CDD ~ b - 0.5)
-                first_b = min(curve)
-                slope = curve[first_b] / max(0.5, first_b - 0.5)                     if first_b > 1 else curve[first_b] / 0.5
-                # this week: delivered (curve lookup) vs latent (linear)
+                # low-CDD slope for the latent line; guard against a noisy
+                # or negative first bin by using the best-fit through the
+                # first two populated bins forced through the origin
+                lows = [(b - 0.5, curve[b]) for b in sorted(curve)[:2]]
+                num = sum(x * y for x, y in lows)
+                den = sum(x * x for x, y in lows)
+                slope = num / den if den else 0.0
+                slope_ok = slope > 0
                 wk_deliv = 0.0
                 wk_latent = 0.0
                 for d_ in wk:
                     c = dd["cdd"][COOL_BASE][dd_idx[d_]]
                     b = 0 if c == 0 else min(5, int(c) + 1)
-                    wk_deliv += curve.get(b, curve.get(max(curve), 0.0))                         if b > 0 else 0.0
-                    wk_latent += slope * c
+                    wk_deliv += max(0.0, curve.get(
+                        b, curve.get(max(curve), 0.0))) if b > 0 else 0.0
+                    wk_latent += slope * c if slope_ok else 0.0
                 cooling_observed = {
                     "response_curve_GWh_per_day": curve,
                     "bin_days": {str(b): bin_n.get(b, 0)
                                  for b in sorted(bin_mean)},
                     "latent_slope_GWh_per_CDD": round(slope, 1),
+                    "latent_slope_reliable": slope_ok,
                     "week_delivered_GWh": round(wk_deliv, 0),
                     "week_latent_GWh": round(max(wk_latent, wk_deliv), 0),
-                    "week_unmet_GWh": round(max(0.0, wk_latent - wk_deliv), 0),
-                    "summer_days_used": len(summer),
+                    "week_unmet_GWh": round(max(0.0, wk_latent - wk_deliv), 0)
+                        if slope_ok else None,
+                    "summer_days_used": len(anomaly),                    "summer_days_used": len(summer),
                     "note": ("Observed cooling electricity from summer daily "
                              "underlying demand (NESO ND + embedded solar/"
-                             "wind reconstructed) binned by cooling degree "
-                             "days. Flattening of the response curve at high "
-                             "CDD is installed-capacity saturation. Latent "
-                             "demand extrapolates the low-CDD slope "
-                             "linearly" + EST + ". Not yet used in the bill "
-                             "or carbon figures, which remain ECUK-anchored "
-                             "pending a full summer of reconciliation."),
+                             "wind reconstructed), demeaned within month and "
+                             "weekend class to remove the holiday/seasonal "
+                             "baseline, then binned by cooling degree days. "
+                             "Flattening at high CDD indicates capacity and "
+                             "behavioural saturation. Latent demand "
+                             "extrapolates the low-CDD slope linearly" + EST +
+                             ". Not yet used in the bill or carbon figures, "
+                             "which remain ECUK-anchored pending a full "
+                             "summer of reconciliation."),
                 }
     except Exception:
         traceback.print_exc()
