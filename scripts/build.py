@@ -467,10 +467,34 @@ def main():
         return round(100.0 * e / total_gwh, 0)
 
     total_in = sum(mix.values())
+    # purchased basis (retained for methods note / continuity)
     indig_now = _indig_pct(mix["gas_space"] + mix["gas_dhw"], mix["oil"],
                            mix["bio_other"], mix["solid"],
                            mix["heat_networks"],
                            mix["elec_heat"] + mix["cooling"], total_in)
+
+    # services basis: indigenous share of useful heat & cool DELIVERED.
+    # Each service inherits the indigenous share of its energy input;
+    # harvested ambient/ground heat counts at 100% (Eurostat/DUKES treat
+    # it as renewable supply). Cooling's delivered multiple is leverage,
+    # not input - it inherits its electricity's share.
+    def _services_indig(u):
+        total_u = sum(u.values()) - u["wasted_GWh"] if "wasted_GWh" in u             else sum(u.values())
+        e = (u["gas_space"] * INDIG["gas"] + u["gas_dhw"] * INDIG["gas"]
+             + u["oil"] * INDIG["oil"] + u["bio_other"] * INDIG["bio"]
+             + u["solid"] * INDIG["solid"]
+             + u["heat_networks"] * INDIG["heat_networks"]
+             + u["elec_resistive"] * INDIG["elec"]
+             + u["hp_electricity"] * INDIG["elec"]
+             + u["hp_ambient"] * 1.0
+             + u["cooling_delivered"] * INDIG["elec"])
+        tot = (u["gas_space"] + u["gas_dhw"] + u["oil"] + u["bio_other"]
+               + u["solid"] + u["heat_networks"] + u["elec_resistive"]
+               + u["hp_electricity"] + u["hp_ambient"]
+               + u["cooling_delivered"])
+        return (round(100.0 * e / tot, 0), tot) if tot else (None, 0)
+
+    indig_services_now, useful_total = _services_indig(useful)
 
     # what-if: 20% of heat & cooling service moved to geothermal networks
     R = 0.20
@@ -488,6 +512,36 @@ def main():
     new_total = sum(adj.values())
     indig_20 = _indig_pct(adj["gas"], adj["oil"], adj["bio"], adj["solid"],
                           adj["hn"], adj["elec"], new_total)
+
+    # services-basis what-if: the shifted fifth of heat is delivered as
+    # (1/SCOP) grid electricity + (1-1/SCOP) harvested ground heat; the
+    # shifted fifth of cooling as near-passive (1/COP elec + leverage
+    # treated as ground-enabled, indigenous)
+    heat_services = (useful["gas_space"] + useful["gas_dhw"] + useful["oil"]
+                     + useful["bio_other"] + useful["solid"]
+                     + useful["heat_networks"] + useful["elec_resistive"]
+                     + useful["hp_electricity"] + useful["hp_ambient"])
+    cool_services = useful["cooling_delivered"]
+    kept = {k: useful[k] * (1 - R) for k in
+            ("gas_space", "gas_dhw", "oil", "bio_other", "solid",
+             "heat_networks", "elec_resistive", "hp_electricity",
+             "hp_ambient", "cooling_delivered")}
+    e_kept = (kept["gas_space"] * INDIG["gas"] + kept["gas_dhw"] * INDIG["gas"]
+              + kept["oil"] * INDIG["oil"] + kept["bio_other"] * INDIG["bio"]
+              + kept["solid"] * INDIG["solid"]
+              + kept["heat_networks"] * INDIG["heat_networks"]
+              + kept["elec_resistive"] * INDIG["elec"]
+              + kept["hp_electricity"] * INDIG["elec"]
+              + kept["hp_ambient"] * 1.0
+              + kept["cooling_delivered"] * INDIG["elec"])
+    shifted_heat = heat_services * R
+    shifted_cool = cool_services * R
+    e_shift = (shifted_heat * ((1 / GEO_NETWORK_SCOP) * INDIG["elec"]
+                               + (1 - 1 / GEO_NETWORK_SCOP) * 1.0)
+               + shifted_cool * ((1 / PASSIVE_COOL_COP) * INDIG["elec"]
+                                 + (1 - 1 / PASSIVE_COOL_COP) * 1.0))
+    tot_services = heat_services + cool_services
+    indig_services_20 = round(100.0 * (e_kept + e_shift) / tot_services, 0)         if tot_services else None
     bill_20 = (_cost_m(adj["gas"], p["gas"]) + _cost_m(adj["oil"], p["oil"])
                + _cost_m(adj["bio"], p["bio"])
                + _cost_m(adj["solid"], p["solid"])
@@ -495,20 +549,30 @@ def main():
                + _cost_m(adj["elec"], p["elec"]))
     headlines = {
         "purchased_GWh": round(total_in, 0),
-        "indigenous_pct": indig_now,
+        "indigenous_pct": indig_services_now,        # services basis (hero)
+        "indigenous_basis": "services",
+        "indigenous_purchased_pct": indig_now,       # purchased basis (methods)
         "whatif_20pct_geothermal": {
             "purchased_GWh": round(new_total, 0),
-            "indigenous_pct": indig_20,
+            "indigenous_pct": indig_services_20,     # services basis (hero)
+            "indigenous_purchased_pct": indig_20,
             "bill_Mgbp": round(bill_20, 0),
         },
-        "indig_note": ("Indigenous = estimated UK-origin share of purchased "
-                       "energy (gas ~38% UKCS, electricity ~75%, others "
-                       "flagged estimates). Ground heat is 100% indigenous "
-                       "but free, so shifting to geothermal shrinks imports "
-                       "twice over. 20% what-if: one-fifth of heat and "
-                       "cooling service via geothermal networks (SCOP 5 / "
-                       "passive COP 20), current cap prices, running cost "
-                       "only." + EST),
+        "indig_note": ("Indigenous share is measured on a SERVICES basis: "
+                       "the UK-origin share of useful heat and cooling "
+                       "delivered. Each service inherits the origin of its "
+                       "energy input (gas ~38% UKCS, electricity ~75%, "
+                       "others flagged estimates" + EST + "); harvested "
+                       "ambient/ground heat counts as 100% indigenous, "
+                       "consistent with Eurostat/DUKES renewable-supply "
+                       "accounting. Cooling's delivered multiple inherits "
+                       "its electricity's share - thermodynamic leverage is "
+                       "not an energy origin. On the purchased-energy basis "
+                       "the shares are lower and barely move with "
+                       "geothermal, because ground heat is never purchased: "
+                       "that is the point. 20% what-if: one-fifth of heat "
+                       "via SCOP-5 networks (80% ground heat), one-fifth of "
+                       "cooling near-passive at COP 20" + EST + "."),
     }
 
     # --- daily heat spark gap (wholesale basis; optional feeds) ----------------
