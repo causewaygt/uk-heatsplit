@@ -98,7 +98,7 @@
   .geotag{font-size:12px;color:var(--muted);grid-column:2}
   .status{display:flex;gap:16px;flex-wrap:wrap;font-family:"IBM Plex Mono";font-size:12px}
   .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
-  .ok{background:var(--geo)} .stale{background:var(--ember)}
+  .ok{background:var(--geo)} .stale{background:var(--ember)} .lag{background:#d9a514}
   .method p{color:var(--muted);font-size:16px;line-height:1.6;margin-bottom:12px}
   .method b{color:var(--paper);font-weight:500}
   footer{padding:26px 0 48px;color:var(--muted);font-size:12.5px;border-top:1px solid var(--line)}
@@ -305,7 +305,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '3.1.1';
+const SITE_VERSION = '3.2.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -651,8 +651,9 @@ fetch('data.json').then(r=>r.json()).then(d=>{
   const st=document.getElementById('status');
   Object.entries(d.sources||{}).forEach(([k,v])=>{
     st.insertAdjacentHTML('beforeend',
-      `<span><span class="dot ${v.status==='ok'?'ok':'stale'}"></span>${k}: ${v.status}` +
-      (v.last_good?` (last good ${v.last_good})`:'')+'</span>');
+      `<span><span class="dot ${v.status==='ok'?'ok':(v.status==='lagging'?'lag':'stale')}"></span>${k}: ${v.status}` +
+      (v.last_good?` (last good ${v.last_good})`:'') +
+      (v.status==='lagging'?' — source publishes on a lag':'')+'</span>');
   });
 }).catch(()=>{document.getElementById('stamp').textContent='data.json not found — run the workflow once';});
 </script>
