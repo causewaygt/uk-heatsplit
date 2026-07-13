@@ -9,7 +9,10 @@ Self-resolving: finds the historic-demand-data resources for the requested
 years from the CKAN package listing. Optional feed: callers tolerate failure.
 """
 
+import csv
 import datetime as dt
+import io
+
 import requests
 
 CKAN = "https://api.neso.energy/api/3/action"
@@ -55,6 +58,33 @@ def _pull_records(rid, out_sum, out_n):
             break
 
 
+def _pull_csv(url, out_sum, out_n):
+    """Fallback for resources not datastore-backed: download and parse CSV."""
+    r = requests.get(url, timeout=120)
+    r.raise_for_status()
+    reader = csv.DictReader(io.StringIO(r.text))
+    fields = {f.upper().strip(): f for f in (reader.fieldnames or [])}
+    f_date = fields.get("SETTLEMENT_DATE")
+    f_nd = fields.get("ND")
+    f_sol = fields.get("EMBEDDED_SOLAR_GENERATION")
+    f_wind = fields.get("EMBEDDED_WIND_GENERATION")
+    if not (f_date and f_nd):
+        raise RuntimeError(f"CSV missing expected columns; has {reader.fieldnames}")
+    n = 0
+    for rec in reader:
+        date = str(rec.get(f_date, ""))[:10]
+        try:
+            nd = float(rec.get(f_nd) or 0)
+            sol = float(rec.get(f_sol) or 0) if f_sol else 0.0
+            wind = float(rec.get(f_wind) or 0) if f_wind else 0.0
+        except (TypeError, ValueError):
+            continue
+        out_sum[date] = out_sum.get(date, 0.0) + nd + sol + wind
+        out_n[date] = out_n.get(date, 0) + 1
+        n += 1
+    return n
+
+
 def fetch_daily_underlying_demand(years):
     """Returns {date_iso: GWh} of daily underlying GB demand for the given
     calendar years (e.g. [2025, 2026])."""
@@ -82,7 +112,20 @@ def fetch_daily_underlying_demand(years):
         upd_resources = _resources(UPDATE_PACKAGES)
         upd_sum, upd_n = {}, {}
         for res in upd_resources:
-            _pull_records(res["id"], upd_sum, upd_n)
+            try:
+                if res.get("datastore_active"):
+                    _pull_records(res["id"], upd_sum, upd_n)
+                elif res.get("url", "").lower().endswith(".csv") or                         "csv" in (res.get("format") or "").lower():
+                    _pull_csv(res["url"], upd_sum, upd_n)
+                else:
+                    # try datastore anyway, then CSV
+                    try:
+                        _pull_records(res["id"], upd_sum, upd_n)
+                    except Exception:
+                        if res.get("url"):
+                            _pull_csv(res["url"], upd_sum, upd_n)
+            except Exception as res_err:
+                print(f"  update resource {res.get('name','?')} skipped: {res_err}")
         replaced = 0
         for date, s in upd_sum.items():
             if upd_n[date] >= 40:
