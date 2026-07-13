@@ -96,6 +96,17 @@
   .geobar .fill{height:100%;width:0%;background:var(--geo);transition:width 1.1s cubic-bezier(.2,.7,.2,1)}
   .geobar .fill.fc{background:repeating-linear-gradient(135deg,var(--geo) 0 6px,rgba(58,170,53,.35) 6px 12px)}
   .geotag{font-size:12px;color:var(--muted);grid-column:2}
+  .tierrow{display:grid;grid-template-columns:210px 1fr 90px;gap:10px;align-items:center;margin:7px 0}
+  @media (max-width:640px){.tierrow{grid-template-columns:120px 1fr 74px}}
+  .tierrow .tlabel{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.04em;color:var(--muted);text-align:right}
+  .tierrow .tval{font-family:"IBM Plex Mono";font-size:12.5px;white-space:nowrap}
+  .tiertrack{height:22px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:3px;overflow:hidden}
+  .tiertrack .tfill{height:100%;width:0%;transition:width 1s cubic-bezier(.2,.7,.2,1)}
+  .tfill.t1{background:var(--cool)}
+  .tfill.t2{background:var(--muted)}
+  .tfill.t3{background:repeating-linear-gradient(135deg,var(--ember) 0 6px,rgba(228,87,46,.30) 6px 12px)}
+  .tfill.geo-s{background:repeating-linear-gradient(135deg,var(--geo) 0 6px,rgba(58,170,53,.30) 6px 12px)}
+  .tfill.geo-w{background:var(--geo)}
   .status{display:flex;gap:16px;flex-wrap:wrap;font-family:"IBM Plex Mono";font-size:12px}
   .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
   .ok{background:var(--geo)} .stale{background:var(--ember)} .lag{background:#d9a514}
@@ -227,7 +238,11 @@
     <p class="costnote" id="coolobsnote"></p>
     <div class="barlabel" style="margin-top:26px">TIER 3 — THE COMFORT DEFICIT: BUILDINGS WITH NO COOLING AT ALL</div>
     <div class="billline" id="deficitline"></div>
+    <div id="tierbars" style="margin:14px 0 6px"></div>
     <p class="geosub" id="deficitcontext"></p>
+    <div class="barlabel" style="margin-top:22px">THE GEOCOOLING DIVIDEND — SUMMER HEAT BANKED, WINTER HEAT RECOVERED</div>
+    <div id="utesbars" style="margin:10px 0 4px"></div>
+    <p class="costnote" id="utesnote"></p>
     <p class="costnote" id="deficitnote"></p>
   </section>
 
@@ -310,7 +325,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '3.3.0';
+const SITE_VERSION = '3.4.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -580,6 +595,48 @@ fetch('data.json').then(r=>r.json()).then(d=>{
       'air-source compressors. Context: ' + cd.context.ac_penetration_note +
       ' · ' + cd.context.hospitals_note + ' · ' + cd.context.health_note +
       ' · ' + cd.context.productivity_note + '.';
+    const tb = cd.tier_bars;
+    if(tb){
+      const rows = [
+        ['TIER 1 · DELIVERED (equipped fleet)', tb.t1_delivered_th_GWh, 't1', ''],
+        ['TIER 2 · EQUIPPED BUT UNMET', tb.t2_unmet_th_GWh, 't2', ''],
+        ['TIER 3 · NO EQUIPMENT AT ALL', tb.t3_central_GWh, 't3',
+         ' (' + fmt(tb.t3_low_GWh) + '–' + fmt(tb.t3_high_GWh) + ')'],
+      ];
+      const mx = Math.max(tb.t1_delivered_th_GWh, tb.t3_high_GWh, 1);
+      const el = document.getElementById('tierbars');
+      rows.forEach(([lab, v, cls, extra])=>{
+        el.insertAdjacentHTML('beforeend',
+          `<div class="tierrow"><div class="tlabel">${lab}</div>` +
+          `<div class="tiertrack"><div class="tfill ${cls}" data-w="${100*v/mx}"></div></div>` +
+          `<div class="tval">${fmt(v)}${extra} GWh</div></div>`);
+      });
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        el.querySelectorAll('.tfill').forEach(f=>{f.style.width=f.dataset.w+'%';});
+      }));
+    }
+    const ut = cd.utes;
+    if(ut){
+      const el2 = document.getElementById('utesbars');
+      const mx2 = ut.summer_banked_GWh || 1;
+      [['SUMMER · HEAT REJECTED TO STORE', ut.summer_banked_GWh, 'geo-s'],
+       ['WINTER · RECOVERED FOR HEATING', ut.winter_recovered_GWh, 'geo-w']]
+      .forEach(([lab, v, cls])=>{
+        el2.insertAdjacentHTML('beforeend',
+          `<div class="tierrow"><div class="tlabel">${lab}</div>` +
+          `<div class="tiertrack"><div class="tfill ${cls}" data-w="${100*v/mx2}"></div></div>` +
+          `<div class="tval">${fmt(v)} GWh</div></div>`);
+      });
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        el2.querySelectorAll('.tfill').forEach(f=>{f.style.width=f.dataset.w+'%';});
+      }));
+      document.getElementById('utesnote').textContent =
+        'If the central tier-3 load were ground-served: rejected cooling heat ' +
+        '(load + pump input) banks in the aquifer or borehole store; ~' +
+        Math.round(ut.round_trip*100) + '% recovers for winter heating ' +
+        '(UTES round-trip, literature range 50–80% †). Cooling\'s waste ' +
+        'product is heating\'s fuel — one asset, both seasons.';
+    }
     document.getElementById('deficitnote').textContent = cd.note;
   }
 
