@@ -221,9 +221,14 @@
 
   <section>
     <h2>Cooling: demand vs delivery</h2>
+    <div class="barlabel">TIER 1 &amp; 2 — WHAT THE EQUIPPED FLEET DELIVERS</div>
     <div class="billline" id="coolobsline"></div>
     <div id="coolcurve" style="width:100%;height:300px"></div>
     <p class="costnote" id="coolobsnote"></p>
+    <div class="barlabel" style="margin-top:26px">TIER 3 — THE COMFORT DEFICIT: BUILDINGS WITH NO COOLING AT ALL</div>
+    <div class="billline" id="deficitline"></div>
+    <p class="geosub" id="deficitcontext"></p>
+    <p class="costnote" id="deficitnote"></p>
   </section>
 
   
@@ -305,7 +310,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '3.2.0';
+const SITE_VERSION = '3.3.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -556,6 +561,26 @@ fetch('data.json').then(r=>r.json()).then(d=>{
     document.getElementById('coolobsline').textContent =
       'Observed cooling analysis pending sufficient summer data.';
     document.getElementById('coolcurve').style.display = 'none';
+  }
+
+  const cd = d.comfort_deficit;
+  if(cd && cd.scenarios){
+    const c = cd.scenarios.central, lo = cd.scenarios.low, hi = cd.scenarios.high;
+    document.getElementById('deficitline').innerHTML =
+      'This week: <b>' + cd.odh26_week_degC_h + ' °C·h</b> above the ' +
+      cd.threshold_c + '°C comfort threshold · <b>' + lo.dwellings_M + '–' +
+      hi.dwellings_M + ' million homes</b> overheating with no cooling ' +
+      '(central ' + c.dwellings_M + 'M) · latent need ~<b>' +
+      fmt(lo.latent_thermal_GWh) + '–' + fmt(hi.latent_thermal_GWh) +
+      ' GWh</b> of cooling that no equipment exists to deliver';
+    document.getElementById('deficitcontext').innerHTML =
+      'Serving the central load would draw ~<b style="color:' + css('--geo') +
+      '">' + cd.elec_if_ground_GWh + ' GWh</b> of electricity via passive ' +
+      'ground cooling vs ~<b>' + cd.elec_if_air_GWh + ' GWh</b> via ' +
+      'air-source compressors. Context: ' + cd.context.ac_penetration_note +
+      ' · ' + cd.context.hospitals_note + ' · ' + cd.context.health_note +
+      ' · ' + cd.context.productivity_note + '.';
+    document.getElementById('deficitnote').textContent = cd.note;
   }
 
   const geo = d.geothermal;
