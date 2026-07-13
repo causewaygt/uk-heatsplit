@@ -23,6 +23,7 @@ from fetch_gas import fetch_gas_demand                       # noqa: E402
 from fetch_prices import fetch_gas_sap, fetch_elec_mid        # noqa: E402
 from fetch_carbon import fetch_carbon_intensity               # noqa: E402
 from fetch_electricity import fetch_daily_underlying_demand   # noqa: E402
+from fetch_odh import fetch_odh                               # noqa: E402
 
 OUT_PATH = os.path.join(os.path.dirname(__file__), "..", "docs", "data.json")
 WINDOW_DAYS = 365
@@ -728,6 +729,82 @@ def main():
             "status": "stale" if cooling_observed else "unavailable",
             "last_good": prev.get("sources", {}).get("electricity", {}).get("last_good")}
 
+    # --- tier 3: the comfort deficit (latent cooling in unequipped stock) ------
+    # The observed curve above only sees buildings that HAVE cooling. This
+    # tier estimates the sweltering remainder. Anchors (sourced): <5% of UK
+    # homes have AC (CCC; NESO ~3%); EHS 2022-23 ~11% of households report
+    # overheating (low case); CCC "over half at risk" (high case); ~90% of
+    # England's hospital buildings vulnerable to overheating (UKHACC); ONS
+    # 3,271 excess deaths in the 2022 heat-periods; ONS hot-day productivity
+    # loss ~GBP 1.2bn/yr average (GBP 5.3bn peak 2020).
+    # Judgement constants (all †): central overheating fraction, per-dwelling
+    # and per-m2 thermal response per degree-hour, uncooled non-domestic area.
+    UK_DWELLINGS_M = 29.9          # MHCLG-derived UK total, millions
+    AC_PENETRATION = 0.05          # CCC/NESO: <5% of homes
+    F_OVERHEAT = {"low": 0.11, "central": 0.25, "high": 0.50}  # EHS / † / CCC
+    KWH_PER_DWELLING_ODH = 0.2     # † kWh thermal per degC.h per dwelling
+                                   #   (~UA 200 W/K effective cooled zone)
+    NONDOM_UNCOOLED_MM2 = 190.0    # † Mm2 comfort space uncooled: education
+                                   #   ~72 + health ~45 + share of offices/
+                                   #   other (BEES floor areas x † fractions)
+    WH_PER_M2_ODH = 3.0            # † Wh thermal per m2 per degC.h
+    GROUND_COOL_COP = 20.0         # passive/free ground cooling †
+    AIR_COOL_EER = 3.5             # typical air-con delivery
+
+    comfort_deficit = None
+    try:
+        odh = fetch_odh(days=14)
+        odh_days = sorted(odh["daily"])[-7:]
+        odh_week = round(sum(odh["daily"][d_] for d_ in odh_days), 1)
+        out["sources"]["overheating"] = {"status": "ok",
+                                         "last_good": odh_days[-1]}
+        scen = {}
+        for name, f in F_OVERHEAT.items():
+            n_dw = UK_DWELLINGS_M * 1e6 * f * (1 - AC_PENETRATION)
+            dom_gwh = n_dw * KWH_PER_DWELLING_ODH * odh_week / 1e6
+            nd_gwh = (NONDOM_UNCOOLED_MM2 * 1e6 * WH_PER_M2_ODH
+                      * odh_week / 1e9)
+            scen[name] = {
+                "dwellings_M": round(n_dw / 1e6, 1),
+                "latent_thermal_GWh": round(dom_gwh + nd_gwh, 0),
+            }
+        central = scen["central"]["latent_thermal_GWh"]
+        comfort_deficit = {
+            "odh26_week_degC_h": odh_week,
+            "threshold_c": odh["threshold_c"],
+            "scenarios": scen,
+            "elec_if_ground_GWh": round(central / GROUND_COOL_COP, 1),
+            "elec_if_air_GWh": round(central / AIR_COOL_EER, 1),
+            "context": {
+                "ac_penetration_note": "fewer than 5% of UK homes have air "
+                    "conditioning (CCC; NESO ~3%)",
+                "hospitals_note": "~90% of England's hospital buildings are "
+                    "vulnerable to overheating (UKHACC); NHS overheating "
+                    "incidents 5,554 in 2021-22",
+                "health_note": "3,271 excess deaths in the England & Wales "
+                    "2022 heat-periods (ONS/UKHSA)",
+                "productivity_note": "hot days cost GB ~GBP 1.2bn/yr in lost "
+                    "output on average, GBP 5.3bn in 2020 (ONS)",
+            },
+            "note": ("The observed curve above only sees buildings that have "
+                     "cooling. This tier estimates the sweltering remainder: "
+                     "overheating-degree-hours above the CIBSE 26 degC "
+                     "threshold (population-weighted, all hours - no "
+                     "occupancy model" + EST + ") x the unequipped stock at "
+                     "risk (low: EHS 11% self-reported; central 25%" + EST +
+                     "; high: CCC over-half-at-risk) x per-dwelling and "
+                     "per-m2 thermal response" + EST + ". Meeting the "
+                     "central load via passive ground cooling would draw "
+                     "~1/6 the electricity of air-source compressors - and "
+                     "the rejected heat recharges the ground for winter."),
+        }
+    except Exception:
+        traceback.print_exc()
+        comfort_deficit = prev.get("comfort_deficit")
+        out["sources"]["overheating"] = {
+            "status": "stale" if comfort_deficit else "unavailable",
+            "last_good": prev.get("sources", {}).get("overheating", {}).get("last_good")}
+
     # winter context for summer visitors
     peak_i = max(range(len(space_heat) - 6),
                  key=lambda i: sum(space_heat[i:i + 7]))
@@ -749,6 +826,7 @@ def main():
         "ni_panel": ni_panel,
         "carbon": carbon,
         "cooling_observed": cooling_observed,
+        "comfort_deficit": comfort_deficit,
         "peak_week": peak_week,
         "series": {
             "dates": common,
@@ -784,6 +862,7 @@ def main():
     print("ni_panel:", ni_panel)
     print("carbon:", carbon)
     print("cooling_observed:", cooling_observed)
+    print("comfort_deficit:", comfort_deficit)
     print("peak week:", peak_week)
     _write(out)
 
