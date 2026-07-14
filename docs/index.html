@@ -331,7 +331,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '3.5.2';
+const SITE_VERSION = '3.5.3';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -759,5 +759,6 @@ fetch('data.json').then(r=>r.json()).then(d=>{
   });
 }).catch(()=>{document.getElementById('stamp').textContent='data.json not found — run the workflow once';});
 </script>
-</body>
+<script data-goatcounter="https://causewaygt.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script></body>
 </html>
