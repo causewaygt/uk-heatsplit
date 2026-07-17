@@ -108,6 +108,8 @@
   .tfill.t3{background:repeating-linear-gradient(135deg,var(--ember) 0 6px,rgba(228,87,46,.30) 6px 12px)}
   .tfill.geo-s{background:repeating-linear-gradient(135deg,var(--geo) 0 6px,rgba(58,170,53,.30) 6px 12px)}
   .tfill.geo-w{background:var(--geo)}
+  .whygrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+  @media (max-width:700px){.whygrid{grid-template-columns:1fr}}
   .status{display:flex;gap:16px;flex-wrap:wrap;font-family:"IBM Plex Mono";font-size:12px}
   .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
   .ok{background:var(--geo)} .stale{background:var(--ember)} .lag{background:#d9a514}
@@ -261,6 +263,16 @@
   </section>
 
   <section class="method">
+    <h2>WHY HEAT?</h2>
+    <p class="geosub" id="whyheatline"></p>
+    <div class="whygrid">
+      <div><div class="barlabel">ENERGY SERVICES DELIVERED — TWh/yr</div><div id="why_twh" style="width:100%;height:260px"></div></div>
+      <div><div class="barlabel">WHAT WE SPEND — £bn/yr</div><div id="why_cost" style="width:100%;height:260px"></div></div>
+      <div><div class="barlabel">IMPORTED ENERGY — TWh/yr</div><div id="why_imp" style="width:100%;height:260px"></div></div>
+      <div><div class="barlabel">ENERGY EMISSIONS — Mt CO2e/yr</div><div id="why_em" style="width:100%;height:260px"></div></div>
+    </div>
+    <p class="costnote" id="whyheatnote"></p>
+
     <h2>Method &amp; caveats</h2>
     <p style="color:var(--geo);font-size:15px;line-height:1.6">† Current
       Causeway Energies estimate – challenge and input welcome at
@@ -332,7 +344,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '3.6.0';
+const SITE_VERSION = '4.0.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -727,6 +739,46 @@ fetch('data.json').then(r=>r.json()).then(d=>{
                : '<span class="neg">gas ahead by £' + Math.abs(sp.gap_gbp_mwh) + '</span>');
     document.getElementById('ticker').title = sp.basis;
   }
+  const wh = d.why_heat;
+  if(wh){
+    document.getElementById('whyheatline').innerHTML =
+      'Zoom out: of everything Britain pays for as energy — power, ' +
+      'transport, heat — <b style="color:' + css('--ember') + '">heat is ' +
+      'the largest service, the cheapest per unit, and still fossil</b>. ' +
+      'Four views of the same three services, ' + wh.year + ':';
+    const CLR = {heat: css('--ember'), transport: '#7A8B99',
+                 power_other: '#5B9BD5'};
+    const NAME = {heat: 'Heat', transport: 'Transport',
+                  power_other: 'Power (other electricity)'};
+    function whypie(el, obj, unit){
+      const keys = ['heat','transport','power_other'];
+      Plotly.newPlot(el, [{
+        type: 'pie', sort: false, direction: 'clockwise',
+        labels: keys.map(k=>NAME[k]),
+        values: keys.map(k=>obj[k]),
+        marker: {colors: keys.map(k=>CLR[k]),
+                 line: {color: '#101512', width: 2}},
+        textinfo: 'value', texttemplate: '%{value:,}' + unit,
+        textfont: {family: 'IBM Plex Mono', size: 12},
+        hovertemplate: '%{label}: %{value:,}' + unit +
+                       ' (%{percent})<extra></extra>',
+        hole: 0.45,
+      }], {
+        paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+        showlegend: el === 'why_twh',
+        legend: {font: {color: '#c9d3cc', size: 11},
+                 orientation: 'h', y: -0.12},
+        margin: {l: 6, r: 6, t: 6, b: 6},
+        font: {color: '#c9d3cc'},
+      }, {displayModeBar: false, responsive: true});
+    }
+    whypie('why_twh',  wh.services_TWh, '');
+    whypie('why_cost', wh.cost_bn,      '');
+    whypie('why_imp',  wh.imported_TWh, '');
+    whypie('why_em',   wh.emissions_Mt, '');
+    document.getElementById('whyheatnote').textContent = wh.note;
+  }
+
   const ni = d.ni_panel;
   if(ni){
     document.getElementById('nipanel').textContent =
@@ -763,5 +815,7 @@ fetch('data.json').then(r=>r.json()).then(d=>{
   });
 }).catch(()=>{document.getElementById('stamp').textContent='data.json not found — run the workflow once';});
 </script>
+<script data-goatcounter="https://causewaygt.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
 </body>
 </html>
