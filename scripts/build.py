@@ -323,18 +323,26 @@ def main():
             "forecast_2031": GEO["f2031_TWh"],
             "ambition_2050": GEO["f2050_TWh"],
         },
+        "benchmark": ("Benchmark (EGEC Geothermal Market Report 2025): "
+                      "Europe's 2.55 million geothermal heat pumps "
+                      "delivered 88 TWh of heat in 2025. Sweden alone sold "
+                      "26,785 units last year - the UK sold 4,070, with "
+                      "twelve times Sweden's population."),
         "tags": {
             "today": "GSHP 1.43 TWh/yr: EGEC 2025 UK Country Update "
                      "(~55,210 units, 847-861 MWth, 2023 base) + ~0.07 "
                      "TWh/yr deep/mine/open-loop district (Gateshead 6 MWth, "
                      "Eden 1.4 MWth, Lanchester; Southampton no current "
                      "data). Range 1.4-2.0" + EST,
-            "forecast_2027": "Trend: GSHP ~1.3% of MCS heat-pump installs "
-                             "(H1 2025: 413 of 30.6k) + Langarth/United Downs "
-                             "pipeline" + EST,
+            "forecast_2027": "Trend: 4,070 UK GHP units sold in 2025 + 4 "
+                             "new large closed-loop systems commissioned "
+                             "(EGEC GMR 2025; MCS-certified subset far "
+                             "smaller) + Langarth/United Downs pipeline" + EST,
             "forecast_2031": "Scenario: CCC Seventh Carbon Budget pathway "
                              "(450k HP/yr by 2030) x rising GSHP share + "
-                             "deep pipeline - Causeway derivation, range 3.5-6" + EST,
+                             "deep pipeline (~11 UK geothermal DH systems in "
+                             "development, EGEC GMR 2025) - Causeway "
+                             "derivation, range 3.5-6" + EST,
             "ambition_2050": "Project InnerSpace / REA / ARUP, Feb 2026: "
                              "15 GWth by 2050",
         },
