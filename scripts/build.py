@@ -9,6 +9,15 @@ ventilation / 50% CDD-shaped cooling (stated assumption).
 
 Calibration anchor: ECUK U3 domestic gas space heating 189.6 TWh + U5
 services gas heating 68.5 TWh = 258.1 TWh, GB-adjusted, weather-normalised.
+
+Phase-1 ticker (Jul 2026): the weekly hero estimators live in
+compute_week()/compute_week_emissions() and are used BOTH for the live
+panels and for the rolling weekly history array that feeds the sparklines.
+History weeks are calendar weeks (Mon-Sun), computed only where the gas
+feed actually served all 7 days ("live" by construction), priced at the
+Ofgem cap in force that week, with that week's historical grid carbon
+intensity. Idempotent: keyed by week_ending; the 2 most recent weeks are
+recomputed each run (feed revisions), older weeks are frozen as written.
 """
 
 import datetime as dt
@@ -16,6 +25,7 @@ import json
 import os
 import sys
 import traceback
+import urllib.request
 
 sys.path.insert(0, os.path.dirname(__file__))
 from fetch_degree_days import fetch_degree_days, HDD_BASES  # noqa: E402
@@ -28,6 +38,7 @@ from fetch_odh import fetch_odh                               # noqa: E402
 OUT_PATH = os.path.join(os.path.dirname(__file__), "..", "docs", "data.json")
 WINDOW_DAYS = 365
 EST = " \u2020"   # marks a Causeway estimate - see site footnote
+HISTORY_MAX = 60  # weekly entries kept (spec: cap and roll)
 
 
 def _recency(status, last_good, lag_ok_days=7):
@@ -64,6 +75,388 @@ ANNUAL_TWH = {
     "cooling_vent":  10.4,   # U5 cooling & ventilation electricity
 }
 
+# --- prices ------------------------------------------------------------------
+# Ofgem price cap, GB direct-debit average unit rates incl VAT, p/kWh, by
+# cap-period start date. Sourced: Ofgem quarterly announcements.
+# EXTEND QUARTERLY (next: 1 Oct 2026 rates, announced by ~26 Aug 2026).
+# Ticker correctness rule 1: a backfilled week is priced at the cap IN FORCE
+# that week, never today's. cap_prices() resolves the period from the date.
+# If the live gas window ever reaches before the first row, extend backwards
+# from Ofgem's historical cap levels before trusting those weeks' bills.
+CAP_HISTORY = [
+    # (period start, gas p/kWh, elec p/kWh)
+    ("2025-04-01", 6.99, 27.03),
+    ("2025-07-01", 6.33, 25.73),
+    ("2025-10-01", 6.29, 26.35),
+    ("2026-01-01", 5.93, 27.69),
+    ("2026-04-01", 5.74, 24.67),
+    ("2026-07-01", 7.33, 26.11),
+]
+# Oil/bio/heat-network/solid unit prices are flagged estimates, held flat
+# across the history window (no reliable weekly series; noted in methods).
+NONCAP_PRICES_P_PER_KWH = {
+    "oil": 7.2,             # est. kerosene ~75p/l / 10.35 kWh/l - confirm
+    "bio": 7.5,             # est. wood pellet - confirm
+    "heat_networks": 10.0,  # est. typical network tariff - confirm
+    "solid": 6.0,           # est.
+}
+
+# Non-domestic (services) unit prices for the sector-blended bill, p/kWh
+# incl CCL - Causeway estimate anchored on DESNZ QEP non-domestic tables
+# 3.4.1-3.4.2 (Q4 2025 manufacturing averages, excl CCL: gas 3.5 / elec
+# 16.8, QEP Mar 2026 - the large-user floor; ECUK services buildings sit
+# in the small/medium bands, several p/kWh higher; CCL 2025/26 adds
+# 0.775 p/kWh to each). UPDATE ANNUALLY on the ECUK refresh from the QEP
+# tables (gov.uk statistical-data-sets/gas-and-electricity-prices-in-the-
+# non-domestic-sector). Held flat across the history window (no quarterly
+# series attempted) - stated in history_note and methodology 9.2.
+NONDOM_PRICES_P_PER_KWH = {"gas": 5.5, "elec": 24.0}   # estimates †
+
+# Domestic share of each purchased-energy component, from the same ECUK
+# 2025 U3 (domestic) / U5 (services) tables that anchor ANNUAL_TWH.
+# gas_space: calibration anchor split 189.6 dom / 68.5 serv. oil, elec and
+# bio combine space + DHW at annual weights (DHW assumed domestic where U5
+# has no line). cooling_vent is U5-only, so 0.0 domestic (household AC <5%);
+# solid assumed domestic. whatif_heat is the domestic share of delivered
+# heat overall (dominated by domestic gas) - estimate †.
+DOM_SHARE = {
+    "gas_space": 0.735, "gas_dhw": 0.859, "oil": 0.533, "elec_heat": 0.658,
+    "bio_other": 0.571, "heat_networks": 0.516, "solid": 1.0, "cooling": 0.0,
+    "whatif_heat": 0.73,
+}
+
+
+def _blend(p, fuel, comp):
+    """Sector-blended unit price: the component's ECUK domestic share at
+    the cap rate, the remainder at the QEP-anchored non-domestic rate.
+    Only gas and electricity carry a distinct non-domestic price; other
+    fuels fall through to their single estimate."""
+    nd = NONDOM_PRICES_P_PER_KWH.get(fuel)
+    if nd is None:
+        return p[fuel]
+    s = DOM_SHARE[comp]
+    return s * p[fuel] + (1.0 - s) * nd
+
+
+def cap_prices(date_iso):
+    """Unit-price dict for the cap period containing date_iso, plus the
+    period start (for provenance). Dates before the table clamp to row 0."""
+    row = CAP_HISTORY[0]
+    for r in CAP_HISTORY:
+        if r[0] <= date_iso:
+            row = r
+    p = dict(NONCAP_PRICES_P_PER_KWH)
+    p["gas"], p["elec"] = row[1], row[2]
+    return p, row[0]
+
+
+# --- shared estimator constants (single source for live panels + history) ---
+EFF = {"gas": 0.835, "oil": 0.82, "bio": 0.70, "solid": 0.55,
+       "heat_networks": 1.0, "resistive": 1.0}
+HP_ELEC_TWH = 2.0
+HP_SPF = 2.8
+COOL_EER = 3.0
+HP_FLAT_SHARE = 0.15   # HP hot-water runs year-round (assumption)
+
+GSHP_SPF = 3.24   # Energy Systems Catapult in-situ GSHP average
+ASHP_SPF = 2.80   # ESC Electrification of Heat median
+PASSIVE_COOL_COP = 20.0  # illustrative mid-range of 15-30
+GEO_NETWORK_SCOP = 5.0   # networked geothermal (shared ambient loop)
+
+# Indigenous (UK-origin) shares of purchased energy - flagged estimates:
+#  gas ~38% UKCS (DUKES supply balance); oil ~30%; bio ~80% (domestic
+#  wood); solid ~20%; heat networks ~40% (gas-driven); electricity ~75%
+#  (net imports ~10% + imported-gas share of CCGT). Ambient/ground heat
+#  is 100% indigenous but is not purchased energy.
+INDIG = {"gas": 0.38, "oil": 0.30, "bio": 0.80, "solid": 0.20,
+         "heat_networks": 0.40, "elec": 0.75}
+
+R_SHIFT = 0.20   # the 20% geothermal what-if
+
+# Combustion factors: DESNZ GHG conversion factors 2025, gross CV,
+# gCO2e/kWh fuel: natural gas ~183, kerosene ~247, coal ~345.
+# Bioenergy combustion counted at 0 (biogenic convention) - supply-chain
+# emissions excluded and noted. Heat networks assumed gas-fired (†).
+CF = {"gas": 183.0, "oil": 247.0, "solid": 345.0, "bio": 0.0,
+      "heat_networks": 183.0}
+
+
+def _cost_m(gwh, price):
+    return gwh * price / 100.0  # GWh * p/kWh -> £m
+
+
+def _indig_pct(gas_gwh, oil_gwh, bio_gwh, solid_gwh, hn_gwh, elec_gwh,
+               total_gwh):
+    if not total_gwh:
+        return None
+    e = (gas_gwh * INDIG["gas"] + oil_gwh * INDIG["oil"]
+         + bio_gwh * INDIG["bio"] + solid_gwh * INDIG["solid"]
+         + hn_gwh * INDIG["heat_networks"] + elec_gwh * INDIG["elec"])
+    return round(100.0 * e / total_gwh, 0)
+
+
+def compute_week(gas_space_wk, hdd_wk, cdd_wk, hdd_12m, cdd_12m, p):
+    """All weekly derived quantities for any 7-day window: mix, useful,
+    bills, what-ifs, indigenous shares. THE single source of estimators -
+    the live panels and every ticker history entry go through here, so
+    live and backfilled weeks are comparable by construction (spec: 'same
+    estimators'). Emissions need a grid CI and live in
+    compute_week_emissions()."""
+    g = GB_SHARE_OF_UK_GAS_HEAT
+    f_flat = 7.0 / 365.0
+    f_h = (hdd_wk / hdd_12m) if hdd_12m else 0.0
+    f_c = (cdd_wk / cdd_12m) if cdd_12m else 0.0
+    A = {k: v * g * 1000.0 for k, v in ANNUAL_TWH.items()}  # GWh, GB
+
+    mix = {
+        "gas_space": round(gas_space_wk, 0),                # live estimate
+        "gas_dhw": round(A["gas_dhw"] * f_flat, 0),
+        "oil": round(A["oil_space"] * f_h + A["oil_dhw"] * f_flat, 0),
+        "elec_heat": round(A["elec_space"] * f_h + A["elec_dhw"] * f_flat, 0),
+        "bio_other": round(A["bio_space"] * f_h + A["bio_dhw"] * f_flat, 0),
+        "heat_networks": round(A["heat_networks"] * f_h, 0),
+        "solid": round(A["solid"] * f_h, 0),
+        "cooling": round(A["cooling_vent"] * (0.5 * f_flat + 0.5 * f_c), 0),
+    }
+    combustion = (mix["gas_space"] + mix["gas_dhw"] + mix["oil"]
+                  + mix["bio_other"] + mix["solid"])
+    total = sum(mix.values())
+
+    # useful heat & cool delivered (dual-bar basis). Conversion factors,
+    # sourced/flagged: gas boiler in-situ 0.835 (RAP/field trials 82.5-85%);
+    # oil 0.82 (est., older stock); bio 0.70 (est., stoves/boilers range
+    # 60-80%); solid 0.55 (est.); heat networks 1.0 (ECUK 'heat' is
+    # delivered heat; upstream losses excluded); resistive electric 1.0.
+    # Heat pumps: domestic HP electricity 2.0 TWh/yr (ECUK 2025, 169 ktoe,
+    # 2024; non-domestic HP excluded - understates). Blended SPF 2.8
+    # (Energy Systems Catapult EoH median ASHP 2.80; GSHP 3.24).
+    # Cooling: EER 3.0 (assumption) on the CDD-shaped half; ventilation
+    # counted at 1.0 (fan energy delivers a service, not multiplied).
+    hp_elec_wk = HP_ELEC_TWH * g * 1000.0 * (
+        (1 - HP_FLAT_SHARE) * f_h + HP_FLAT_SHARE * f_flat)
+    hp_elec_wk = min(hp_elec_wk, mix["elec_heat"])       # cannot exceed segment
+    resistive_wk = mix["elec_heat"] - hp_elec_wk
+    hp_heat_wk = hp_elec_wk * HP_SPF
+    hp_ambient_wk = hp_heat_wk - hp_elec_wk
+
+    cool_flat = A["cooling_vent"] * 0.5 * f_flat          # ventilation, flat
+    cool_shaped = A["cooling_vent"] * 0.5 * f_c           # true cooling
+    cool_useful = cool_flat * 1.0 + cool_shaped * COOL_EER
+
+    useful = {
+        "gas_space": round(mix["gas_space"] * EFF["gas"], 0),
+        "gas_dhw": round(mix["gas_dhw"] * EFF["gas"], 0),
+        "oil": round(mix["oil"] * EFF["oil"], 0),
+        "bio_other": round(mix["bio_other"] * EFF["bio"], 0),
+        "solid": round(mix["solid"] * EFF["solid"], 0),
+        "heat_networks": round(mix["heat_networks"] * EFF["heat_networks"], 0),
+        "elec_resistive": round(resistive_wk, 0),
+        "hp_electricity": round(hp_elec_wk, 0),
+        "hp_ambient": round(hp_ambient_wk, 0),
+        "cooling_delivered": round(cool_useful, 0),
+    }
+    wasted = round(
+        (mix["gas_space"] + mix["gas_dhw"]) * (1 - EFF["gas"])
+        + mix["oil"] * (1 - EFF["oil"])
+        + mix["bio_other"] * (1 - EFF["bio"])
+        + mix["solid"] * (1 - EFF["solid"]), 0)
+
+    # national weekly bill: energy-in mix x sector-blended unit prices -
+    # each component's ECUK domestic share at the Ofgem cap, the services
+    # remainder at QEP-anchored non-domestic rates †. GWh x p/kWh = £10k.
+    bill = {
+        "gas": round(_cost_m(mix["gas_space"], _blend(p, "gas", "gas_space"))
+                     + _cost_m(mix["gas_dhw"], _blend(p, "gas", "gas_dhw")), 0),
+        "oil": round(_cost_m(mix["oil"], p["oil"]), 0),
+        "electric_heat": round(_cost_m(mix["elec_heat"],
+                                       _blend(p, "elec", "elec_heat")), 0),
+        "bio_other": round(_cost_m(mix["bio_other"], p["bio"]), 0),
+        "heat_networks": round(_cost_m(mix["heat_networks"],
+                                       p["heat_networks"]), 0),
+        "solid": round(_cost_m(mix["solid"], p["solid"]), 0),
+        "cooling": round(_cost_m(mix["cooling"],
+                                 _blend(p, "elec", "cooling")), 0),
+    }
+    bill_heat = round(bill["gas"] + bill["oil"] + bill["electric_heat"]
+                      + bill["bio_other"] + bill["heat_networks"]
+                      + bill["solid"], 0)
+    bill_cool = bill["cooling"]
+
+    # what-if: same useful heat & cool delivered via geothermal networks
+    useful_heat_wk = (useful["gas_space"] + useful["gas_dhw"] + useful["oil"]
+                      + useful["bio_other"] + useful["solid"]
+                      + useful["heat_networks"] + useful["elec_resistive"]
+                      + useful["hp_electricity"] + useful["hp_ambient"])
+    whatif_heat_m = _cost_m(useful_heat_wk / GEO_NETWORK_SCOP,
+                            _blend(p, "elec", "whatif_heat"))
+    whatif_cool_m = _cost_m(useful["cooling_delivered"] / PASSIVE_COOL_COP,
+                            _blend(p, "elec", "cooling"))
+
+    total_in = sum(mix.values())
+    # purchased basis (retained for methods note / continuity)
+    indig_now = _indig_pct(mix["gas_space"] + mix["gas_dhw"], mix["oil"],
+                           mix["bio_other"], mix["solid"],
+                           mix["heat_networks"],
+                           mix["elec_heat"] + mix["cooling"], total_in)
+
+    # services basis: indigenous share of useful heat & cool DELIVERED.
+    # Each service inherits the indigenous share of its energy input;
+    # harvested ambient/ground heat counts at 100% (Eurostat/DUKES treat
+    # it as renewable supply). Cooling's delivered multiple is leverage,
+    # not input - it inherits its electricity's share.
+    e_now = (useful["gas_space"] * INDIG["gas"]
+             + useful["gas_dhw"] * INDIG["gas"]
+             + useful["oil"] * INDIG["oil"]
+             + useful["bio_other"] * INDIG["bio"]
+             + useful["solid"] * INDIG["solid"]
+             + useful["heat_networks"] * INDIG["heat_networks"]
+             + useful["elec_resistive"] * INDIG["elec"]
+             + useful["hp_electricity"] * INDIG["elec"]
+             + useful["hp_ambient"] * 1.0
+             + useful["cooling_delivered"] * INDIG["elec"])
+    useful_total = (useful["gas_space"] + useful["gas_dhw"] + useful["oil"]
+                    + useful["bio_other"] + useful["solid"]
+                    + useful["heat_networks"] + useful["elec_resistive"]
+                    + useful["hp_electricity"] + useful["hp_ambient"]
+                    + useful["cooling_delivered"])
+    indig_services_now = (round(100.0 * e_now / useful_total, 0)
+                          if useful_total else None)
+
+    # what-if: 20% of heat & cooling service moved to geothermal networks
+    R = R_SHIFT
+    heat_repl_elec = (useful_heat_wk * R) / GEO_NETWORK_SCOP
+    cool_repl_elec = (useful["cooling_delivered"] * R) / PASSIVE_COOL_COP
+    adj = {
+        "gas": (mix["gas_space"] + mix["gas_dhw"]) * (1 - R),
+        "oil": mix["oil"] * (1 - R),
+        "bio": mix["bio_other"] * (1 - R),
+        "solid": mix["solid"] * (1 - R),
+        "hn": mix["heat_networks"] * (1 - R),
+        "elec": (mix["elec_heat"] * (1 - R) + mix["cooling"] * (1 - R)
+                 + heat_repl_elec + cool_repl_elec),
+    }
+    new_total = sum(adj.values())
+    indig_20 = _indig_pct(adj["gas"], adj["oil"], adj["bio"], adj["solid"],
+                          adj["hn"], adj["elec"], new_total)
+
+    # services-basis what-if: the shifted fifth of heat is delivered as
+    # (1/SCOP) grid electricity + (1-1/SCOP) harvested ground heat; the
+    # shifted fifth of cooling as near-passive (1/COP elec + leverage
+    # treated as ground-enabled, indigenous)
+    heat_services = (useful["gas_space"] + useful["gas_dhw"] + useful["oil"]
+                     + useful["bio_other"] + useful["solid"]
+                     + useful["heat_networks"] + useful["elec_resistive"]
+                     + useful["hp_electricity"] + useful["hp_ambient"])
+    cool_services = useful["cooling_delivered"]
+    kept = {k: useful[k] * (1 - R) for k in
+            ("gas_space", "gas_dhw", "oil", "bio_other", "solid",
+             "heat_networks", "elec_resistive", "hp_electricity",
+             "hp_ambient", "cooling_delivered")}
+    e_kept = (kept["gas_space"] * INDIG["gas"] + kept["gas_dhw"] * INDIG["gas"]
+              + kept["oil"] * INDIG["oil"] + kept["bio_other"] * INDIG["bio"]
+              + kept["solid"] * INDIG["solid"]
+              + kept["heat_networks"] * INDIG["heat_networks"]
+              + kept["elec_resistive"] * INDIG["elec"]
+              + kept["hp_electricity"] * INDIG["elec"]
+              + kept["hp_ambient"] * 1.0
+              + kept["cooling_delivered"] * INDIG["elec"])
+    shifted_heat = heat_services * R
+    shifted_cool = cool_services * R
+    e_shift = (shifted_heat * ((1 / GEO_NETWORK_SCOP) * INDIG["elec"]
+                               + (1 - 1 / GEO_NETWORK_SCOP) * 1.0)
+               + shifted_cool * ((1 / PASSIVE_COOL_COP) * INDIG["elec"]
+                                 + (1 - 1 / PASSIVE_COOL_COP) * 1.0))
+    tot_services = heat_services + cool_services
+    indig_services_20 = round(100.0 * (e_kept + e_shift) / tot_services, 0) \
+        if tot_services else None
+    gas_tot = mix["gas_space"] + mix["gas_dhw"]
+    pg_eff = ((mix["gas_space"] * _blend(p, "gas", "gas_space")
+               + mix["gas_dhw"] * _blend(p, "gas", "gas_dhw")) / gas_tot
+              if gas_tot else p["gas"])
+    elec_parts = [(mix["elec_heat"] * (1 - R), _blend(p, "elec", "elec_heat")),
+                  (mix["cooling"] * (1 - R), _blend(p, "elec", "cooling")),
+                  (heat_repl_elec, _blend(p, "elec", "whatif_heat")),
+                  (cool_repl_elec, _blend(p, "elec", "cooling"))]
+    elec_vol = sum(v for v, _ in elec_parts)
+    pe_eff = (sum(v * pr for v, pr in elec_parts) / elec_vol
+              if elec_vol else p["elec"])
+    bill_20 = (_cost_m(adj["gas"], pg_eff) + _cost_m(adj["oil"], p["oil"])
+               + _cost_m(adj["bio"], p["bio"])
+               + _cost_m(adj["solid"], p["solid"])
+               + _cost_m(adj["hn"], p["heat_networks"])
+               + _cost_m(adj["elec"], pe_eff))
+
+    return {
+        "f_flat": f_flat, "f_h": f_h, "f_c": f_c,
+        "mix": mix, "combustion": combustion, "total": total,
+        "useful": useful, "wasted": wasted,
+        "bill": bill, "bill_heat": bill_heat, "bill_cool": bill_cool,
+        "useful_heat_wk": useful_heat_wk,
+        "whatif_heat_m": whatif_heat_m, "whatif_cool_m": whatif_cool_m,
+        "total_in": total_in,
+        "indig_now": indig_now, "indig_services_now": indig_services_now,
+        "heat_repl_elec": heat_repl_elec, "cool_repl_elec": cool_repl_elec,
+        "adj": adj, "new_total": new_total,
+        "indig_20": indig_20, "indig_services_20": indig_services_20,
+        "bill_20": bill_20,
+    }
+
+
+def compute_week_emissions(r, grid_ci):
+    """Weekly emissions for a compute_week() result at a given grid CI
+    (g/kWh). Live weeks use the trailing-7-day NESO mean; history weeks use
+    that week's historical mean from the same API."""
+    mix = r["mix"]
+    em = {
+        "gas": (mix["gas_space"] + mix["gas_dhw"]) * CF["gas"],
+        "oil": mix["oil"] * CF["oil"],
+        "bio_other": mix["bio_other"] * CF["bio"],
+        "solid": mix["solid"] * CF["solid"],
+        "heat_networks": mix["heat_networks"] * CF["heat_networks"],
+        "elec_heat": mix["elec_heat"] * grid_ci,
+        "cooling": mix["cooling"] * grid_ci,
+    }
+    em_heat = sum(v for k, v in em.items() if k != "cooling")
+    em_total = sum(em.values())
+    # what-if: same 20% shift as the cost what-if
+    em_removed = R_SHIFT * (em["gas"] + em["oil"] + em["bio_other"]
+                            + em["solid"] + em["heat_networks"]
+                            + em["elec_heat"] + em["cooling"])
+    em_added = (r["heat_repl_elec"] + r["cool_repl_elec"]) * grid_ci
+    return {
+        "em": em,
+        "week_kt": round(em_total / 1000.0, 0),
+        "week_heat_kt": round(em_heat / 1000.0, 0),
+        "week_cool_kt": round(em["cooling"] / 1000.0, 0),
+        "whatif_kt": round((em_total - em_removed + em_added) / 1000.0, 0),
+        "saving_kt": round((em_removed - em_added) / 1000.0, 0),
+    }
+
+
+# --- historical weekly grid CI (for ticker backfill) -------------------------
+CI_RANGE_URL = ("https://api.carbonintensity.org.uk/intensity/"
+                "{}T00:00Z/{}T23:59Z")
+
+
+def fetch_ci_weekly_mean(start_iso, end_iso):
+    """Mean GB grid intensity (gCO2/kWh) over an inclusive date range
+    (<=14 days per the API), from half-hourly actuals (forecast fallback).
+    NESO CI API archives to 2018, so every gas-live week has a live CI."""
+    req = urllib.request.Request(CI_RANGE_URL.format(start_iso, end_iso),
+                                 headers={"Accept": "application/json"})
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        data = json.load(resp)
+    vals = []
+    for item in data.get("data", []):
+        v = (item.get("intensity") or {}).get("actual")
+        if v is None:
+            v = (item.get("intensity") or {}).get("forecast")
+        if v is not None:
+            vals.append(v)
+    if len(vals) < 48 * 5:   # want most of the week's half-hours
+        raise ValueError(f"thin CI data {start_iso}..{end_iso}: {len(vals)}")
+    return round(sum(vals) / len(vals), 1)
+
 
 def ols(x, y):
     n = len(x)
@@ -87,10 +480,93 @@ def load_previous():
         return {}
 
 
+def build_history(prev, dd, base, slope, target):
+    """Maintain the rolling weekly ticker history (phase 1).
+    Calendar weeks (Mon-Sun) where the gas feed served all 7 days, computed
+    with compute_week()/compute_week_emissions(), priced at that week's cap,
+    with that week's grid CI. Append-or-update by week_ending: weeks already
+    stored are kept as-is except the 2 most recent (feed revisions). A week
+    with no CI available is skipped and retried next run, never stored
+    incomplete. Capped at HISTORY_MAX, oldest rolled off."""
+    hist_prev = {e["week_ending"]: e for e in (prev.get("history") or [])
+                 if isinstance(e, dict) and e.get("week_ending")}
+
+    hdd_by_date = dict(zip(dd["dates"], dd["hdd"][base]))
+    cdd_by_date = dict(zip(dd["dates"], dd["cdd"][COOL_BASE]))
+
+    # trailing-365d degree-day sums ending any date (prefix sums)
+    dd_dates = dd["dates"]
+    cum_h, cum_c = [0.0], [0.0]
+    for i in range(len(dd_dates)):
+        cum_h.append(cum_h[-1] + dd["hdd"][base][i])
+        cum_c.append(cum_c[-1] + dd["cdd"][COOL_BASE][i])
+    pos = {d: i for i, d in enumerate(dd_dates)}
+
+    def trailing_365(d, cum):
+        j = pos[d] + 1
+        i0 = max(0, j - 365)
+        return cum[j] - cum[i0], j - i0
+
+    # complete calendar weeks with live gas + degree-day coverage
+    days_live = sorted(set(target) & set(hdd_by_date))
+    weeks = {}
+    for d in days_live:
+        dtd = dt.date.fromisoformat(d)
+        we = (dtd + dt.timedelta(days=6 - dtd.weekday())).isoformat()  # Sun
+        weeks.setdefault(we, []).append(d)
+    complete = [we for we in sorted(weeks) if len(weeks[we]) == 7]
+
+    todo = sorted(set(w for w in complete if w not in hist_prev)
+                  | set(complete[-2:]))
+    built = dict(hist_prev)
+    ci_failures = 0
+    for we in todo:
+        ds = sorted(weeks[we])
+        if ds[-1] not in pos:
+            continue
+        h12, n_days = trailing_365(ds[-1], cum_h)
+        if n_days < 365:
+            continue   # can't form a trailing-12m shape denominator
+        c12, _ = trailing_365(ds[-1], cum_c)
+        try:
+            week_ci = fetch_ci_weekly_mean(ds[0], ds[-1])
+        except Exception:
+            traceback.print_exc()
+            ci_failures += 1
+            if ci_failures >= 3:   # API down; retry whole set next run
+                break
+            continue
+        space_wk = sum(max(0.0, slope * hdd_by_date[d]) for d in ds)
+        hdd_wk = sum(hdd_by_date[d] for d in ds)
+        cdd_wk = sum(cdd_by_date[d] for d in ds)
+        p, cap_from = cap_prices(ds[-1])
+        r = compute_week(space_wk, hdd_wk, cdd_wk, h12, c12, p)
+        e = compute_week_emissions(r, week_ci)
+        built[we] = {
+            "week_ending": we,
+            "purchased_GWh": round(r["total_in"], 0),
+            "indig_pct": r["indig_services_now"],
+            "bill_Mgbp": round(sum(r["bill"].values()), 0),
+            "emissions_kt": e["week_kt"],
+            "whatif": {
+                "purchased_GWh": round(r["new_total"], 0),
+                "indig_pct": r["indig_services_20"],
+                "bill_Mgbp": round(r["bill_20"], 0),
+                "emissions_kt": e["whatif_kt"],
+            },
+            "grid_ci": week_ci,
+            "cap_from": cap_from,
+        }
+    return [built[we] for we in sorted(built)][-HISTORY_MAX:]
+
+
 def main():
     prev = load_previous()
     out = {"updated": dt.datetime.now(dt.UTC).isoformat(timespec="seconds"),
-           "sources": {}}
+           "sources": {},
+           # carried forward immediately so an early-error write can never
+           # destroy the accumulated ticker history
+           "history": prev.get("history") or []}
 
     try:
         dd = fetch_degree_days(days=940)  # covers calendar 2024 for anchor
@@ -127,6 +603,11 @@ def main():
         target = gas["ldz_sum"]
 
     nts = gas.get("nts_demand_actual", {})
+
+    # spec build-order step 1: record the feed's true served window each run.
+    # min(target) IS the empirical live/modelled boundary for gas-bound tiers.
+    out["gas_window"] = {"oldest": min(target), "newest": max(target),
+                         "days_served": len(target)}
 
     dd_idx = {d: i for i, d in enumerate(dd["dates"])}
     common = sorted(set(target) & set(dd_idx))[-WINDOW_DAYS:]
@@ -185,31 +666,25 @@ def main():
     weekly["gas_baseline_GWh"] = round(
         weekly["gas_total_GWh"] - weekly["gas_space_heat_GWh"], 0)
 
-    # --- weekly GB heat & cooling mix -----------------------------------------
-    g = GB_SHARE_OF_UK_GAS_HEAT
-    f_flat = 7.0 / 365.0
-    f_h = (weekly["hdd_total"] / hdd_12m) if hdd_12m else 0.0
+    # --- live week: shared estimator + current cap period ---------------------
+    p, cap_from = cap_prices(wk[-1])
+    PRICE_TAG = (f"Ofgem price cap from {cap_from} (GB DD avg, incl VAT) "
+                 "for domestic shares; services shares at QEP-anchored "
+                 "non-domestic rates; oil/bio/network/solid prices are "
+                 "estimates" + EST)
     cdd_12m = sum(cdd_series)
-    f_c = (weekly["cdd_total"] / cdd_12m) if cdd_12m else 0.0
+    r = compute_week(weekly["gas_space_heat_GWh"], weekly["hdd_total"],
+                     weekly["cdd_total"], hdd_12m, cdd_12m, p)
+    mix, useful = r["mix"], r["useful"]
+    f_flat, f_h, f_c = r["f_flat"], r["f_h"], r["f_c"]
+    g = GB_SHARE_OF_UK_GAS_HEAT
     A = {k: v * g * 1000.0 for k, v in ANNUAL_TWH.items()}  # GWh, GB
 
-    mix = {
-        "gas_space": weekly["gas_space_heat_GWh"],          # live estimate
-        "gas_dhw": round(A["gas_dhw"] * f_flat, 0),
-        "oil": round(A["oil_space"] * f_h + A["oil_dhw"] * f_flat, 0),
-        "elec_heat": round(A["elec_space"] * f_h + A["elec_dhw"] * f_flat, 0),
-        "bio_other": round(A["bio_space"] * f_h + A["bio_dhw"] * f_flat, 0),
-        "heat_networks": round(A["heat_networks"] * f_h, 0),
-        "solid": round(A["solid"] * f_h, 0),
-        "cooling": round(A["cooling_vent"] * (0.5 * f_flat + 0.5 * f_c), 0),
-    }
-    combustion = (mix["gas_space"] + mix["gas_dhw"] + mix["oil"]
-                  + mix["bio_other"] + mix["solid"])
-    total = sum(mix.values())
     weekly_mix = {
         "components_GWh": mix,
-        "total_GWh": round(total, 0),
-        "combustion_share": round(combustion / total, 3) if total else None,
+        "total_GWh": round(r["total"], 0),
+        "combustion_share": round(r["combustion"] / r["total"], 3)
+                            if r["total"] else None,
         "shape_factors": {"f_heating": round(f_h, 4),
                           "f_cooling": round(f_c, 4)},
         "note": ("Gas space heating is a live regression estimate; other "
@@ -219,55 +694,10 @@ def main():
                  "electricity only (ambient heat not yet counted)." + EST),
     }
 
-    # --- weekly useful heat & cool delivered (dual-bar basis) ------------------
-    # Conversion factors, sourced/flagged:
-    #  gas boiler in-situ 0.835 (RAP/field trials 82.5-85%); oil 0.82 (est.,
-    #  older stock); bio 0.70 (est., stoves/boilers range 60-80%); solid 0.55
-    #  (est.); heat networks 1.0 (ECUK 'heat' is delivered heat; upstream
-    #  losses excluded); resistive electric 1.0.
-    #  Heat pumps: domestic HP electricity 2.0 TWh/yr (ECUK 2025, 169 ktoe,
-    #  2024; non-domestic HP excluded - understates). Blended SPF 2.8
-    #  (Energy Systems Catapult EoH median ASHP 2.80; GSHP 3.24).
-    #  Cooling: EER 3.0 (assumption) on the CDD-shaped half; ventilation
-    #  counted at 1.0 (fan energy delivers a service, not multiplied).
-    EFF = {"gas": 0.835, "oil": 0.82, "bio": 0.70, "solid": 0.55,
-           "heat_networks": 1.0, "resistive": 1.0}
-    HP_ELEC_TWH = 2.0
-    HP_SPF = 2.8
-    COOL_EER = 3.0
-
-    HP_FLAT_SHARE = 0.15   # HP hot-water runs year-round (assumption)
-    hp_elec_wk = HP_ELEC_TWH * g * 1000.0 * (
-        (1 - HP_FLAT_SHARE) * f_h + HP_FLAT_SHARE * f_flat)
-    hp_elec_wk = min(hp_elec_wk, mix["elec_heat"])       # cannot exceed segment
-    resistive_wk = mix["elec_heat"] - hp_elec_wk
-    hp_heat_wk = hp_elec_wk * HP_SPF
-    hp_ambient_wk = hp_heat_wk - hp_elec_wk
-
-    cool_flat = A["cooling_vent"] * 0.5 * f_flat          # ventilation, flat
-    cool_shaped = A["cooling_vent"] * 0.5 * f_c           # true cooling
-    cool_useful = cool_flat * 1.0 + cool_shaped * COOL_EER
-
-    useful = {
-        "gas_space": round(mix["gas_space"] * EFF["gas"], 0),
-        "gas_dhw": round(mix["gas_dhw"] * EFF["gas"], 0),
-        "oil": round(mix["oil"] * EFF["oil"], 0),
-        "bio_other": round(mix["bio_other"] * EFF["bio"], 0),
-        "solid": round(mix["solid"] * EFF["solid"], 0),
-        "heat_networks": round(mix["heat_networks"] * EFF["heat_networks"], 0),
-        "elec_resistive": round(resistive_wk, 0),
-        "hp_electricity": round(hp_elec_wk, 0),
-        "hp_ambient": round(hp_ambient_wk, 0),
-        "cooling_delivered": round(cool_useful, 0),
-    }
     weekly_useful = {
         "components_GWh": useful,
         "total_GWh": round(sum(useful.values()), 0),
-        "wasted_GWh": round(
-            (mix["gas_space"] + mix["gas_dhw"]) * (1 - EFF["gas"])
-            + mix["oil"] * (1 - EFF["oil"])
-            + mix["bio_other"] * (1 - EFF["bio"])
-            + mix["solid"] * (1 - EFF["solid"]), 0),
+        "wasted_GWh": r["wasted"],
         "factors": {"boiler_gas": EFF["gas"], "oil": EFF["oil"],
                     "bio": EFF["bio"], "solid": EFF["solid"],
                     "hp_spf": HP_SPF, "hp_elec_TWh_yr": HP_ELEC_TWH,
@@ -351,27 +781,6 @@ def main():
     }
 
     # --- cost layer (4a): household p/kWh useful + national weekly bill --------
-    # Ofgem price cap 1 Jul - 30 Sep 2026, GB direct-debit average, incl VAT
-    # (announced 27 May 2026): electricity 26.11 p/kWh, gas 7.33 p/kWh.
-    # UPDATE QUARTERLY (next: by 26 Aug 2026 for Oct-Dec).
-    # Oil/bio/heat-network/solid unit prices are flagged estimates.
-    PRICES_P_PER_KWH = {
-        "gas": 7.33,            # Ofgem cap Q3 2026
-        "elec": 26.11,          # Ofgem cap Q3 2026
-        "oil": 7.2,             # est. kerosene ~75p/l / 10.35 kWh/l - confirm
-        "bio": 7.5,             # est. wood pellet - confirm
-        "heat_networks": 10.0,  # est. typical network tariff - confirm
-        "solid": 6.0,           # est.
-    }
-    PRICE_TAG = ("Ofgem price cap 1 Jul-30 Sep 2026 (GB DD avg, incl VAT); "
-                 "oil/bio/network/solid prices are estimates" + EST)
-
-    GSHP_SPF = 3.24   # Energy Systems Catapult in-situ GSHP average
-    ASHP_SPF = 2.80   # ESC Electrification of Heat median
-    PASSIVE_COOL_COP = 20.0  # illustrative mid-range of 15-30
-    GEO_NETWORK_SCOP = 5.0   # networked geothermal (shared ambient loop)
-
-    p = PRICES_P_PER_KWH
     household = [
         {"route": "Gas boiler", "p_per_useful_kwh":
             round(p["gas"] / EFF["gas"], 1),
@@ -397,40 +806,12 @@ def main():
          "basis": "cap electricity / COP ~20 (circulation only)" + EST},
     ]
 
-    # national weekly bill: energy-in mix x unit prices (domestic cap as
-    # proxy for all sectors - flagged simplification). GWh x p/kWh = £10k.
-    def _cost_m(gwh, price):
-        return gwh * price / 100.0  # GWh * p/kWh -> £m
-
-    bill = {
-        "gas": round(_cost_m(mix["gas_space"] + mix["gas_dhw"], p["gas"]), 0),
-        "oil": round(_cost_m(mix["oil"], p["oil"]), 0),
-        "electric_heat": round(_cost_m(mix["elec_heat"], p["elec"]), 0),
-        "bio_other": round(_cost_m(mix["bio_other"], p["bio"]), 0),
-        "heat_networks": round(_cost_m(mix["heat_networks"],
-                                       p["heat_networks"]), 0),
-        "solid": round(_cost_m(mix["solid"], p["solid"]), 0),
-        "cooling": round(_cost_m(mix["cooling"], p["elec"]), 0),
-    }
-    bill_heat = round(bill["gas"] + bill["oil"] + bill["electric_heat"]
-                      + bill["bio_other"] + bill["heat_networks"]
-                      + bill["solid"], 0)
-    bill_cool = bill["cooling"]
-
-    # 3) what-if: same useful heat & cool delivered via geothermal networks
-    useful_heat_wk = (useful["gas_space"] + useful["gas_dhw"] + useful["oil"]
-                      + useful["bio_other"] + useful["solid"]
-                      + useful["heat_networks"] + useful["elec_resistive"]
-                      + useful["hp_electricity"] + useful["hp_ambient"])
-    whatif_heat_m = _cost_m(useful_heat_wk / GEO_NETWORK_SCOP, p["elec"])
-    whatif_cool_m = _cost_m(useful["cooling_delivered"] / PASSIVE_COOL_COP,
-                            p["elec"])
     whatif = {
-        "useful_heat_GWh": round(useful_heat_wk, 0),
+        "useful_heat_GWh": round(r["useful_heat_wk"], 0),
         "useful_cool_GWh": useful["cooling_delivered"],
-        "cost_Mgbp": round(whatif_heat_m + whatif_cool_m, 0),
-        "heat_Mgbp": round(whatif_heat_m, 0),
-        "cool_Mgbp": round(whatif_cool_m, 0),
+        "cost_Mgbp": round(r["whatif_heat_m"] + r["whatif_cool_m"], 0),
+        "heat_Mgbp": round(r["whatif_heat_m"], 0),
+        "cool_Mgbp": round(r["whatif_cool_m"], 0),
         "assumptions": ("Illustrative Causeway what-if: identical useful heat "
                         "and cooling delivered via geothermal networks - heat "
                         "at SCOP 5.0, cooling passively at COP ~20, current "
@@ -446,127 +827,31 @@ def main():
             "gas_boiler": round(p["gas"] / EFF["gas"], 1),
             "gshp_cheaper": (p["elec"] / GSHP_SPF) < (p["gas"] / EFF["gas"]),
         },
-        "national_week_Mgbp": bill,
-        "national_week_heat_Mgbp": bill_heat,
-        "national_week_cool_Mgbp": bill_cool,
-        "national_week_total_Mgbp": round(sum(bill.values()), 0),
+        "national_week_Mgbp": r["bill"],
+        "national_week_heat_Mgbp": r["bill_heat"],
+        "national_week_cool_Mgbp": r["bill_cool"],
+        "national_week_total_Mgbp": round(sum(r["bill"].values()), 0),
         "whatif_geothermal": whatif,
         "note": ("Running cost only: no capex, grants, or standing charges. "
-                 "Domestic cap rates used as proxy for all sectors. "
+                 "Gas and electricity priced by sector: ECUK domestic shares at "
+                 "the Ofgem cap, services shares at QEP-anchored "
+                 "non-domestic rates (estimates \u2020). "
                  "The electricity/gas price ratio embeds policy levies on "
                  "electricity; rebalancing would shift these comparisons "
                  "further toward heat pumps."),
     }
 
     # --- headline stats: indigenous share + 20% geothermal what-if -------------
-    # Indigenous (UK-origin) shares of purchased energy - flagged estimates:
-    #  gas ~38% UKCS (DUKES supply balance); oil ~30%; bio ~80% (domestic
-    #  wood); solid ~20%; heat networks ~40% (gas-driven); electricity ~75%
-    #  (net imports ~10% + imported-gas share of CCGT). Ambient/ground heat
-    #  is 100% indigenous but is not purchased energy.
-    INDIG = {"gas": 0.38, "oil": 0.30, "bio": 0.80, "solid": 0.20,
-             "heat_networks": 0.40, "elec": 0.75}
-
-    def _indig_pct(gas_gwh, oil_gwh, bio_gwh, solid_gwh, hn_gwh, elec_gwh,
-                   total_gwh):
-        if not total_gwh:
-            return None
-        e = (gas_gwh * INDIG["gas"] + oil_gwh * INDIG["oil"]
-             + bio_gwh * INDIG["bio"] + solid_gwh * INDIG["solid"]
-             + hn_gwh * INDIG["heat_networks"] + elec_gwh * INDIG["elec"])
-        return round(100.0 * e / total_gwh, 0)
-
-    total_in = sum(mix.values())
-    # purchased basis (retained for methods note / continuity)
-    indig_now = _indig_pct(mix["gas_space"] + mix["gas_dhw"], mix["oil"],
-                           mix["bio_other"], mix["solid"],
-                           mix["heat_networks"],
-                           mix["elec_heat"] + mix["cooling"], total_in)
-
-    # services basis: indigenous share of useful heat & cool DELIVERED.
-    # Each service inherits the indigenous share of its energy input;
-    # harvested ambient/ground heat counts at 100% (Eurostat/DUKES treat
-    # it as renewable supply). Cooling's delivered multiple is leverage,
-    # not input - it inherits its electricity's share.
-    def _services_indig(u):
-        total_u = sum(u.values()) - u["wasted_GWh"] if "wasted_GWh" in u             else sum(u.values())
-        e = (u["gas_space"] * INDIG["gas"] + u["gas_dhw"] * INDIG["gas"]
-             + u["oil"] * INDIG["oil"] + u["bio_other"] * INDIG["bio"]
-             + u["solid"] * INDIG["solid"]
-             + u["heat_networks"] * INDIG["heat_networks"]
-             + u["elec_resistive"] * INDIG["elec"]
-             + u["hp_electricity"] * INDIG["elec"]
-             + u["hp_ambient"] * 1.0
-             + u["cooling_delivered"] * INDIG["elec"])
-        tot = (u["gas_space"] + u["gas_dhw"] + u["oil"] + u["bio_other"]
-               + u["solid"] + u["heat_networks"] + u["elec_resistive"]
-               + u["hp_electricity"] + u["hp_ambient"]
-               + u["cooling_delivered"])
-        return (round(100.0 * e / tot, 0), tot) if tot else (None, 0)
-
-    indig_services_now, useful_total = _services_indig(useful)
-
-    # what-if: 20% of heat & cooling service moved to geothermal networks
-    R = 0.20
-    heat_repl_elec = (useful_heat_wk * R) / GEO_NETWORK_SCOP
-    cool_repl_elec = (useful["cooling_delivered"] * R) / PASSIVE_COOL_COP
-    adj = {
-        "gas": (mix["gas_space"] + mix["gas_dhw"]) * (1 - R),
-        "oil": mix["oil"] * (1 - R),
-        "bio": mix["bio_other"] * (1 - R),
-        "solid": mix["solid"] * (1 - R),
-        "hn": mix["heat_networks"] * (1 - R),
-        "elec": (mix["elec_heat"] * (1 - R) + mix["cooling"] * (1 - R)
-                 + heat_repl_elec + cool_repl_elec),
-    }
-    new_total = sum(adj.values())
-    indig_20 = _indig_pct(adj["gas"], adj["oil"], adj["bio"], adj["solid"],
-                          adj["hn"], adj["elec"], new_total)
-
-    # services-basis what-if: the shifted fifth of heat is delivered as
-    # (1/SCOP) grid electricity + (1-1/SCOP) harvested ground heat; the
-    # shifted fifth of cooling as near-passive (1/COP elec + leverage
-    # treated as ground-enabled, indigenous)
-    heat_services = (useful["gas_space"] + useful["gas_dhw"] + useful["oil"]
-                     + useful["bio_other"] + useful["solid"]
-                     + useful["heat_networks"] + useful["elec_resistive"]
-                     + useful["hp_electricity"] + useful["hp_ambient"])
-    cool_services = useful["cooling_delivered"]
-    kept = {k: useful[k] * (1 - R) for k in
-            ("gas_space", "gas_dhw", "oil", "bio_other", "solid",
-             "heat_networks", "elec_resistive", "hp_electricity",
-             "hp_ambient", "cooling_delivered")}
-    e_kept = (kept["gas_space"] * INDIG["gas"] + kept["gas_dhw"] * INDIG["gas"]
-              + kept["oil"] * INDIG["oil"] + kept["bio_other"] * INDIG["bio"]
-              + kept["solid"] * INDIG["solid"]
-              + kept["heat_networks"] * INDIG["heat_networks"]
-              + kept["elec_resistive"] * INDIG["elec"]
-              + kept["hp_electricity"] * INDIG["elec"]
-              + kept["hp_ambient"] * 1.0
-              + kept["cooling_delivered"] * INDIG["elec"])
-    shifted_heat = heat_services * R
-    shifted_cool = cool_services * R
-    e_shift = (shifted_heat * ((1 / GEO_NETWORK_SCOP) * INDIG["elec"]
-                               + (1 - 1 / GEO_NETWORK_SCOP) * 1.0)
-               + shifted_cool * ((1 / PASSIVE_COOL_COP) * INDIG["elec"]
-                                 + (1 - 1 / PASSIVE_COOL_COP) * 1.0))
-    tot_services = heat_services + cool_services
-    indig_services_20 = round(100.0 * (e_kept + e_shift) / tot_services, 0)         if tot_services else None
-    bill_20 = (_cost_m(adj["gas"], p["gas"]) + _cost_m(adj["oil"], p["oil"])
-               + _cost_m(adj["bio"], p["bio"])
-               + _cost_m(adj["solid"], p["solid"])
-               + _cost_m(adj["hn"], p["heat_networks"])
-               + _cost_m(adj["elec"], p["elec"]))
     headlines = {
-        "purchased_GWh": round(total_in, 0),
-        "indigenous_pct": indig_services_now,        # services basis (hero)
+        "purchased_GWh": round(r["total_in"], 0),
+        "indigenous_pct": r["indig_services_now"],    # services basis (hero)
         "indigenous_basis": "services",
-        "indigenous_purchased_pct": indig_now,       # purchased basis (methods)
+        "indigenous_purchased_pct": r["indig_now"],   # purchased basis (methods)
         "whatif_20pct_geothermal": {
-            "purchased_GWh": round(new_total, 0),
-            "indigenous_pct": indig_services_20,     # services basis (hero)
-            "indigenous_purchased_pct": indig_20,
-            "bill_Mgbp": round(bill_20, 0),
+            "purchased_GWh": round(r["new_total"], 0),
+            "indigenous_pct": r["indig_services_20"], # services basis (hero)
+            "indigenous_purchased_pct": r["indig_20"],
+            "bill_Mgbp": round(r["bill_20"], 0),
         },
         "indig_note": ("Indigenous share is measured on a SERVICES basis: "
                        "the UK-origin share of useful heat and cooling "
@@ -634,14 +919,8 @@ def main():
     }
 
     # --- carbon layer -----------------------------------------------------------
-    # Combustion factors: DESNZ GHG conversion factors 2025, gross CV,
-    # gCO2e/kWh fuel: natural gas ~183, kerosene ~247, coal ~345.
-    # Bioenergy combustion counted at 0 (biogenic convention) - supply-chain
-    # emissions excluded and noted. Heat networks assumed gas-fired (†).
     # Electricity: live GB grid intensity (NESO Carbon Intensity API,
     # trailing-7-day mean of half-hourly actuals).
-    CF = {"gas": 183.0, "oil": 247.0, "solid": 345.0, "bio": 0.0,
-          "heat_networks": 183.0}
     carbon = None
     try:
         ci = fetch_carbon_intensity(days=7)
@@ -655,23 +934,7 @@ def main():
             "status": "stale" if grid_ci else "unavailable",
             "last_good": prev.get("sources", {}).get("carbon", {}).get("last_good")}
     if grid_ci:
-        # weekly emissions, tonnes CO2e = GWh x g/kWh
-        em = {
-            "gas": (mix["gas_space"] + mix["gas_dhw"]) * CF["gas"],
-            "oil": mix["oil"] * CF["oil"],
-            "bio_other": mix["bio_other"] * CF["bio"],
-            "solid": mix["solid"] * CF["solid"],
-            "heat_networks": mix["heat_networks"] * CF["heat_networks"],
-            "elec_heat": mix["elec_heat"] * grid_ci,
-            "cooling": mix["cooling"] * grid_ci,
-        }
-        em_heat = sum(v for k, v in em.items() if k != "cooling")
-        em_total = sum(em.values())
-        # what-if: same 20% shift as the cost what-if
-        em_removed = R * (em["gas"] + em["oil"] + em["bio_other"]
-                          + em["solid"] + em["heat_networks"]
-                          + em["elec_heat"] + em["cooling"])
-        em_added = (heat_repl_elec + cool_repl_elec) * grid_ci
+        e = compute_week_emissions(r, grid_ci)
         # per useful kWh, g:
         routes = [
             {"route": "Gas boiler", "g_per_useful_kwh":
@@ -689,12 +952,11 @@ def main():
         ]
         carbon = {
             "grid_ci_g_per_kwh": grid_ci,
-            "week_kt": round(em_total / 1000.0, 0),
-            "week_heat_kt": round(em_heat / 1000.0, 0),
-            "week_cool_kt": round(em["cooling"] / 1000.0, 0),
-            "whatif_20pct_kt": round((em_total - em_removed + em_added)
-                                     / 1000.0, 0),
-            "whatif_saving_kt": round((em_removed - em_added) / 1000.0, 0),
+            "week_kt": e["week_kt"],
+            "week_heat_kt": e["week_heat_kt"],
+            "week_cool_kt": e["week_cool_kt"],
+            "whatif_20pct_kt": e["whatif_kt"],
+            "whatif_saving_kt": e["saving_kt"],
             "routes_g_per_useful_kwh": routes,
             "note": ("Combustion factors: DESNZ GHG conversion factors 2025 "
                      "(natural gas 0.18296 kgCO2e/kWh = 183 g, gross calorific "
@@ -707,6 +969,25 @@ def main():
                      "7-day mean) - so the heat-pump rows fall every year "
                      "the grid decarbonises, while combustion never does."),
         }
+
+    # --- ticker history (phase 1): live weekly hero four + what-if twins -------
+    try:
+        out["history"] = build_history(prev, dd, base,
+                                       best["slope_GWh_per_HDD"], target)
+        out["history_note"] = (
+            "Weekly hero-number history for the ticker. Calendar weeks "
+            "(Mon-Sun) computed with the same estimators as the live "
+            "panels, only where the gas feed served all 7 days - live by "
+            "construction, no modelling. Priced at the Ofgem cap in force "
+            "that week; emissions at that week's mean grid intensity "
+            "(NESO CI API). Estimator constants (ECUK vintage, INDIG "
+            "shares, non-cap and non-domestic prices, sector shares) are "
+            "today's, applied uniformly; "
+            "entries older than the two most recent weeks are frozen as "
+            "first computed.")
+    except Exception:
+        traceback.print_exc()
+        # keep the carried-forward history from the top of main()
 
     # --- observed cooling: demand vs delivery (CDD saturation analysis) --------
     # Summer daily underlying electricity demand (NESO ND + embedded solar +
@@ -755,8 +1036,8 @@ def main():
             bin_mean = {b: sum(v) / len(v) for b, v in bins.items()
                         if len(v) >= 3}
             if 0 in bin_mean and len(bin_mean) >= 3:
-                base = bin_mean[0]
-                curve = {b: round(m - base, 1)
+                base_anom = bin_mean[0]
+                curve = {b: round(m - base_anom, 1)
                          for b, m in sorted(bin_mean.items()) if b > 0}
                 bin_n = {b: len(v) for b, v in bins.items()}
                 # low-CDD slope for the latent line; guard against a noisy
@@ -765,8 +1046,8 @@ def main():
                 lows = [(b - 0.5, curve[b]) for b in sorted(curve)[:2]]
                 num = sum(x * y for x, y in lows)
                 den = sum(x * x for x, y in lows)
-                slope = num / den if den else 0.0
-                slope_ok = slope > 0
+                slope_l = num / den if den else 0.0
+                slope_ok = slope_l > 0
                 wk_deliv = 0.0
                 wk_latent = 0.0
                 for d_ in wk:
@@ -774,18 +1055,18 @@ def main():
                     b = 0 if c == 0 else min(5, int(c) + 1)
                     wk_deliv += max(0.0, curve.get(
                         b, curve.get(max(curve), 0.0))) if b > 0 else 0.0
-                    wk_latent += slope * c if slope_ok else 0.0
+                    wk_latent += slope_l * c if slope_ok else 0.0
                 cooling_observed = {
                     "response_curve_GWh_per_day": curve,
                     "bin_days": {str(b): bin_n.get(b, 0)
                                  for b in sorted(bin_mean)},
-                    "latent_slope_GWh_per_CDD": round(slope, 1),
+                    "latent_slope_GWh_per_CDD": round(slope_l, 1),
                     "latent_slope_reliable": slope_ok,
                     "week_delivered_GWh": round(wk_deliv, 0),
                     "week_latent_GWh": round(max(wk_latent, wk_deliv), 0),
                     "week_unmet_GWh": round(max(0.0, wk_latent - wk_deliv), 0)
                         if slope_ok else None,
-                    "summer_days_used": len(anomaly),                    "summer_days_used": len(summer),
+                    "summer_days_used": len(summer),
                     "note": ("Observed cooling electricity from summer daily "
                              "underlying demand (NESO ND + embedded solar/"
                              "wind reconstructed), centred within month and "
@@ -994,6 +1275,11 @@ def main():
     print("cooling_observed:", cooling_observed)
     print("comfort_deficit:", comfort_deficit)
     print("peak week:", peak_week)
+    print("gas_window:", out.get("gas_window"))
+    hist = out.get("history") or []
+    print(f"history: {len(hist)} weeks",
+          f"({hist[0]['week_ending']} .. {hist[-1]['week_ending']})"
+          if hist else "")
     _write(out)
 
 
