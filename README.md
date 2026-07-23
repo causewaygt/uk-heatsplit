@@ -22,10 +22,14 @@ contact@causewaygt.com.
   split between heating and cooling; and heating & cooling emissions —
   alongside a what-if strip answering all four with 20% of heat and cooling
   moved to geothermal.
-- **Trends** — a sparkline under each headline showing its weekly history
-  over a selectable 1-week to 12-month window, with the change since the
-  window start and the 20% geothermal what-if overlaid in green (the shaded
-  band is the forgone saving). Live weeks only: each point is computed with
+- **Trends** — a sparkline under each headline showing its weekly history,
+  with a 1-week to 12-month window selector that also re-totals the
+  headline figures themselves — actuals and the 20% what-if strip alike —
+  so the 12-month view states the year's purchased energy, bill, emissions
+  and the cumulative what-if saving (sums over complete live weeks;
+  the indigenous share as an energy-weighted average). The what-if is
+  overlaid in green on each sparkline; the shaded band is the forgone
+  saving. Live weeks only: each point is computed with
   the same estimators as the headline, priced at the Ofgem cap in force
   that week and carboned at that week's mean grid intensity — no modelled
   back-cast. The window is bounded by the ~13 months the National Gas feed
@@ -168,7 +172,7 @@ scripts/
 
 The site carries a version (footer, `SITE_VERSION` in `docs/index.html`):
 x.y.z where **x** = new data source or panel, **y** = update to an existing
-source or anchor, **z** = wording or formatting. Current: **5.0.0**.
+source or anchor, **z** = wording or formatting. Current: **5.1.0**.
 History: v1 launch (gas split, costs, spark gap, geothermal, NI) → v2 carbon
 layer → v3.0–3.2 observed cooling analysis (NESO demand, response curve,
 recency-aware sources) → v3.3–3.4 comfort deficit, tier graphic and UTES
@@ -177,6 +181,7 @@ v3.6 EGEC Geothermal Market Report 2025 refinements → v4.0 WHY HEAT?
 whole-economy panel → v4.0.1–4.0.3 methodology statement, carbon basis,
 residual SE and calibration ratio surfaced → v5.0 live trend layer: weekly
 headline history with per-week Ofgem cap and grid intensity, sparklines and
-what-if overlay.
+what-if overlay → v5.1 window selector re-totals the headline figures
+(12-month sums and cumulative what-if saving).
 
 *A Causeway Energies public-interest tool — https://causewaygt.com*
