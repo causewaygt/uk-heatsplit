@@ -173,9 +173,9 @@
     </div>
     <div class="trendctl" id="trendctl" hidden>
       <span>TREND — LIVE WEEKS</span>
-      <button data-win="2">1w</button>
+      <button data-win="2" aria-pressed="true">1w</button>
       <button data-win="5">4w</button>
-      <button data-win="13" aria-pressed="true">12w</button>
+      <button data-win="13">12w</button>
       <button data-win="53">12m</button>
       <span id="trendspan"></span>
     </div>
@@ -372,7 +372,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '5.0.0';
+const SITE_VERSION = '5.1.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -868,10 +868,81 @@ fetch('data.json').then(r=>r.json()).then(d=>{
     }
     const dfmt = s => new Date(s + 'T00:00:00Z')
       .toLocaleDateString('en-GB', {day:'numeric', month:'short'});
+
+    // hero windowing: snapshot the live this-week figures, re-total on demand
+    const HERO_IDS = ['st_energy','st_indig','st_bill','st_carbon',
+                      'wf_energy','wf_indig','wf_bill','wf_carbon'];
+    const snap = {};
+    HERO_IDS.forEach(id => {
+      const fig = document.getElementById(id), cap = fig.nextElementSibling;
+      snap[id] = {fig: fig, cap: cap,
+                  figHTML: fig.innerHTML, capHTML: cap.innerHTML};
+    });
+    const fE = g => g >= 9999.5
+      ? Math.round(g/1000).toLocaleString('en-GB') + '<small> TWh</small>'
+      : fmt(g) + '<small> GWh</small>';
+    const fB = m => m >= 999.5 ? '£' + (m/1000).toFixed(1) + 'bn'
+                               : '£' + fmt(m) + 'm';
+    const fK = k => k >= 999.5 ? (k/1000).toFixed(1) + '<small> Mt CO2e</small>'
+                               : fmt(k) + '<small> kt CO2e</small>';
+    const fKplain = k => k >= 999.5 ? (k/1000).toFixed(1) + ' Mt'
+                                    : fmt(k) + ' kt';
+    function setHero(win){
+      if(win === 2){
+        HERO_IDS.forEach(id => {
+          snap[id].fig.innerHTML = snap[id].figHTML;
+          snap[id].cap.innerHTML = snap[id].capHTML;
+        });
+        return;
+      }
+      const sumN = {5: 4, 13: 12, 53: 52}[win];
+      const rows = hist.slice(-sumN), n = rows.length;
+      const label = 'over the last ' + {5:'4 weeks',13:'12 weeks',
+                                        53:'12 months'}[win]
+                    + (n < sumN ? ' (' + n + ' live wks)' : '');
+      const S  = k => rows.reduce((a,e) => a + (e[k] || 0), 0);
+      const SW = k => rows.reduce((a,e) => a + ((e.whatif||{})[k] || 0), 0);
+      const wavg = wf => {
+        let num = 0, den = 0;
+        rows.forEach(e => {
+          const o = wf ? (e.whatif || {}) : e;
+          if(o.indig_pct != null && o.purchased_GWh){
+            num += o.indig_pct * o.purchased_GWh; den += o.purchased_GWh;
+          }
+        });
+        return den ? Math.round(num/den) : null;
+      };
+      const set = (id, figHTML, capText) => {
+        snap[id].fig.innerHTML = figHTML;
+        snap[id].cap.textContent = capText;
+      };
+      set('st_energy', fE(S('purchased_GWh')),
+          'heating & cooling energy purchased ' + label);
+      set('st_indig', (wavg(false) != null ? wavg(false) + '%' : '—'),
+          'estimated UK-indigenous share of heat & cooling delivered — ' +
+          'energy-weighted avg ' + label);
+      set('st_bill', fB(S('bill_Mgbp')), 'national bill ' + label);
+      set('st_carbon', fK(S('emissions_kt')),
+          'heating & cooling emissions ' + label);
+      set('wf_energy', fE(SW('purchased_GWh')),
+          'purchased — the ground supplies the rest free');
+      set('wf_indig', (wavg(true) != null ? wavg(true) + '%' : '—'),
+          'UK-indigenous share — energy-weighted avg');
+      set('wf_bill', fB(SW('bill_Mgbp')),
+          'national bill (saves ' + fB(S('bill_Mgbp') - SW('bill_Mgbp')) +
+          ' ' + label + ')');
+      set('wf_carbon', fK(SW('emissions_kt')),
+          'emissions (saves ' + fKplain(S('emissions_kt') -
+          SW('emissions_kt')) + ' ' + label + ')');
+    }
     function draw(win){
+      setHero(win);
       els.forEach(el => {
         const key = el.dataset.trend, goodDir = el.dataset.good;
-        const rows = hist.slice(-win).filter(e => e[key] != null);
+        // at "this week" the sparkline shows the full record as context;
+        // a chosen window zooms both the line and the totals to its span
+        const spanN = win === 2 ? 53 : win;
+        const rows = hist.slice(-spanN).filter(e => e[key] != null);
         if(rows.length < 2){ el.hidden = true; return; }
         el.hidden = false;
         const W = Math.max(el.clientWidth || 0, 120), H = 34, pad = 3;
@@ -897,7 +968,10 @@ fetch('data.json').then(r=>r.json()).then(d=>{
         svg += '<polyline class="tr-actual" points="' + P(vs) + '"/>' +
                '<circle class="tr-dot" cx="' + X(rows[rows.length-1]).toFixed(1) +
                '" cy="' + Y(vs[vs.length-1]).toFixed(1) + '" r="2"/></svg>';
-        const a = vs[0], b = vs[vs.length-1], dir = b > a ? 1 : (b < a ? -1 : 0);
+        const drows = hist.slice(-win).filter(e => e[key] != null);
+        const dvs = drows.length >= 2 ? drows.map(e => e[key]) : vs;
+        const a = dvs[0], b = dvs[dvs.length-1],
+              dir = b > a ? 1 : (b < a ? -1 : 0);
         const txt = key === 'indig_pct'
           ? (b - a > 0 ? '+' : '') + (b - a).toFixed(0) + ' pp'
           : (a ? ((b - a) / a > 0 ? '+' : '') +
@@ -905,14 +979,15 @@ fetch('data.json').then(r=>r.json()).then(d=>{
         const cls = dir === 0 ? '' :
           ((dir > 0) === (goodDir === 'up') ? 'good' : 'bad');
         const arrow = dir > 0 ? '\u25b2' : (dir < 0 ? '\u25bc' : '\u25ac');
+        const dfrom = (drows.length >= 2 ? drows : rows)[0].week_ending;
         el.innerHTML = svg +
           '<div class="tr-delta">' + arrow + ' <b class="' + cls + '">' + txt +
-          '</b> vs ' + dfmt(rows[0].week_ending) + '</div>';
+          '</b> vs ' + dfmt(dfrom) + '</div>';
         el.title = rows.length + ' live weeks to w/e ' +
                    rows[rows.length-1].week_ending;
       });
     }
-    let win = 13;
+    let win = 2;
     ctl.querySelectorAll('button').forEach(b => {
       b.addEventListener('click', () => {
         win = +b.dataset.win;
