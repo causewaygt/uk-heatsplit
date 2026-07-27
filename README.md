@@ -51,8 +51,8 @@ contact@causewaygt.com.
   intensity (NESO Carbon Intensity API, 7-day mean) — so the heat-pump rows
   fall as the grid decarbonises while combustion never does.
 - **The empty bar** — the 20% what-if priced in hardware: installed
-  thermal megawatts of UK ground-source capacity today (~850 MWth†,
-  EGEC 2025) against the ~30–40 GWth the what-if requires at 2,000
+  thermal megawatts of UK ground-source capacity today (861 MWth,
+  EGC 2025 country update) against the ~30–40 GWth the what-if requires at 2,000
   equivalent full-load hours†, beside installed reality in France, the
   Netherlands and Sweden† (comparator constants shared with the Irish
   sibling). Sweden's whole fleet — Europe's largest — covers barely a
