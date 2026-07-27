@@ -826,6 +826,49 @@ def main():
                      "; comparator splits approximate, totals per the "
                      "Irish sibling's EGEC 2025 constants" + EST + "."),
         }
+        # Calibration: the same fleets as a share of each country's OWN
+        # buildings heat, one EFLH convention. National heat anchors are
+        # input-basis estimates †: UK live from this model (space + DHW);
+        # France ~350 TWh (IEA/Heat Roadmap order), Netherlands ~115 TWh
+        # (residential space heating alone 85 TWh in 2016 + DHW +
+        # services), Sweden ~80 TWh (Swedish Energy Agency / ODYSSEE,
+        # residential + services heat). Delivered-vs-input mismatch
+        # (~15-20%) accepted at this precision and stated.
+        uk_nat_heat = (annual_space_twh
+                       + ANNUAL_TWH["elec_space"] + ANNUAL_TWH["oil_space"]
+                       + ANNUAL_TWH["bio_space"] + ANNUAL_TWH["heat_networks"]
+                       + ANNUAL_TWH["solid"]
+                       + ANNUAL_TWH["gas_dhw"] + ANNUAL_TWH["elec_dhw"]
+                       + ANNUAL_TWH["oil_dhw"] + ANNUAL_TWH["bio_dhw"])
+        NAT_HEAT_TWH = {"France": 350.0, "Netherlands": 115.0,
+                        "Sweden": 80.0}
+        shares = [{"name": "United Kingdom",
+                   "national_heat_TWh": round(uk_nat_heat, 0),
+                   "share_pct": round(100 * (UK_GSHP_MWTH + UK_DEEP_MWTH)
+                                      * EFLH / 1e6 / uk_nat_heat, 1)}]
+        for c in geothermal["hardware"]["comparators"]:
+            tot = c["gshp_MWth"] + c["deep_MWth"]
+            nat = NAT_HEAT_TWH[c["name"]]
+            shares.append({"name": c["name"], "national_heat_TWh": nat,
+                           "share_pct": round(100 * tot * EFLH / 1e6
+                                              / nat, 1)})
+        geothermal["hardware"]["share_of_national_heat"] = {
+            "countries": shares,
+            "whatif_pct": 20.0,
+            "boiler_flow_note": ("For capacity scale: the UK replaces "
+                                 "roughly 1.6 million boilers a year - of "
+                                 "order 35-40 GW of combustion capacity "
+                                 "installed annually" + EST + "; the "
+                                 "what-if is about one year of that "
+                                 "replacement flow, redirected."),
+            "note": ("Each country's installed geothermal fleet at " +
+                     str(int(EFLH)) + " equivalent full-load hours" + EST +
+                     ", as a share of its own buildings heat (space + hot "
+                     "water, input basis; national anchors are estimates" +
+                     EST + " - UK live from this model, others of order "
+                     "IEA/ODYSSEE/Heat Roadmap). Sweden's fleet already "
+                     "serves about the share the UK what-if proposes."),
+        }
     except Exception:
         traceback.print_exc()
         geothermal["hardware"] = (prev.get("geothermal") or {}).get("hardware")
@@ -1574,6 +1617,25 @@ def main():
     print("headlines:", headlines)
     print("spark:", spark)
     print("ni_panel:", ni_panel)
+    if cooling_recon:
+        print("cooling_recon: base", cooling_recon.get("cdd_base_c"),
+              "slope", cooling_recon.get("beta_cool_GWh_per_CDD"),
+              "GWh/CDD t", cooling_recon.get("beta_cool_t_stat"),
+              "R2", cooling_recon.get("r2"),
+              "| weather", cooling_recon.get(
+                  "annual_weather_cooling_elec_GWh"),
+              "GWh/yr vs ECUK", cooling_recon.get(
+                  "ecuk_annual_cooling_vent_GWh"),
+              "| flat share", cooling_recon.get(
+                  "implied_weather_flat_share"),
+              "| stability:", (cooling_recon.get("stability") or {}).get(
+                  "runs_60d"), "runs, base",
+              (cooling_recon.get("stability") or {}).get("base_range_60d"))
+    if sibling:
+        print("sibling: UK", sibling["uk"]["per_capita_MWh"],
+              "vs island", sibling["island"]["per_capita_MWh"],
+              "MWh/person, ratio", sibling["ratio_island_over_uk"],
+              "within gate", sibling["within_gate"])
     print("carbon:", carbon)
     print("cooling_observed:", cooling_observed)
     print("comfort_deficit:", comfort_deficit)
