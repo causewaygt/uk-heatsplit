@@ -803,28 +803,38 @@ def main():
             + HP_ELEC_TWH * HP_SPF)
         EFLH = 2000.0
         whatif_MWth = 0.20 * useful_heat_annual * 1e6 / EFLH
-        UK_GSHP_MWTH, UK_DEEP_MWTH = 850.0, 10.0
+        UK_GSHP_MWTH, UK_DEEP_MWTH = 861.0, 10.0
         geothermal["hardware"] = {
-            "uk_gshp_MWth": UK_GSHP_MWTH,        # EGEC 2025 UK CU 847-861 †
+            "uk_gshp_MWth": UK_GSHP_MWTH,        # EGC 2025 CU Table 4:
+                                                 # 55,210 units, 861 MWth
             "uk_deep_MWth": UK_DEEP_MWTH,        # Gateshead 6 + Eden 1.4 +
-                                                 # others, order-of †
+                                                 # others, order-of † (EGC
+                                                 # Table 3 reports only 1.4)
             "whatif_MWth": round(whatif_MWth, 0),
             "eflh": EFLH,
             "useful_heat_annual_TWh": round(useful_heat_annual, 1),
             "per_person_W": round((UK_GSHP_MWTH + UK_DEEP_MWTH) * 1e6
                                   / (UK_POP_M * 1e6), 1),
-            "sweden_per_person_W": 778,          # 8,167 MWth / 10.5m †
+            "sweden_per_person_W": 773,          # 8,120 MWth / 10.5m
             "sales_2025": {"uk": 4070, "sweden": 26785},   # EGEC GMR 2025
-            "comparators": [                     # shared with the Irish
-                {"name": "France", "gshp_MWth": 2250, "deep_MWth": 767},
-                {"name": "Netherlands", "gshp_MWth": 2500, "deep_MWth": 353},
-                {"name": "Sweden", "gshp_MWth": 8000, "deep_MWth": 167},
+            # EGC 2025 country updates (Sanner et al.), Tables 3+4,
+            # end-2024 - the Irish sibling's totals resolve to exactly
+            # these: GSHP capacity + deep direct use. NL deep is almost
+            # entirely greenhouses (agri 363 of 367 MWth; DH only 3.8) -
+            # stated in the note.
+            "comparators": [
+                {"name": "France", "gshp_MWth": 2293, "deep_MWth": 724},
+                {"name": "Netherlands", "gshp_MWth": 2486, "deep_MWth": 367},
+                {"name": "Sweden", "gshp_MWth": 8120, "deep_MWth": 47},
             ],
             "note": ("Installed thermal capacity basis. The what-if bar "
                      "prices the 20% strip in hardware at " +
                      str(int(EFLH)) + " equivalent full-load hours" + EST +
-                     "; comparator splits approximate, totals per the "
-                     "Irish sibling's EGEC 2025 constants" + EST + "."),
+                     ". Comparator capacities: EGC 2025 country updates "
+                     "(Sanner et al., Tables 3-4, end-2024) - GSHP fleet "
+                     "plus deep direct use; the Netherlands' deep "
+                     "capacity is almost entirely greenhouse heat, not "
+                     "buildings."),
         }
         # Calibration: the same fleets as a share of each country's OWN
         # buildings heat, one EFLH convention. National heat anchors are
