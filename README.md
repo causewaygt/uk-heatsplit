@@ -50,6 +50,15 @@ contact@causewaygt.com.
   0.18296 kgCO2e/kWh, gross CV basis), electric routes at the live GB grid
   intensity (NESO Carbon Intensity API, 7-day mean) — so the heat-pump rows
   fall as the grid decarbonises while combustion never does.
+- **The empty bar** — the 20% what-if priced in hardware: installed
+  thermal megawatts of UK ground-source capacity today (~850 MWth†,
+  EGEC 2025) against the ~30–40 GWth the what-if requires at 2,000
+  equivalent full-load hours†, beside installed reality in France, the
+  Netherlands and Sweden† (comparator constants shared with the Irish
+  sibling). Sweden's whole fleet — Europe's largest — covers barely a
+  quarter of the UK requirement; per person the what-if is unremarkable
+  (Sweden 778 W vs UK 13 W†), enormous only because Britain has never
+  started.
 - **Geothermal — now and next** — heat and cooling from geothermal this week,
   plus annual bars for today, 2027, 2031 and 2050, each tagged to its source.
   Today's heat is anchored on the EGEC 2025 UK Country Update (~1.43 TWh/yr
@@ -177,7 +186,7 @@ scripts/
 
 The site carries a version (footer, `SITE_VERSION` in `docs/index.html`):
 x.y.z where **x** = new data source or panel, **y** = update to an existing
-source or anchor, **z** = wording or formatting. Current: **5.2.0**.
+source or anchor, **z** = wording or formatting. Current: **6.0.0**.
 History: v1 launch (gas split, costs, spark gap, geothermal, NI) → v2 carbon
 layer → v3.0–3.2 observed cooling analysis (NESO demand, response curve,
 recency-aware sources) → v3.3–3.4 comfort deficit, tier graphic and UTES
@@ -188,6 +197,9 @@ residual SE and calibration ratio surfaced → v5.0 live trend layer: weekly
 headline history with per-week Ofgem cap and grid intensity, sparklines and
 what-if overlay → v5.1 window selector re-totals the headline figures
 (12-month sums and cumulative what-if saving) → v5.2 cooling
-reconciliation diagnostic (year-round HDD+CDD regression, swept base).
+reconciliation diagnostic (year-round HDD+CDD regression, swept base)
+→ v6.0 the empty bar (installed hardware vs the 20% what-if, European
+comparators†; the sibling mirror regression test from the July 2026
+cross-calibration runs in the build checks, panel withheld for now).
 
 *A Causeway Energies public-interest tool — https://causewaygt.com*
