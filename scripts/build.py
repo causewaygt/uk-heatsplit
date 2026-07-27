@@ -154,6 +154,8 @@ def cap_prices(date_iso):
 # --- shared estimator constants (single source for live panels + history) ---
 EFF = {"gas": 0.835, "oil": 0.82, "bio": 0.70, "solid": 0.55,
        "heat_networks": 1.0, "resistive": 1.0}
+
+UK_POP_M = 68.0   # population convention per the July 2026 cross-calibration †
 HP_ELEC_TWH = 2.0
 HP_SPF = 2.8
 COOL_EER = 3.0
@@ -781,6 +783,53 @@ def main():
         },
     }
 
+    # --- the empty bar: installed hardware vs the 20% what-if ---------------
+    # UK version of the Irish sibling's comparator: what serving 20% of
+    # delivered buildings heat requires in installed thermal capacity at
+    # 2,000 equivalent full-load hours †, against ground-source capacity
+    # operating today and installed reality elsewhere. Comparator constants
+    # are shared with the Irish sibling (EGEC 2025 basis); the gshp/deep
+    # splits are approximate † - sync exact values from the Irish
+    # data.json if the sibling re-anchors.
+    try:
+        elec_heat_all = ANNUAL_TWH["elec_space"] + ANNUAL_TWH["elec_dhw"]
+        useful_heat_annual = (
+            (annual_space_twh + ANNUAL_TWH["gas_dhw"]) * EFF["gas"]
+            + (ANNUAL_TWH["oil_space"] + ANNUAL_TWH["oil_dhw"]) * EFF["oil"]
+            + (ANNUAL_TWH["bio_space"] + ANNUAL_TWH["bio_dhw"]) * EFF["bio"]
+            + ANNUAL_TWH["solid"] * EFF["solid"]
+            + ANNUAL_TWH["heat_networks"] * EFF["heat_networks"]
+            + max(0.0, elec_heat_all - HP_ELEC_TWH) * EFF["resistive"]
+            + HP_ELEC_TWH * HP_SPF)
+        EFLH = 2000.0
+        whatif_MWth = 0.20 * useful_heat_annual * 1e6 / EFLH
+        UK_GSHP_MWTH, UK_DEEP_MWTH = 850.0, 10.0
+        geothermal["hardware"] = {
+            "uk_gshp_MWth": UK_GSHP_MWTH,        # EGEC 2025 UK CU 847-861 †
+            "uk_deep_MWth": UK_DEEP_MWTH,        # Gateshead 6 + Eden 1.4 +
+                                                 # others, order-of †
+            "whatif_MWth": round(whatif_MWth, 0),
+            "eflh": EFLH,
+            "useful_heat_annual_TWh": round(useful_heat_annual, 1),
+            "per_person_W": round((UK_GSHP_MWTH + UK_DEEP_MWTH) * 1e6
+                                  / (UK_POP_M * 1e6), 1),
+            "sweden_per_person_W": 778,          # 8,167 MWth / 10.5m †
+            "sales_2025": {"uk": 4070, "sweden": 26785},   # EGEC GMR 2025
+            "comparators": [                     # shared with the Irish
+                {"name": "France", "gshp_MWth": 2250, "deep_MWth": 767},
+                {"name": "Netherlands", "gshp_MWth": 2500, "deep_MWth": 353},
+                {"name": "Sweden", "gshp_MWth": 8000, "deep_MWth": 167},
+            ],
+            "note": ("Installed thermal capacity basis. The what-if bar "
+                     "prices the 20% strip in hardware at " +
+                     str(int(EFLH)) + " equivalent full-load hours" + EST +
+                     "; comparator splits approximate, totals per the "
+                     "Irish sibling's EGEC 2025 constants" + EST + "."),
+        }
+    except Exception:
+        traceback.print_exc()
+        geothermal["hardware"] = (prev.get("geothermal") or {}).get("hardware")
+
     # --- cost layer (4a): household p/kWh useful + national weekly bill --------
     household = [
         {"route": "Gas boiler", "p_per_useful_kwh":
@@ -918,6 +967,61 @@ def main():
                          "on this page do not cover it - NI is estimated "
                          "from annual statistics shaped by NI degree days."),
     }
+
+    # --- sibling comparator: island of Ireland cross-calibration ------------
+    # Reference constants from the July 2026 cross-calibration exchange with
+    # the Irish Heat Split (sibling site). Conventions synced in that
+    # exchange: heat is INPUT energy, buildings-only (no industrial
+    # process), space HDD-shaped, DHW flat at 7/365. The cooling scopes
+    # DIFFER by design (island counts the cold economy; UK counts ECUK
+    # comfort/ventilation) so cooling is expressly NOT compared. UK
+    # population per the exchange's convention (68m, rounded) †.
+    IRISH_SIBLING = {"heat_input_TWh": 43.8, "pop_m": 7.1,
+                     "cold_economy_TWh": 12.1, "as_of": "2026-07"}
+    sibling = None
+    try:
+        space_nongas = (ANNUAL_TWH["elec_space"] + ANNUAL_TWH["oil_space"]
+                        + ANNUAL_TWH["bio_space"]
+                        + ANNUAL_TWH["heat_networks"] + ANNUAL_TWH["solid"])
+        dhw_all = (ANNUAL_TWH["gas_dhw"] + ANNUAL_TWH["elec_dhw"]
+                   + ANNUAL_TWH["oil_dhw"] + ANNUAL_TWH["bio_dhw"])
+        uk_space = annual_space_twh + space_nongas
+        uk_total = uk_space + dhw_all
+        uk_pc = uk_total / UK_POP_M
+        isl_pc = IRISH_SIBLING["heat_input_TWh"] / IRISH_SIBLING["pop_m"]
+        ratio = isl_pc / uk_pc
+        sibling = {
+            "uk": {"heat_input_TWh": round(uk_total, 1),
+                   "space_TWh": round(uk_space, 1),
+                   "dhw_TWh": round(dhw_all, 1),
+                   "dhw_share": round(dhw_all / uk_total, 3),
+                   "pop_m": UK_POP_M,
+                   "per_capita_MWh": round(uk_pc, 2)},
+            "island": dict(IRISH_SIBLING,
+                           per_capita_MWh=round(isl_pc, 2)),
+            "ratio_island_over_uk": round(ratio, 2),
+            "gate": [0.8, 1.2],
+            "within_gate": 0.8 <= ratio <= 1.2,
+            "conventions": ("Synced with the Irish Heat Split, July 2026: "
+                            "heat input basis, buildings only (no "
+                            "industrial process heat), space shaped by "
+                            "HDD, hot water flat at 7/365. UK gas space "
+                            "from the live 12-month regression; other "
+                            "fuels at ECUK anchors" + EST + "."),
+            "cooling_note": ("Cooling is NOT compared: the island figure "
+                             "counts the cold economy (12.1 TWh - data "
+                             "centres, refrigeration, process), the UK "
+                             "figure counts ECUK comfort & ventilation "
+                             "(10.4 TWh) - different scopes by design. "
+                             "A UK cold-economy layer is staged after "
+                             "the cooling reconciliation lands; until "
+                             "then both sites gate the comparison behind "
+                             "this caveat."),
+            "sibling_url": "https://causewaygt.github.io/irish-heatsplit/",
+        }
+    except Exception:
+        traceback.print_exc()
+        sibling = prev.get("sibling")
 
     # --- carbon layer -----------------------------------------------------------
     # Electricity: live GB grid intensity (NESO Carbon Intensity API,
@@ -1399,6 +1503,7 @@ def main():
         "headlines": headlines,
         "spark": spark,
         "ni_panel": ni_panel,
+        "sibling": sibling,
         "why_heat": {
             # Annual, UK, calendar 2024. Sourced anchors: ECUK 2025 (final
             # energy 128.1 mtoe = ~1,490 TWh; transport 54.0 mtoe = 628 TWh,
