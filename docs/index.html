@@ -242,6 +242,19 @@
       <div class="billline" id="geowhatif" style="margin-top:18px"></div>
       <p class="geosub" id="geowhatifnote"></p>
       <p class="geosub" id="geobench" style="margin-top:16px"></p>
+      <div id="emptybar" style="display:none">
+        <div class="barlabel" style="margin-top:26px">THE EMPTY BAR — INSTALLED HARDWARE VS THE 20% WHAT-IF</div>
+        <div class="statrow" style="grid-template-columns:repeat(3,1fr);margin-top:14px">
+          <div class="stat"><div class="fig" id="eb_installed">—</div>
+            <div class="cap" id="eb_installed_cap">MWth of ground-source capacity operating today†</div></div>
+          <div class="stat"><div class="fig" id="eb_pp">—</div>
+            <div class="cap" id="eb_pp_cap">installed thermal watts per person†</div></div>
+          <div class="stat"><div class="fig" id="eb_need">—</div>
+            <div class="cap" id="eb_need_cap">GWth the 20% what-if requires†</div></div>
+        </div>
+        <div id="emptybarplot" style="width:100%;height:300px;margin-top:14px"></div>
+        <p class="costnote" id="emptybarnote"></p>
+      </div>
       <p class="geosub" style="margin-top:16px">Geothermal heat is steady,
         local, combustion-free — and the same boreholes and aquifers that heat in
         winter cool in summer, rejecting heat to ~12°C ground instead of 30°C
@@ -292,6 +305,7 @@
     <h2>Northern Ireland</h2>
     <p class="costnote" id="nipanel">—</p>
   </section>
+
 
   <section class="method">
     <h2>WHY HEAT?</h2>
@@ -377,7 +391,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '5.3.0';
+const SITE_VERSION = '6.0.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -642,6 +656,75 @@ fetch('data.json').then(r=>r.json()).then(d=>{
     document.getElementById('coolobsline').textContent =
       'Observed cooling analysis pending sufficient summer data.';
     document.getElementById('coolcurve').style.display = 'none';
+  }
+
+  const hw = (d.geothermal || {}).hardware;
+  if(hw && hw.whatif_MWth){
+    document.getElementById('emptybar').style.display = '';
+    const inst = hw.uk_gshp_MWth + hw.uk_deep_MWth;
+    document.getElementById('eb_installed').textContent = fmt(hw.uk_gshp_MWth);
+    document.getElementById('eb_installed_cap').textContent =
+      'MWth of UK ground-source capacity operating today† · ~55,210 ' +
+      'systems (EGEC 2025) · deeper geothermal adds ~' + hw.uk_deep_MWth +
+      ' MWth†';
+    document.getElementById('eb_pp').textContent =
+      hw.per_person_W.toFixed(0) + ' W vs ' + hw.sweden_per_person_W + ' W†';
+    document.getElementById('eb_pp_cap').textContent =
+      'installed thermal watts per person, UK vs Sweden† · and still ' +
+      'compounding: 2025 sales UK ' + fmt(hw.sales_2025.uk) + ' vs Sweden ' +
+      fmt(hw.sales_2025.sweden) + ' units (EGEC)';
+    document.getElementById('eb_need').textContent =
+      (hw.whatif_MWth / 1000).toFixed(1);
+    document.getElementById('eb_need_cap').textContent =
+      'GWth of installed capacity the 20% what-if requires at ' +
+      fmt(hw.eflh) + ' equivalent full-load hours†';
+    const cats = ['United Kingdom'].concat(hw.comparators.map(c =>
+      c.name + '†'));
+    const gshp = [hw.uk_gshp_MWth].concat(hw.comparators.map(c => c.gshp_MWth));
+    const deep = [hw.uk_deep_MWth].concat(hw.comparators.map(c => c.deep_MWth));
+    const wif  = [Math.max(0, hw.whatif_MWth - inst)]
+                 .concat(hw.comparators.map(() => 0));
+    Plotly.newPlot('emptybarplot', [
+      {x: cats, y: gshp, type: 'bar', name: 'ground source, installed',
+       marker: {color: css('--geo')}},
+      {x: cats, y: deep, type: 'bar', name: 'deeper geothermal, installed†',
+       marker: {color: css('--cool')}},
+      {x: cats, y: wif, type: 'bar', name: 'the 20% what-if†',
+       marker: {color: 'rgba(58,170,53,.25)',
+                pattern: {shape: '/', fgcolor: css('--geo'), solidity: .25}}},
+    ], {
+      barmode: 'stack',
+      paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+      font: {family: 'Lato', color: css('--muted'), size: 12},
+      margin: {l: 60, r: 10, t: 10, b: 30},
+      xaxis: {gridcolor: css('--line')},
+      yaxis: {title: 'installed capacity — MWth', gridcolor: css('--line')},
+      legend: {orientation: 'h', y: 1.12},
+      annotations: [{x: 'United Kingdom',
+        y: hw.whatif_MWth, yanchor: 'bottom',
+        text: '→ ' + fmt(hw.whatif_MWth) + ' MWth†',
+        showarrow: false, font: {size: 11, color: css('--geo')}}],
+    }, {displayModeBar: false, responsive: true});
+    document.getElementById('emptybarnote').textContent =
+      'The chart prices the what-if strip in hardware, in installed thermal '+
+      'megawatts: the solid green base of the UK bar is ground-source '+
+      'capacity operating today (~' + fmt(hw.uk_gshp_MWth) + ' MWth†, '+
+      'EGEC 2025 UK Country Update), the blue sliver is deeper geothermal '+
+      '(Gateshead, Eden and peers, ~' + hw.uk_deep_MWth + ' MWth†), '+
+      'and the hatched stack is what serving 20% of delivered buildings '+
+      'heat requires at ' + fmt(hw.eflh) + ' equivalent full-load '+
+      'hours† — ' + (hw.whatif_MWth/1000).toFixed(1) + ' GWth '+
+      'against ' + fmt(hw.uk_gshp_MWth + hw.uk_deep_MWth) + ' MWth '+
+      'installed. Today\u2019s entire UK stock is the sliver at the base. '+
+      'The three bars on the right are not scenarios but installed reality '+
+      'elsewhere†: even Sweden\u2019s fleet — the largest in '+
+      'Europe, in a country of 10.5 million — covers barely a quarter '+
+      'of the UK requirement, which is the scale argument in one picture: '+
+      'the what-if is unremarkable per person (Sweden already runs ' +
+      hw.sweden_per_person_W + ' W/person against the UK\u2019s ' +
+      hw.per_person_W.toFixed(0) + ') and enormous only because Britain '+
+      'has never started. ' + hw.note + ' Comparator constants shared '+
+      'with the Irish sibling.';
   }
 
   const cr = d.cooling_reconciliation;
