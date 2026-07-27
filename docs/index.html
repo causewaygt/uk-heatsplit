@@ -740,8 +740,8 @@ fetch('data.json').then(r=>r.json()).then(d=>{
     document.getElementById('emptybarnote').textContent =
       'The chart prices the what-if strip in hardware, in installed thermal '+
       'megawatts: the solid green base of the UK bar is ground-source '+
-      'capacity operating today (~' + fmt(hw.uk_gshp_MWth) + ' MWth†, '+
-      'EGEC 2025 UK Country Update), the blue sliver is deeper geothermal '+
+      'capacity operating today (' + fmt(hw.uk_gshp_MWth) + ' MWth, '+
+      'EGC 2025 country update), the blue sliver is deeper geothermal '+
       '(Gateshead, Eden and peers, ~' + hw.uk_deep_MWth + ' MWth†), '+
       'and the hatched stack is what serving 20% of delivered buildings '+
       'heat requires at ' + fmt(hw.eflh) + ' equivalent full-load '+
@@ -755,8 +755,8 @@ fetch('data.json').then(r=>r.json()).then(d=>{
       'the what-if is unremarkable per person (Sweden already runs ' +
       hw.sweden_per_person_W + ' W/person against the UK\u2019s ' +
       hw.per_person_W.toFixed(0) + ') and enormous only because Britain '+
-      'has never started. ' + hw.note + ' Comparator constants shared '+
-      'with the Irish sibling.' +
+      'has never started. ' + hw.note + ' Constants shared with the '+
+      'Irish sibling.' +
       (sh ? ' The lower chart is the calibration: ' + sh.note + ' ' +
             sh.boiler_flow_note : '');
   }
