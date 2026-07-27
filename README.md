@@ -58,7 +58,10 @@ contact@causewaygt.com.
   sibling). Sweden's whole fleet — Europe's largest — covers barely a
   quarter of the UK requirement; per person the what-if is unremarkable
   (Sweden 778 W vs UK 13 W†), enormous only because Britain has never
-  started.
+  started. A calibration chart restates the same fleets as a share of
+  each country's own buildings heat†: UK 0.5%, France ~2%, Netherlands
+  ~5%, Sweden ~20% — Sweden's existing fleet already serves about the
+  share the UK what-if proposes.
 - **Geothermal — now and next** — heat and cooling from geothermal this week,
   plus annual bars for today, 2027, 2031 and 2050, each tagged to its source.
   Today's heat is anchored on the EGEC 2025 UK Country Update (~1.43 TWh/yr
@@ -186,7 +189,7 @@ scripts/
 
 The site carries a version (footer, `SITE_VERSION` in `docs/index.html`):
 x.y.z where **x** = new data source or panel, **y** = update to an existing
-source or anchor, **z** = wording or formatting. Current: **6.0.0**.
+source or anchor, **z** = wording or formatting. Current: **6.1.0**.
 History: v1 launch (gas split, costs, spark gap, geothermal, NI) → v2 carbon
 layer → v3.0–3.2 observed cooling analysis (NESO demand, response curve,
 recency-aware sources) → v3.3–3.4 comfort deficit, tier graphic and UTES
@@ -200,6 +203,7 @@ what-if overlay → v5.1 window selector re-totals the headline figures
 reconciliation diagnostic (year-round HDD+CDD regression, swept base)
 → v6.0 the empty bar (installed hardware vs the 20% what-if, European
 comparators†; the sibling mirror regression test from the July 2026
-cross-calibration runs in the build checks, panel withheld for now).
+cross-calibration runs in the build checks, panel withheld for now) → v6.1 share-of-national-heat calibration
+under the empty bar.
 
 *A Causeway Energies public-interest tool — https://causewaygt.com*
