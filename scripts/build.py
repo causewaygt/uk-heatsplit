@@ -969,8 +969,13 @@ def main():
                        "the shares are lower and barely move with "
                        "geothermal, because ground heat is never purchased: "
                        "that is the point. 20% what-if: one-fifth of heat "
-                       "via SCOP-5 networks (80% ground heat), one-fifth of "
-                       "cooling near-passive at COP 20" + EST + "."),
+                       "via SCOP-5 networks (80% ground heat) - SCOP 5 is a "
+                       "blended estimate across depths and system types, "
+                       "including seasonally balanced / UTES-coupled "
+                       "networks, so storage and recovery of rejected heat "
+                       "are factored in rather than additional" + EST +
+                       " - one-fifth of cooling near-passive at "
+                       "COP 20" + EST + "."),
     }
 
     # --- daily heat spark gap (wholesale basis; optional feeds) ----------------
