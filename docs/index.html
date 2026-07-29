@@ -393,7 +393,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '6.1.1';
+const SITE_VERSION = '6.2.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1126,7 +1126,8 @@ fetch('data.json').then(r=>r.json()).then(d=>{
         const a = vs[0], b = vs[vs.length-1],
               dir = b > a ? 1 : (b < a ? -1 : 0);
         const txt = key === 'indig_pct'
-          ? (b - a > 0 ? '+' : '') + (b - a).toFixed(0) + ' pp'
+          ? (b - a > 0 ? '+' : '') +
+            (b - a).toFixed(1).replace(/\.0$/, '') + ' pp'
           : (a ? ((b - a) / a > 0 ? '+' : '') +
                  (100 * (b - a) / a).toFixed(0) + '%' : '—');
         const cls = dir === 0 ? '' :
