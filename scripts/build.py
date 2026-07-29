@@ -322,7 +322,7 @@ def compute_week(gas_space_wk, hdd_wk, cdd_wk, hdd_12m, cdd_12m, p):
                     + useful["heat_networks"] + useful["elec_resistive"]
                     + useful["hp_electricity"] + useful["hp_ambient"]
                     + useful["cooling_delivered"])
-    indig_services_now = (round(100.0 * e_now / useful_total, 0)
+    indig_services_now = (round(100.0 * e_now / useful_total, 1)
                           if useful_total else None)
 
     # what-if: 20% of heat & cooling service moved to geothermal networks
@@ -370,7 +370,7 @@ def compute_week(gas_space_wk, hdd_wk, cdd_wk, hdd_12m, cdd_12m, p):
                + shifted_cool * ((1 / PASSIVE_COOL_COP) * INDIG["elec"]
                                  + (1 - 1 / PASSIVE_COOL_COP) * 1.0))
     tot_services = heat_services + cool_services
-    indig_services_20 = round(100.0 * (e_kept + e_shift) / tot_services, 0) \
+    indig_services_20 = round(100.0 * (e_kept + e_shift) / tot_services, 1) \
         if tot_services else None
     gas_tot = mix["gas_space"] + mix["gas_dhw"]
     pg_eff = ((mix["gas_space"] * _blend(p, "gas", "gas_space")
@@ -483,6 +483,9 @@ def load_previous():
         return {}
 
 
+HISTORY_SCHEMA = 2   # 2: indig_pct at one decimal (restated Jul 2026)
+
+
 def build_history(prev, dd, base, slope, target):
     """Maintain the rolling weekly ticker history (phase 1).
     Calendar weeks (Mon-Sun) where the gas feed served all 7 days, computed
@@ -493,6 +496,7 @@ def build_history(prev, dd, base, slope, target):
     incomplete. Capped at HISTORY_MAX, oldest rolled off."""
     hist_prev = {e["week_ending"]: e for e in (prev.get("history") or [])
                  if isinstance(e, dict) and e.get("week_ending")}
+    schema_prev = prev.get("history_schema", 1)
 
     hdd_by_date = dict(zip(dd["dates"], dd["hdd"][base]))
     cdd_by_date = dict(zip(dd["dates"], dd["cdd"][COOL_BASE]))
@@ -521,6 +525,16 @@ def build_history(prev, dd, base, slope, target):
 
     todo = sorted(set(w for w in complete if w not in hist_prev)
                   | set(complete[-2:]))
+    # One-time restatement (schema 2, Jul 2026): indig_pct gains one
+    # decimal - integer storage quantised the winter months of the 12m
+    # line flat. Every stored week still inside the live gas window is
+    # recomputed with its STORED grid_ci (no refetch) and the cap in
+    # force; all other fields re-round identically. Weeks outside the
+    # window keep their integer value - unrecomputable, and stated.
+    restate = set()
+    if schema_prev < HISTORY_SCHEMA:
+        restate = set(w for w in complete if w in hist_prev) - set(todo)
+        todo = sorted(set(todo) | restate)
     built = dict(hist_prev)
     ci_failures = 0
     for we in todo:
@@ -531,14 +545,18 @@ def build_history(prev, dd, base, slope, target):
         if n_days < 365:
             continue   # can't form a trailing-12m shape denominator
         c12, _ = trailing_365(ds[-1], cum_c)
-        try:
-            week_ci = fetch_ci_weekly_mean(ds[0], ds[-1])
-        except Exception:
-            traceback.print_exc()
-            ci_failures += 1
-            if ci_failures >= 3:   # API down; retry whole set next run
-                break
-            continue
+        stored = hist_prev.get(we)
+        if we in restate and stored and stored.get("grid_ci") is not None:
+            week_ci = stored["grid_ci"]   # restatement: reuse, don't refetch
+        else:
+            try:
+                week_ci = fetch_ci_weekly_mean(ds[0], ds[-1])
+            except Exception:
+                traceback.print_exc()
+                ci_failures += 1
+                if ci_failures >= 3:   # API down; retry whole set next run
+                    break
+                continue
         space_wk = sum(max(0.0, slope * hdd_by_date[d]) for d in ds)
         hdd_wk = sum(hdd_by_date[d] for d in ds)
         cdd_wk = sum(cdd_by_date[d] for d in ds)
@@ -947,12 +965,12 @@ def main():
     # --- headline stats: indigenous share + 20% geothermal what-if -------------
     headlines = {
         "purchased_GWh": round(r["total_in"], 0),
-        "indigenous_pct": r["indig_services_now"],    # services basis (hero)
+        "indigenous_pct": round(r["indig_services_now"]),  # services basis (hero, int)
         "indigenous_basis": "services",
         "indigenous_purchased_pct": r["indig_now"],   # purchased basis (methods)
         "whatif_20pct_geothermal": {
             "purchased_GWh": round(r["new_total"], 0),
-            "indigenous_pct": r["indig_services_20"], # services basis (hero)
+            "indigenous_pct": round(r["indig_services_20"]),  # services basis (hero, int)
             "indigenous_purchased_pct": r["indig_20"],
             "bill_Mgbp": round(r["bill_20"], 0),
         },
@@ -1135,6 +1153,7 @@ def main():
 
     # --- ticker history (phase 1): live weekly hero four + what-if twins -------
     try:
+        out["history_schema"] = HISTORY_SCHEMA
         out["history"] = build_history(prev, dd, base,
                                        best["slope_GWh_per_HDD"], target)
         out["history_note"] = (
