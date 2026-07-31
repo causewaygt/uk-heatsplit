@@ -156,7 +156,12 @@ EFF = {"gas": 0.835, "oil": 0.82, "bio": 0.70, "solid": 0.55,
        "heat_networks": 1.0, "resistive": 1.0}
 
 UK_POP_M = 68.0   # population convention per the July 2026 cross-calibration †
-HP_ELEC_TWH = 2.0
+HP_ELEC_TWH = 2.0   # hydronic-domestic subset consistent with the ECUK
+                    # elec-space anchors. NOT the DUKES 2026 ambient-heat
+                    # figure (1,386 ktoe = 16.1 TWh, 2025), which counts
+                    # reversible air-con heating across the non-domestic
+                    # fleet - different basis. Reconcile at the ECUK 2026
+                    # re-anchor, not before.
 HP_SPF = 2.8
 COOL_EER = 3.0
 HP_FLAT_SHARE = 0.15   # HP hot-water runs year-round (assumption)
@@ -167,11 +172,17 @@ PASSIVE_COOL_COP = 20.0  # illustrative mid-range of 15-30
 GEO_NETWORK_SCOP = 5.0   # networked geothermal (shared ambient loop)
 
 # Indigenous (UK-origin) shares of purchased energy - flagged estimates:
-#  gas ~38% UKCS (DUKES supply balance); oil ~30%; bio ~80% (domestic
+#  gas ~42% UK (DUKES 2026 supply pool); oil ~30%; bio ~80% (domestic
 #  wood); solid ~20%; heat networks ~40% (gas-driven); electricity ~75%
 #  (net imports ~10% + imported-gas share of CCGT). Ambient/ground heat
 #  is 100% indigenous but is not purchased energy.
-INDIG = {"gas": 0.38, "oil": 0.30, "bio": 0.80, "solid": 0.20,
+# Indigenous input-origin shares. gas: DUKES 2026 (2025 data) supply
+# pool - UKCS production 332.1 + UK biomethane 5.8 over gross supply
+# 810.2 TWh (prod + imports 463.7 + biomethane + stock draw 8.6) =
+# 41.7% -> 0.42, proportional-draw basis (DUKES's own framing: Norway
+# = 40% of gross supply). Was 0.38 (stale vintage). oil/bio/solid/
+# networks/elec are estimates †. UPDATE with each DUKES (late July).
+INDIG = {"gas": 0.42, "oil": 0.30, "bio": 0.80, "solid": 0.20,
          "heat_networks": 0.40, "elec": 0.75}
 
 R_SHIFT = 0.20   # the 20% geothermal what-if
@@ -977,7 +988,7 @@ def main():
         "indig_note": ("Indigenous share is measured on a SERVICES basis: "
                        "the UK-origin share of useful heat and cooling "
                        "delivered. Each service inherits the origin of its "
-                       "energy input (gas ~38% UKCS, electricity ~75%, "
+                       "energy input (gas ~42% UK-origin, electricity ~75%, "
                        "others flagged estimates" + EST + "); harvested "
                        "ambient/ground heat counts as 100% indigenous, "
                        "consistent with Eurostat/DUKES renewable-supply "
@@ -1605,7 +1616,7 @@ def main():
                      "energy in Britain); power = non-heat electricity; "
                      "costs from typical 2024 retail/pump prices x volumes; "
                      "imports allocate each service's inputs by the origin "
-                     "shares used site-wide (gas ~38% UK, electricity ~75%, "
+                     "shares used site-wide (gas ~42% UK, electricity ~75%, "
                      "petroleum ~30%); emissions allocate combustion by "
                      "service and grid CO2 by electricity use. Non-energy "
                      "emissions (agriculture, waste, F-gases) excluded. "
