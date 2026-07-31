@@ -494,7 +494,9 @@ def load_previous():
         return {}
 
 
-HISTORY_SCHEMA = 2   # 2: indig_pct at one decimal (restated Jul 2026)
+HISTORY_SCHEMA = 3   # 2: indig_pct at one decimal (restated Jul 2026)
+                     # 3: per-week heat/cool split of purchased energy
+                     #    (restated Aug 2026, same stored-CI mechanism)
 
 
 def build_history(prev, dd, base, slope, target):
@@ -577,6 +579,8 @@ def build_history(prev, dd, base, slope, target):
         built[we] = {
             "week_ending": we,
             "purchased_GWh": round(r["total_in"], 0),
+            "heat_GWh": round(r["total_in"] - r["mix"]["cooling"], 0),
+            "cooling_GWh": round(r["mix"]["cooling"], 0),
             "indig_pct": r["indig_services_now"],
             "bill_Mgbp": round(sum(r["bill"].values()), 0),
             "emissions_kt": e["week_kt"],
@@ -976,6 +980,8 @@ def main():
     # --- headline stats: indigenous share + 20% geothermal what-if -------------
     headlines = {
         "purchased_GWh": round(r["total_in"], 0),
+        "heat_GWh": round(r["total_in"] - r["mix"]["cooling"], 0),
+        "cooling_GWh": round(r["mix"]["cooling"], 0),
         "indigenous_pct": round(r["indig_services_now"]),  # services basis (hero, int)
         "indigenous_basis": "services",
         "indigenous_purchased_pct": r["indig_now"],   # purchased basis (methods)
