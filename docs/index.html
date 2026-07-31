@@ -159,7 +159,7 @@
       shaped by this week's weather. Estimates, not measurements.</p>
     <div class="statrow">
       <div class="stat"><div class="fig" id="st_energy">—</div>
-        <div class="cap">GWh of heating &amp; cooling energy purchased this week</div>
+        <div class="cap" id="st_energy_cap">GWh of heating &amp; cooling energy purchased this week</div>
         <div class="trend" data-trend="purchased_GWh" data-good="down" hidden></div></div>
       <div class="stat"><div class="fig" id="st_indig">—</div>
         <div class="cap">estimated UK-indigenous share of heat &amp; cooling delivered</div>
@@ -393,7 +393,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '6.3.0';
+const SITE_VERSION = '6.4.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -448,6 +448,11 @@ fetch('data.json').then(r=>r.json()).then(d=>{
     const hh = d.headlines;
     if(hh && hh.indigenous_pct != null){
       document.getElementById('st_indig').textContent = hh.indigenous_pct + '%';
+      if(hh.heat_GWh != null && hh.cooling_GWh != null){
+        document.getElementById('st_energy_cap').textContent =
+          'GWh of heating & cooling energy purchased this week (heat ' +
+          fmt(hh.heat_GWh) + ' \u00b7 cooling ' + fmt(hh.cooling_GWh) + ')';
+      }
     }
     if(d.cost && d.cost.national_week_total_Mgbp != null){
       document.getElementById('st_bill').textContent =
@@ -1074,8 +1079,15 @@ fetch('data.json').then(r=>r.json()).then(d=>{
         snap[id].fig.innerHTML = figHTML;
         snap[id].cap.textContent = capText;
       };
+      const fEc = g => g >= 9999.5
+        ? Math.round(g/1000).toLocaleString('en-GB') + ' TWh'
+        : fmt(g) + ' GWh';
+      const hasSplit = rows.every(e => e.heat_GWh != null &&
+                                       e.cooling_GWh != null);
       set('st_energy', fE(S('purchased_GWh')),
-          'heating & cooling energy purchased ' + label);
+          'heating & cooling energy purchased ' + label +
+          (hasSplit ? ' (heat ' + fEc(S('heat_GWh')) + ' \u00b7 cooling ' +
+                      fEc(S('cooling_GWh')) + ')' : ''));
       set('st_indig', (wavg(false) != null ? wavg(false) + '%' : '—'),
           'estimated UK-indigenous share of heat & cooling delivered — ' +
           'energy-weighted avg ' + label);
