@@ -13,7 +13,7 @@ import retro
 from fetch_hourly import hourly_temp, hourly_mid, hourly_ci
 
 END = dt.date.today() - dt.timedelta(days=2)
-START = END - dt.timedelta(days=364)
+START = END - dt.timedelta(days=396)
 S, E = START.isoformat(), END.isoformat()
 SPACE_TWH, DHW_TWH = 290.0, 77.7   # useful-basis stand-ins for the test
 
@@ -36,8 +36,9 @@ r1 = retro.build_retro(S, E, SPACE_TWH, DHW_TWH, base_c=16.5,
                        fetch_temp=f_temp, fetch_mid=f_mid, fetch_ci=f_ci)
 assert r1["calibration"]["shaping_base_c"] == 16.5
 n = r1["n_hours"]
-assert n == 365 * 24, n
-assert abs(sum(r1["heat_GWh"]) - (SPACE_TWH + DHW_TWH) * 1000) < 1.0
+assert n == 397 * 24, n
+assert abs(sum(r1["heat_GWh"][-8760:])
+           - (SPACE_TWH + DHW_TWH) * 1000) < 1.0   # trailing year exact
 ok, rep = retro.gates(r1)
 assert ok, rep                                           # G1 anchors
 for k in ("ashp", "shallow", "network"):
@@ -162,7 +163,11 @@ print("trim: 300-day cap enforced, start_day advanced  OK")
 
 # --- 8. cooling layer: conservation, summer peak, relief, second hump -------
 csum = sum(m["cool_GWh"] for m in sl["monthly_13"])
-assert 0.85 * 10244 < csum <= 10244 * 1.01, csum   # 13 months cover >=year-ish
+assert 10244 * 0.99 <= csum <= 10244 * 1.35, csum  # 13 months > one year
+fl_h, shp = retro.hourly_cooling_elec(r1["temp_C"],
+                                      r1["calibration"]["cooling"])
+h8760 = sum(fl_h + x for x in shp[-8760:])
+assert abs(h8760 - 10244) < 10, h8760              # trailing year EXACT
 ss = sl["stress_summer"]
 assert ss and ss["peak_hour"][5:7] in ("06", "07", "08"), ss["peak_hour"]
 assert ss["today_GW"] > 0 and ss["x2_scenario_added_GW"] == ss["today_GW"]
@@ -177,5 +182,17 @@ print("cooling layer: annual %.0f GWh conserved | summer peak %s "
       "%.1f GW, relief %.1f GW | Jul cool %.0f vs Jan %.0f GWh"
       % (csum, ss["peak_hour"], ss["today_GW"], ss["whatif_relief_GW"],
          jul["cool_GWh"], jan["cool_GWh"]))
+
+# --- 9. calendar-ordered falcon ---------------------------------------------
+mc = sl["monthly_calendar"]
+assert mc and len(mc) == 12
+assert [r["month"][5:] for r in mc] == ["%02d" % i for i in range(1, 13)]
+assert mc[0]["label"].startswith("Jan") and mc[11]["label"].startswith("Dec")
+by = {r["month"]: r for r in sl["monthly_13"]}
+for r in mc:
+    assert r["heat_GWh"] == by[r["month"]]["heat_GWh"]      # lossless reorder
+assert all(r["complete"] for r in mc)
+print("calendar falcon: Jan", mc[0]["label"], "... Dec", mc[11]["label"],
+      "| 12 distinct complete months, lossless  OK")
 
 print("\nALL PHASE B TESTS PASSED")
