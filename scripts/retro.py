@@ -228,11 +228,14 @@ def hourly_useful_heat(temps, start_day, space_annual_twh, dhw_annual_twh,
         h = [max(0.0, base_c - t) for t in seg]
         hdh.append(h)
         hdd_day.append(sum(h) / 24.0)
-    tot_hdd = sum(hdd_day) or 1.0
-    dhw_h = dhw_annual_twh * 1000.0 / n
+    # Annual quantities are defined on the TRAILING 365 days, so a
+    # 13-month store carries 13 months of heat and the trailing year
+    # sums to the annual EXACTLY - the gates slice that year.
+    den = sum(hdd_day[-365:]) or 1.0
+    dhw_h = dhw_annual_twh * 1000.0 / 8760.0        # rate, not spread
     out = []
     for i in range(days):
-        day_space = space_annual_twh * 1000.0 * hdd_day[i] / tot_hdd
+        day_space = space_annual_twh * 1000.0 * hdd_day[i] / den
         day_hdh = sum(hdh[i]) or 1.0
         for h in range(24):
             sp = day_space * (hdh[i][h] / day_hdh if day_hdh else 0.0)
@@ -361,7 +364,8 @@ def gates(retro, weekly_whatif_repl_elec_twh=None):
                           "pass": d <= 0.01}
         ok = ok and d <= 0.01
     if weekly_whatif_repl_elec_twh:
-        heat, temps = retro["heat_GWh"], retro["temp_C"]
+        heat = retro["heat_GWh"][-8760:]
+        temps = retro["temp_C"][-8760:]
         eta = retro["calibration"]["eta"]["network"]
         elec = sum(R_SHIFT * q / route_cop("network", t, eta)
                    for q, t in zip(heat, temps)) / 1000.0
@@ -431,10 +435,9 @@ def hourly_cooling_elec(temps, cooling):
     ann = cooling["annual_gwh"]
     base = cooling["base_c"]
     cdh = [max(0.0, t - base) for t in temps]
-    tot = sum(cdh) or 1.0
-    n = len(temps)
-    flat_h = 0.5 * ann / n
-    shaped = [0.5 * ann * c / tot for c in cdh]
+    den = sum(cdh[-8760:]) or 1.0            # trailing-365d convention
+    flat_h = 0.5 * ann / 8760.0              # rate, not spread
+    shaped = [0.5 * ann * c / den for c in cdh]
     return flat_h, shaped
 
 
@@ -515,6 +518,7 @@ def slices(store, nd_daily=None):
         row["date"] = (d0 + dt.timedelta(days=di)).isoformat()
         daily.append(row)
 
+    import calendar as _cal
     monthly = []
     mkey = None
     mstart = 0
@@ -525,9 +529,23 @@ def slices(store, nd_daily=None):
             if mkey is not None:
                 row = _agg(mstart * 24, di * 24)
                 row["month"] = "%04d-%02d" % mkey
+                row["complete"] = (di - mstart
+                                   == _cal.monthrange(*mkey)[1])
                 monthly.append(row)
             mkey, mstart = k, di
     monthly = monthly[-13:]
+
+    # Calendar-ordered falcon: the latest 12 COMPLETE months, one per
+    # calendar position, reordered Jan -> Dec (years mixed, labelled).
+    comp = [r for r in monthly if r.get("complete")][-12:]
+    monthly_calendar = None
+    if len(comp) == 12 and len({r["month"][5:] for r in comp}) == 12:
+        monthly_calendar = sorted(comp, key=lambda r: r["month"][5:])
+        MN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+              "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+        for r in monthly_calendar:
+            r["label"] = (MN[int(r["month"][5:]) - 1] + " "
+                          + r["month"][2:4])
 
     # ---- stress at the worst hour (daily-average demand basis) ----
     stress = {"worst_hour": _iso(iw),
@@ -616,6 +634,7 @@ def slices(store, nd_daily=None):
         "worst_week": worst_week,
         "daily_90": daily,
         "monthly_13": monthly,
+        "monthly_calendar": monthly_calendar,
         "stress": stress,
         "stress_summer": stress_summer,
         "coincidence_premium": premium,
