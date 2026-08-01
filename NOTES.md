@@ -371,6 +371,31 @@ CUTOVER DAY (same-day rule, learned from the restatements x3):
   dotted line. Standalone rebuilt (plotly inlined + blob-URL shim -
   the shim goes into Phase C's real panel too).
 
+## Phase C - the three-routes panel (v7.0.0, branch)
+- New section id="routes" in the gas engine's slot (engine stays visible
+  until Phase D collapses it), hidden by default and revealed only when
+  data.whatif_routes exists - graceful absence proven (retro failure or
+  pre-retro data.json leaves the page exactly as v6.7).
+- Layout as user-approved in the validation view: winter stress cards ->
+  summer stress cards (embedded-basis wording carried into the cards
+  themselves) -> H/D/M toggle chart (Hourly-7d live / Daily-90 /
+  Monthly-13 falcon with both wings) -> frozen worst-week exhibit ->
+  COP curves (client-derived from calibration: eta + flow + defrost,
+  never stored) -> premium cards -> basis note concatenating the
+  engine's own basis strings.
+- Dashed grammar's reserved first use: modelled heat + embedded cooling
+  dashed; observed-price/carbon untouched. Toggle reuses the trendctl
+  pattern (aria-pressed, Plotly.react).
+- HERO FIXES shipped alongside: 1w what-if captions gain saves ("saves
+  GBP32m this week" / "saves 335 GWh this week"); dfmt stamps the year
+  on any delta reference older than 300 days ("vs 27 Jul 25").
+- SITE_VERSION 7.0.0. Page suite extended (panel cards, saves regexes
+  in the 1w context, absence case); Plotly harness stubs gain react().
+  RENDERER SCOPE TRAP banked: the main script is one fetch().then(d=>)
+  callback - anything appended after its close sees no d; insert
+  before the .catch anchor.
+- Phase D remaining: collapse-the-evidence layout + copy deck; then E.
+
 ## Phase B addendum - the cooling layer (falcon's second wing)
 - retro gains embedded cooling: build.py passes the PRODUCTION
   convention verbatim (ANNUAL_TWH cooling_vent, 50% flat / 50% shaped
