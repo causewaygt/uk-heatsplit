@@ -27,9 +27,13 @@ DESIGN (all decisions per the v7 plan of record):
   like the weekly history. COPs are DERIVED at read time from stored
   temperature + calibration, never stored.
 
-SYNC NOTE (dagger): CITY coords/weights below must match the live
-fetch_degree_days module's population weighting exactly - verify on
-integration and import from there if exposed.
+SYNC RESOLVED (1 Aug): GB_POINTS below are copied VERBATIM from the
+live fetch_degree_days.py (names, coords, raw weights; normalised in
+code), and the within-day shaping base is a parameter supplied by the
+caller from the live regression's selected base (16.5 at present) -
+no hardcoded divergence remains. The hourly temperature fetch also
+adopts that module's pattern: one batched Open-Meteo request for all
+points, with retries.
 """
 
 import datetime as dt
@@ -47,36 +51,64 @@ FLOW_MILD_C, FLOW_COLD_C = 30.0, 50.0   # weather compensation endpoints
 FLOW_MILD_AT, FLOW_COLD_AT = 15.0, -5.0
 DEFROST_MAX = 0.12           # peak fractional COP loss, centre ~2C (dagger)
 R_SHIFT = 0.20
-HDH_BASE = 15.5              # within-day shaping base; SYNC with live base
 RETRO_SCHEMA = 1
 RETRO_PATH = os.path.join(os.path.dirname(__file__), "..", "docs",
                           "retro.json")
 
-CITIES = [  # (lat, lon, ONS mid-year weight) - SYNC with fetch_degree_days
-    (51.507, -0.128, 0.30), (52.489, -1.898, 0.10), (53.483, -2.244, 0.09),
-    (53.800, -1.549, 0.07), (55.864, -4.252, 0.06), (54.978, -1.618, 0.05),
-    (51.454, -2.588, 0.05), (51.481, -3.179, 0.04), (55.953, -3.188, 0.05),
-    (50.910, -1.404, 0.05), (52.954, -1.158, 0.07), (53.381, -1.470, 0.07),
+GB_POINTS = [  # VERBATIM from fetch_degree_days.py - keep in lockstep
+    ("London",      51.51,  -0.13, 24.0),
+    ("Birmingham",  52.48,  -1.90, 10.0),
+    ("Manchester",  53.48,  -2.24, 10.0),
+    ("Leeds",       53.80,  -1.55,  7.0),
+    ("Glasgow",     55.86,  -4.25,  6.0),
+    ("Newcastle",   54.98,  -1.61,  4.0),
+    ("Bristol",     51.45,  -2.59,  4.0),
+    ("Cardiff",     51.48,  -3.18,  3.5),
+    ("Edinburgh",   55.95,  -3.19,  3.5),
+    ("Southampton", 50.90,  -1.40,  4.0),
+    ("Nottingham",  52.95,  -1.15,  4.0),
+    ("Sheffield",   53.38,  -1.47,  4.0),
 ]
 
 
 # --- real fetchers (urllib, no new deps; stubs replace these offline) ------
-def fetch_hourly_temp(start_day, end_day):
+def fetch_hourly_temp(start_day, end_day, retries=4):
     """Population-weighted hourly 2m temperature, ERA5 via Open-Meteo
-    archive. Returns list of hourly values, midnight-aligned."""
-    series = None
-    for lat, lon, w in CITIES:
-        url = ("https://archive-api.open-meteo.com/v1/archive"
-               f"?latitude={lat}&longitude={lon}"
-               f"&start_date={start_day}&end_date={end_day}"
-               "&hourly=temperature_2m&timezone=UTC")
-        with urllib.request.urlopen(url, timeout=60) as r:
-            vals = json.load(r)["hourly"]["temperature_2m"]
-        if series is None:
-            series = [0.0] * len(vals)
+    archive. One batched request for all GB points with retries -
+    same pattern as the daily fetch_degree_days. Hours where under 90%
+    of the weight reported are left None for the gap policy."""
+    import time
+    url = ("https://archive-api.open-meteo.com/v1/archive"
+           "?latitude=" + ",".join(str(p[1]) for p in GB_POINTS)
+           + "&longitude=" + ",".join(str(p[2]) for p in GB_POINTS)
+           + f"&start_date={start_day}&end_date={end_day}"
+           "&hourly=temperature_2m&timezone=UTC")
+    last = None
+    for attempt in range(retries):
+        try:
+            with urllib.request.urlopen(url, timeout=120) as r:
+                data = json.load(r)
+            break
+        except Exception as e:            # noqa: BLE001
+            last = e
+            time.sleep(15 * (attempt + 1))
+    else:
+        raise last
+    results = data if isinstance(data, list) else [data]
+    total_w = sum(p[3] for p in GB_POINTS)
+    acc = None
+    wsum = None
+    for (name, lat, lon, w), res in zip(GB_POINTS, results):
+        vals = res["hourly"]["temperature_2m"]
+        if acc is None:
+            acc = [0.0] * len(vals)
+            wsum = [0.0] * len(vals)
         for i, v in enumerate(vals):
-            series[i] += (v if v is not None else series[i - 1]) * w
-    return [round(v, 2) for v in series]
+            if v is not None:
+                acc[i] += v * w
+                wsum[i] += w
+    return [round(a / ws, 2) if ws >= 0.9 * total_w else None
+            for a, ws in zip(acc, wsum)]
 
 
 def fetch_hourly_mid(start_day, end_day):
@@ -182,16 +214,18 @@ def route_cop(route, t_out, eta):
 
 
 # --- heat shape ------------------------------------------------------------
-def hourly_useful_heat(temps, start_day, space_annual_twh, dhw_annual_twh):
+def hourly_useful_heat(temps, start_day, space_annual_twh, dhw_annual_twh,
+                       base_c=16.5):
     """Hourly USEFUL heat, GWh. Space: annual total distributed by daily
-    HDD share, then by within-day heating degree-hours (dagger -
+    HDD share, then by within-day heating degree-hours at base_c - the
+    LIVE regression's selected base, supplied by the caller (dagger -
     modelled shape; misses DHW-and-setback peaks, stated). DHW: flat."""
     n = len(temps)
     days = n // 24
     hdd_day, hdh = [], []
     for i in range(days):
         seg = temps[i * 24:(i + 1) * 24]
-        h = [max(0.0, HDH_BASE - t) for t in seg]
+        h = [max(0.0, base_c - t) for t in seg]
         hdh.append(h)
         hdd_day.append(sum(h) / 24.0)
     tot_hdd = sum(hdd_day) or 1.0
@@ -229,6 +263,7 @@ def calibrate_eta(route, temps, heat):
 
 # --- engine ----------------------------------------------------------------
 def build_retro(start_day, end_day, space_annual_twh, dhw_annual_twh,
+                base_c=16.5,
                 fetch_temp=fetch_hourly_temp, fetch_mid=fetch_hourly_mid,
                 fetch_ci=fetch_hourly_ci, prev=None):
     """Build or extend the retrospective store. Frozen once written
@@ -246,7 +281,7 @@ def build_retro(start_day, end_day, space_annual_twh, dhw_annual_twh,
         keep_from = None
 
     f0 = keep_from.isoformat() if keep_from else start_day
-    temps = fetch_temp(f0, end_day)
+    temps = _fill(fetch_temp(f0, end_day))
     mids = fetch_mid(f0, end_day)
     cis = fetch_ci(f0, end_day)
     n = min(len(temps), len(mids), len(cis))
@@ -260,7 +295,7 @@ def build_retro(start_day, end_day, space_annual_twh, dhw_annual_twh,
         cis = prev["ci_g_kwh"][:k] + cis
 
     heat = hourly_useful_heat(temps, start_day, space_annual_twh,
-                              dhw_annual_twh)
+                              dhw_annual_twh, base_c=base_c)
     etas = {r: calibrate_eta(r, temps, heat) for r in SPF_ANCHORS}
     spfs = {}
     for r in SPF_ANCHORS:
@@ -282,6 +317,7 @@ def build_retro(start_day, end_day, space_annual_twh, dhw_annual_twh,
         "calibration": {
             "eta": etas, "spf_check": spfs, "anchors": SPF_ANCHORS,
             "space_annual_TWh": round(space_annual_twh, 1),
+            "shaping_base_c": base_c,
             "dhw_annual_TWh": round(dhw_annual_twh, 1),
             "defrost_max": DEFROST_MAX,
             "flow": [FLOW_MILD_C, FLOW_COLD_C],
