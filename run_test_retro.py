@@ -103,3 +103,79 @@ print("eta stable across append:",
       {k: r2["calibration"]["eta"][k] for k in etas})
 
 print("\nALL RETRO TESTS PASSED")
+
+# --- 6. Phase B: slices, worst hour, stress ordering, premium ---------------
+nd = {}
+d = START
+import random as _r
+while d <= END:
+    doy = d.timetuple().tm_yday
+    import math as _m
+    winter = 0.5 * (1 + _m.cos((doy - 15) / 365.0 * 2 * _m.pi))
+    nd[d.isoformat()] = 700.0 + 350.0 * winter \
+        + _r.Random("nd" + d.isoformat()).gauss(0, 25)
+    d += dt.timedelta(days=1)
+
+r1["calibration"]["cooling"] = {"annual_gwh": 10244.0, "base_c": 18.0,
+                                "eer": 3.0, "passive_cop": 20.0}
+sl = retro.slices(r1, nd_daily=nd)
+assert len(sl["hourly_live_7d"]["heat_GWh"]) == 168
+assert len(sl["worst_week"]["heat_GWh"]) == 168
+assert len(sl["daily_90"]) == 90
+assert 12 <= len(sl["monthly_13"]) <= 13
+# worst hour is the argmax of the modelled heat, empirically located
+iw = max(range(r1["n_hours"]), key=lambda i: r1["heat_GWh"][i])
+assert sl["stress"]["worst_hour_heat_GWh"] == round(r1["heat_GWh"][iw], 1)
+# stress ordering: colder source -> more added GW at the worst hour
+st = sl["stress"]
+assert st["ashp"]["added_GW"] > st["shallow"]["added_GW"] \
+       > st["network"]["added_GW"] > 0
+assert st["ashp"]["pct_of_record_day"] > 0
+# hours-above distributions are monotone declining in the threshold
+for r in ("ashp", "shallow", "network"):
+    ha = st[r]["hours_above"]
+    vals = [ha[k] for k in ("5", "10", "15", "20", "25")]
+    assert all(a >= b for a, b in zip(vals, vals[1:]))
+# coincidence premium: air-source pays the largest premium; network least
+pr = sl["coincidence_premium"]
+assert pr["ashp"]["premium_pct"] > pr["network"]["premium_pct"]
+assert pr["ashp"]["premium_pct"] > 0
+# monthly falcon shape: max month heat in winter half, > 2x min month
+mh = [m["heat_GWh"] for m in sl["monthly_13"]]
+assert max(mh) > 2 * min(m for m in mh if m > 0)
+print("slices: worst hour %s (%.1f GWh, %.1fC) | added GW a/s/n = "
+      "%.1f/%.1f/%.1f | premium %% a/s/n = %.1f/%.1f/%.1f"
+      % (st["worst_hour"], st["worst_hour_heat_GWh"],
+         st["worst_hour_temp_C"], st["ashp"]["added_GW"],
+         st["shallow"]["added_GW"], st["network"]["added_GW"],
+         pr["ashp"]["premium_pct"], pr["shallow"]["premium_pct"],
+         pr["network"]["premium_pct"]))
+
+# --- 7. trim: cap respected, front dropped, start_day advanced --------------
+big = json.loads(json.dumps(r2))
+t0 = big["start_day"]
+trimmed = retro.trim(json.loads(json.dumps(big)), max_days=300)
+assert trimmed["n_hours"] == 300 * 24
+assert trimmed["temp_C"] == big["temp_C"][-300 * 24:]
+assert trimmed["start_day"] > t0
+print("trim: 300-day cap enforced, start_day advanced  OK")
+
+# --- 8. cooling layer: conservation, summer peak, relief, second hump -------
+csum = sum(m["cool_GWh"] for m in sl["monthly_13"])
+assert 0.85 * 10244 < csum <= 10244 * 1.01, csum   # 13 months cover >=year-ish
+ss = sl["stress_summer"]
+assert ss and ss["peak_hour"][5:7] in ("06", "07", "08"), ss["peak_hour"]
+assert ss["today_GW"] > 0 and ss["x2_scenario_added_GW"] == ss["today_GW"]
+assert 0 < ss["whatif_relief_GW"] < ss["today_GW"]
+mm = {m["month"][5:]: m for m in sl["monthly_13"]}
+jul = mm.get("07") or mm.get("08"); jan = mm.get("01") or mm.get("12")
+assert jul["cool_GWh"] > 2 * jan["cool_GWh"]        # the summer hump
+assert jan["heat_GWh"] > 2 * jul["heat_GWh"]        # against the winter one
+assert 0 < jul["cool_whatif_relief_GWh"] < jul["cool_GWh"]
+assert len(sl["hourly_live_7d"]["cool_GWh"]) == 168
+print("cooling layer: annual %.0f GWh conserved | summer peak %s "
+      "%.1f GW, relief %.1f GW | Jul cool %.0f vs Jan %.0f GWh"
+      % (csum, ss["peak_hour"], ss["today_GW"], ss["whatif_relief_GW"],
+         jul["cool_GWh"], jan["cool_GWh"]))
+
+print("\nALL PHASE B TESTS PASSED")
