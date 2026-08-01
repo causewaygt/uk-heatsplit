@@ -350,6 +350,10 @@ def compute_week(gas_space_wk, hdd_wk, cdd_wk, hdd_12m, cdd_12m, p):
                  + heat_repl_elec + cool_repl_elec),
     }
     new_total = sum(adj.values())
+    # what-if purchased split: cooling = kept cooling electricity + its
+    # near-passive replacement; heat = everything else
+    wf_cooling = mix["cooling"] * (1 - R) + cool_repl_elec
+    wf_heat = new_total - wf_cooling
     indig_20 = _indig_pct(adj["gas"], adj["oil"], adj["bio"], adj["solid"],
                           adj["hn"], adj["elec"], new_total)
 
@@ -399,6 +403,11 @@ def compute_week(gas_space_wk, hdd_wk, cdd_wk, hdd_12m, cdd_12m, p):
                + _cost_m(adj["solid"], p["solid"])
                + _cost_m(adj["hn"], p["heat_networks"])
                + _cost_m(adj["elec"], pe_eff))
+    # what-if bill split: cooling = kept cooling electricity + its
+    # near-passive replacement, priced at the cooling blend; heat = rest
+    wf_bill_cool = _cost_m(mix["cooling"] * (1 - R) + cool_repl_elec,
+                           _blend(p, "elec", "cooling"))
+    wf_bill_heat = bill_20 - wf_bill_cool
 
     return {
         "f_flat": f_flat, "f_h": f_h, "f_c": f_c,
@@ -410,6 +419,8 @@ def compute_week(gas_space_wk, hdd_wk, cdd_wk, hdd_12m, cdd_12m, p):
         "total_in": total_in,
         "indig_now": indig_now, "indig_services_now": indig_services_now,
         "heat_repl_elec": heat_repl_elec, "cool_repl_elec": cool_repl_elec,
+        "wf_heat": wf_heat, "wf_cooling": wf_cooling,
+        "wf_bill_heat": wf_bill_heat, "wf_bill_cool": wf_bill_cool,
         "adj": adj, "new_total": new_total,
         "indig_20": indig_20, "indig_services_20": indig_services_20,
         "bill_20": bill_20,
@@ -443,6 +454,13 @@ def compute_week_emissions(r, grid_ci):
         "week_heat_kt": round(em_heat / 1000.0, 0),
         "week_cool_kt": round(em["cooling"] / 1000.0, 0),
         "whatif_kt": round((em_total - em_removed + em_added) / 1000.0, 0),
+        "whatif_cool_kt": round((r["mix"]["cooling"] * (1 - R_SHIFT)
+                                 + r["cool_repl_elec"]) * grid_ci
+                                / 1000.0, 0),
+        "whatif_heat_kt": round((em_total - em_removed + em_added
+                                 - (r["mix"]["cooling"] * (1 - R_SHIFT)
+                                    + r["cool_repl_elec"]) * grid_ci)
+                                / 1000.0, 0),
         "saving_kt": round((em_removed - em_added) / 1000.0, 0),
     }
 
@@ -494,9 +512,12 @@ def load_previous():
         return {}
 
 
-HISTORY_SCHEMA = 3   # 2: indig_pct at one decimal (restated Jul 2026)
+HISTORY_SCHEMA = 6   # 2: indig_pct at one decimal (restated Jul 2026)
                      # 3: per-week heat/cool split of purchased energy
                      #    (restated Aug 2026, same stored-CI mechanism)
+                     # 4: what-if heat/cool split per week (Aug 2026)
+                     # 5: bill and emissions heat/cool splits (Aug 2026)
+                     # 6: what-if bill and emissions splits (Aug 2026)
 
 
 def build_history(prev, dd, base, slope, target):
@@ -583,9 +604,20 @@ def build_history(prev, dd, base, slope, target):
             "cooling_GWh": round(r["mix"]["cooling"], 0),
             "indig_pct": r["indig_services_now"],
             "bill_Mgbp": round(sum(r["bill"].values()), 0),
+            "bill_heat_Mgbp": round(sum(v for k, v in r["bill"].items()
+                                        if k != "cooling"), 0),
+            "bill_cool_Mgbp": round(r["bill"]["cooling"], 0),
             "emissions_kt": e["week_kt"],
+            "emissions_heat_kt": e["week_heat_kt"],
+            "emissions_cool_kt": e["week_cool_kt"],
             "whatif": {
                 "purchased_GWh": round(r["new_total"], 0),
+                "heat_GWh": round(r["wf_heat"], 0),
+                "cooling_GWh": round(r["wf_cooling"], 0),
+                "bill_heat_Mgbp": round(r["wf_bill_heat"], 0),
+                "bill_cool_Mgbp": round(r["wf_bill_cool"], 0),
+                "emissions_heat_kt": e["whatif_heat_kt"],
+                "emissions_cool_kt": e["whatif_cool_kt"],
                 "indig_pct": r["indig_services_20"],
                 "bill_Mgbp": round(r["bill_20"], 0),
                 "emissions_kt": e["whatif_kt"],
@@ -987,6 +1019,10 @@ def main():
         "indigenous_purchased_pct": r["indig_now"],   # purchased basis (methods)
         "whatif_20pct_geothermal": {
             "purchased_GWh": round(r["new_total"], 0),
+            "heat_GWh": round(r["wf_heat"], 0),
+            "cooling_GWh": round(r["wf_cooling"], 0),
+            "bill_heat_Mgbp": round(r["wf_bill_heat"], 0),
+            "bill_cool_Mgbp": round(r["wf_bill_cool"], 0),
             "indigenous_pct": round(r["indig_services_20"]),  # services basis (hero, int)
             "indigenous_purchased_pct": r["indig_20"],
             "bill_Mgbp": round(r["bill_20"], 0),
@@ -1154,6 +1190,8 @@ def main():
             "week_heat_kt": e["week_heat_kt"],
             "week_cool_kt": e["week_cool_kt"],
             "whatif_20pct_kt": e["whatif_kt"],
+            "whatif_heat_kt": e["whatif_heat_kt"],
+            "whatif_cool_kt": e["whatif_cool_kt"],
             "whatif_saving_kt": e["saving_kt"],
             "routes_g_per_useful_kwh": routes,
             "note": ("Combustion factors: DESNZ GHG conversion factors 2025 "
