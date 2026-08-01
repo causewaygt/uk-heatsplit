@@ -29,7 +29,9 @@ contact@causewaygt.com.
   and the cumulative what-if saving (sums over complete live weeks;
   the indigenous share as an energy-weighted average). The what-if is
   overlaid in green on each sparkline; the shaded band is the forgone
-  saving. Live weeks only: each point is computed with
+  saving, and every splittable headline — purchased energy, bill and
+  emissions, actuals and what-if alike — carries its heat/cool split
+  in each window's caption. Live weeks only: each point is computed with
   the same estimators as the headline, priced at the Ofgem cap in force
   that week and carboned at that week's mean grid intensity — no modelled
   back-cast. The window is bounded by the ~13 months the National Gas feed
@@ -189,7 +191,7 @@ scripts/
 
 The site carries a version (footer, `SITE_VERSION` in `docs/index.html`):
 x.y.z where **x** = new data source or panel, **y** = update to an existing
-source or anchor, **z** = wording or formatting. Current: **6.1.0**.
+source or anchor, **z** = wording or formatting. Current: **6.7.0**.
 History: v1 launch (gas split, costs, spark gap, geothermal, NI) → v2 carbon
 layer → v3.0–3.2 observed cooling analysis (NESO demand, response curve,
 recency-aware sources) → v3.3–3.4 comfort deficit, tier graphic and UTES
@@ -204,6 +206,11 @@ reconciliation diagnostic (year-round HDD+CDD regression, swept base)
 → v6.0 the empty bar (installed hardware vs the 20% what-if, European
 comparators†; the sibling mirror regression test from the July 2026
 cross-calibration runs in the build checks, panel withheld for now) → v6.1 share-of-national-heat calibration
-under the empty bar.
+under the empty bar → v6.2 indigenous share stored at one decimal
+(documented one-time restatement of the weekly history) → v6.3 DUKES
+2026 re-anchor (UK-origin gas share 0.38→0.42) → v6.4–6.7 heat/cool
+splits — purchased energy, bill and emissions, actuals and the 20%
+what-if alike, at every window from 1 week to 12 months (history
+schemas 3–6, restated by the same stored-CI mechanism).
 
 *A Causeway Energies public-interest tool — https://causewaygt.com*
