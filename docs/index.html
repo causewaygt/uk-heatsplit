@@ -186,11 +186,11 @@
         <span style="font-size:2.2em;font-weight:700;color:var(--geo);line-height:1">GEOTHERMAL?</span></div>
       <div class="statrow">
         <div class="stat"><div class="fig" id="wf_energy">—</div>
-          <div class="cap">GWh purchased — the ground supplies the rest free</div></div>
+          <div class="cap" id="wf_energy_cap">GWh purchased — the ground supplies the rest free</div></div>
         <div class="stat"><div class="fig" id="wf_indig">—</div>
           <div class="cap">UK-indigenous share</div></div>
         <div class="stat"><div class="fig" id="wf_bill">—</div>
-          <div class="cap">national bill</div></div>
+          <div class="cap" id="wf_bill_cap">national bill</div></div>
         <div class="stat"><div class="fig" id="wf_carbon">—</div>
           <div class="cap" id="wf_carbon_cap">emissions</div></div>
       </div>
@@ -393,7 +393,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '6.4.0';
+const SITE_VERSION = '6.7.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -474,14 +474,27 @@ fetch('data.json').then(r=>r.json()).then(d=>{
     if(hh && hh.whatif_20pct_geothermal){
       const w = hh.whatif_20pct_geothermal;
       document.getElementById('wf_energy').textContent = fmt(w.purchased_GWh);
+      if(w.heat_GWh != null && w.cooling_GWh != null){
+        document.getElementById('wf_energy_cap').textContent =
+          'GWh purchased (heat ' + fmt(w.heat_GWh) + ' \u00b7 cooling ' +
+          fmt(w.cooling_GWh) + ') \u2014 the ground supplies the rest free';
+      }
       document.getElementById('wf_indig').textContent =
         (w.indigenous_pct != null ? w.indigenous_pct + '%' : '—');
       document.getElementById('wf_bill').textContent = '£' + fmt(w.bill_Mgbp) + 'm';
+      if(w.bill_heat_Mgbp != null && w.bill_cool_Mgbp != null){
+        document.getElementById('wf_bill_cap').textContent =
+          'national bill (heat \u00a3' + fmt(w.bill_heat_Mgbp) +
+          'm \u00b7 cooling \u00a3' + fmt(w.bill_cool_Mgbp) + 'm)';
+      }
       if(d.carbon && d.carbon.whatif_20pct_kt != null){
         document.getElementById('wf_carbon').textContent =
           fmt(d.carbon.whatif_20pct_kt) + ' kt';
         document.getElementById('wf_carbon_cap').textContent =
-          'emissions (saves ' + fmt(d.carbon.whatif_saving_kt) + ' kt)';
+          'emissions (' + (d.carbon.whatif_heat_kt != null
+            ? 'heat ' + fmt(d.carbon.whatif_heat_kt) + ' \u00b7 cooling ' +
+              fmt(d.carbon.whatif_cool_kt) + ' kt \u00b7 ' : '') +
+          'saves ' + fmt(d.carbon.whatif_saving_kt) + ' kt)';
       }
     }
 
@@ -1091,18 +1104,45 @@ fetch('data.json').then(r=>r.json()).then(d=>{
       set('st_indig', (wavg(false) != null ? wavg(false) + '%' : '—'),
           'estimated UK-indigenous share of heat & cooling delivered — ' +
           'energy-weighted avg ' + label);
-      set('st_bill', fB(S('bill_Mgbp')), 'national bill ' + label);
+      const billSplit = rows.every(e => e.bill_heat_Mgbp != null &&
+                                        e.bill_cool_Mgbp != null);
+      set('st_bill', fB(S('bill_Mgbp')), 'national bill ' + label +
+          (billSplit ? ' (heat ' + fB(S('bill_heat_Mgbp')) +
+            ' \u00b7 cooling ' + fB(S('bill_cool_Mgbp')) + ')' : ''));
+      const emSplit = rows.every(e => e.emissions_heat_kt != null &&
+                                      e.emissions_cool_kt != null);
+      const fKc = k => k >= 999.5 ? (k/1000).toFixed(1) + ' Mt'
+                                  : fmt(k) + ' kt';
       set('st_carbon', fK(S('emissions_kt')),
-          'heating & cooling emissions ' + label);
+          'heating & cooling emissions ' + label +
+          (emSplit ? ' (heat ' + fKc(S('emissions_heat_kt')) +
+            ' \u00b7 cooling ' + fKc(S('emissions_cool_kt')) + ')' : ''));
+      const SWk = k => rows.reduce((a,e) => a + ((e.whatif||{})[k] || 0), 0);
+      const wfSplit = rows.every(e => e.whatif && e.whatif.heat_GWh != null
+                                      && e.whatif.cooling_GWh != null);
       set('wf_energy', fE(SW('purchased_GWh')),
-          'purchased — the ground supplies the rest free');
+          'purchased' + (wfSplit ? ' (heat ' + fEc(SWk('heat_GWh')) +
+            ' \u00b7 cooling ' + fEc(SWk('cooling_GWh')) + ')' : '') +
+          ' — the ground supplies the rest free');
       set('wf_indig', (wavg(true) != null ? wavg(true) + '%' : '—'),
           'UK-indigenous share — energy-weighted avg');
+      const wfBillSplit = rows.every(e => e.whatif &&
+          e.whatif.bill_heat_Mgbp != null && e.whatif.bill_cool_Mgbp != null);
       set('wf_bill', fB(SW('bill_Mgbp')),
-          'national bill (saves ' + fB(S('bill_Mgbp') - SW('bill_Mgbp')) +
+          'national bill (' + (wfBillSplit
+            ? 'heat ' + fB(SWk('bill_heat_Mgbp')) + ' \u00b7 cooling ' +
+              fB(SWk('bill_cool_Mgbp')) + ' \u00b7 ' : '') +
+          'saves ' + fB(S('bill_Mgbp') - SW('bill_Mgbp')) +
           ' ' + label + ')');
+      const wfEmSplit = rows.every(e => e.whatif &&
+          e.whatif.emissions_heat_kt != null &&
+          e.whatif.emissions_cool_kt != null);
       set('wf_carbon', fK(SW('emissions_kt')),
-          'emissions (saves ' + fKplain(S('emissions_kt') -
+          'emissions (' + (wfEmSplit
+            ? 'heat ' + fKplain(SWk('emissions_heat_kt')) +
+              ' \u00b7 cooling ' + fKplain(SWk('emissions_cool_kt')) +
+              ' \u00b7 ' : '') +
+          'saves ' + fKplain(S('emissions_kt') -
           SW('emissions_kt')) + ' ' + label + ')');
     }
     function draw(win){
