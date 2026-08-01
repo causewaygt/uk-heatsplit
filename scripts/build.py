@@ -1755,7 +1755,7 @@ def main():
         prev_retro = retro.load()
         if not prev_retro:
             r_start = (dt.date.today()
-                       - dt.timedelta(days=2 + 364)).isoformat()
+                       - dt.timedelta(days=2 + 396)).isoformat()
         else:
             r_start = prev_retro["start_day"]
         rstore = retro.build_retro(
