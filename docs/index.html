@@ -237,9 +237,9 @@
     </div>
     <div id="rt_main" style="width:100%;height:340px;margin-top:10px"></div>
 
-    <div class="barlabel">WINTER STRESS — THE WORST HOUR, EMPIRICALLY LOCATED</div>
+    <div class="barlabel">WINTER STRESS — EXTRA ELECTRICITY THE FIFTH WOULD DRAW AT THE WORST HOUR (GROSS)</div>
     <div class="statrow" id="rt_winter"></div>
-    <div class="barlabel" id="rt_bindlbl" hidden style="margin-top:16px">THE BINDING HOUR — WINTER, NET BASIS, UNDER TODAY'S FLEET†</div>
+    <div class="barlabel" id="rt_bindlbl" hidden style="margin-top:16px">THE BINDING HOUR — TOTAL CALL ON DISPATCHABLE SUPPLY, NET† , UNDER TODAY'S FLEET†</div>
     <div class="statrow" id="rt_bind"></div>
     <div id="rt_bindbars" style="width:100%;height:300px;margin-top:12px" hidden></div>
     <div class="barlabel" style="margin-top:16px">SUMMER STRESS — THE COOLING PEAK (EMBEDDED BASIS†)</div>
@@ -1375,7 +1375,8 @@ fetch('data.json').then(r=>r.json()).then(d=>{
              ' °C, wind ' + rb.ashp.binding_wind_GW + ' GW') +
         ['ashp','shallow','network'].map(r => stat(
           rb[r].dispatch_req_GW + '<small> GW</small>',
-          RN[r] + ' dispatchable requirement · headroom ' +
+          RN[r] + ' \u2014 TOTAL requirement on dispatchable supply ' +
+          '(net\u2020) \u00b7 headroom ' +
           (rb[r].headroom_GW >= 0 ? '+' : '') + rb[r].headroom_GW +
           ' GW vs today’s fleet†' +
           (rb[r].hours_above_block
@@ -1435,21 +1436,22 @@ fetch('data.json').then(r=>r.json()).then(d=>{
     function windowTraces(w){
       const t0 = new Date(w.start + ':00:00Z');
       const x = w.temp_C.map((_,i) => new Date(t0.getTime() + i*3600e3));
-      const tr = [{x, y:w.heat_GWh, name:'heat (modelled\u2020)',
+      const tr = [{x, y:w.heat_GWh,
+        name:'all buildings heat, delivered (modelled\u2020)',
         line:{color:'#c9d2da', width:1.1, dash:'dash'}, fill:'tozeroy',
         fillcolor:'rgba(200,210,220,0.06)'}];
-      if(w.cool_GWh) tr.push({x, y:w.cool_GWh,
-        name:'cooling (embedded\u2020)',
-        line:{color:AMB, width:1.3, dash:'dash'}});
+
       for(const r of ['ashp','shallow','network'])
-        tr.push({x, y:w.routes[r], name:RN[r], yaxis:'y2',
+        tr.push({x, y:w.routes[r], yaxis:'y2',
+                 name:'the fifth via ' + RN[r],
                  line:{color:RC[r], width:1.7}});
       return tr;
     }
     const LAYW = Object.assign({}, P, {
-      yaxis:{title:'GWh per hour', gridcolor:css('--line'),
-             rangemode:'tozero'},
-      yaxis2:{title:'route added GW', overlaying:'y', side:'right',
+      yaxis:{title:'heat delivered, GWh per hour',
+             gridcolor:css('--line'), rangemode:'tozero'},
+      yaxis2:{title:'electricity, GWh per hour (= average GW)',
+              overlaying:'y', side:'right',
               rangemode:'tozero', showgrid:false}});
     (function(){
       const w = WR.worst_week;
@@ -1501,10 +1503,17 @@ fetch('data.json').then(r=>r.json()).then(d=>{
 
     function drawMain(mode){
       if(mode === 'h'){
-        Plotly.react('rt_main', windowTraces(WR.hourly_live_7d), LAYW,
-                     {displayModeBar:false, responsive:true});
+        const lw = WR.hourly_live_7d;
+        const hmax = Math.max(...lw.heat_GWh) * 1.3;
+        const emax = Math.max(...['ashp','shallow','network']
+          .map(r => Math.max(...lw.routes[r]))) * 1.4;
+        Plotly.react('rt_main', windowTraces(lw), Object.assign({}, LAYW,
+          {yaxis:Object.assign({}, LAYW.yaxis, {range:[0, hmax]}),
+           yaxis2:Object.assign({}, LAYW.yaxis2, {range:[0, emax]})}),
+          {displayModeBar:false, responsive:true});
         document.getElementById('rt_span').textContent =
-          'live rolling week \u00b7 hourly';
+          'live rolling week \u00b7 hourly \u00b7 summer heat is hot water only'
+          + ' \u2014 cooling sits in the Daily and Monthly views';
       } else if(mode === 'd'){
         const D = WR.daily_90, x = D.map(r => r.date);
         const tr = [{x, y:D.map(r => r.heat_GWh),
@@ -1512,16 +1521,16 @@ fetch('data.json').then(r=>r.json()).then(d=>{
           line:{color:'#c9d2da', width:1, dash:'dash'}, fill:'tozeroy',
           fillcolor:'rgba(200,210,220,0.06)'}];
         if(D[0].cool_GWh != null) tr.push({x, y:D.map(r => r.cool_GWh),
-          name:'cooling (embedded\u2020)',
+          yaxis:'y2', name:'cooling electricity today (embedded\u2020)',
           line:{color:AMB, width:1.3, dash:'dash'}});
         for(const r of ['ashp','shallow','network'])
           tr.push({x, y:D.map(q => q[r + '_GWh']), yaxis:'y2',
                    name:'the fifth via ' + RN[r],
                    line:{color:RC[r], width:1.7}});
         Plotly.react('rt_main', tr, Object.assign({}, P,
-          {yaxis:{title:'heat / cooling GWh per day',
+          {yaxis:{title:'heat delivered, GWh per day',
                   gridcolor:css('--line'), rangemode:'tozero'},
-           yaxis2:{title:'electricity for the fifth, GWh per day',
+           yaxis2:{title:'electricity, GWh per day',
                    overlaying:'y', side:'right', rangemode:'tozero',
                    showgrid:false}}),
           {displayModeBar:false, responsive:true});
@@ -1538,12 +1547,12 @@ fetch('data.json').then(r=>r.json()).then(d=>{
            name:'the same fifth on resistive heating (COP 1)',
            line:{color:'#77808a', width:1.3, dash:'dot'}}];
         if(M[0].cool_GWh != null){
-          tr.push({x, y:M.map(r => r.cool_GWh/1000),
-            name:'cooling today (embedded\u2020)',
+          tr.push({x, y:M.map(r => r.cool_GWh/1000), yaxis:'y2',
+            name:'cooling electricity today (embedded\u2020)',
             line:{color:AMB, width:1.5, dash:'dash'}, fill:'tozeroy',
             fillcolor:'rgba(224,177,60,0.10)'});
-          tr.push({x, y:M.map(r => 2*r.cool_GWh/1000),
-            name:'cooling if doubled\u2020',
+          tr.push({x, y:M.map(r => 2*r.cool_GWh/1000), yaxis:'y2',
+            name:'cooling electricity if doubled\u2020',
             line:{color:AMB, width:1, dash:'dot'}});
         }
         for(const r of ['ashp','shallow','network'])
@@ -1553,9 +1562,9 @@ fetch('data.json').then(r=>r.json()).then(d=>{
                    line:{color:RC[r], width:2}});
         Plotly.react('rt_main', tr, Object.assign({}, P,
           {xaxis:{gridcolor:css('--line'), type:'category'},
-           yaxis:{title:'heat / cooling TWh per month',
+           yaxis:{title:'heat delivered, TWh per month',
                   gridcolor:css('--line'), rangemode:'tozero'},
-           yaxis2:{title:'electricity for the fifth, TWh per month',
+           yaxis2:{title:'electricity, TWh per month',
                    overlaying:'y', side:'right', rangemode:'tozero',
                    showgrid:false}}),
           {displayModeBar:false, responsive:true});
