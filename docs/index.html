@@ -43,7 +43,7 @@
   @media (max-width:760px){.statrow{grid-template-columns:1fr 1fr}}
   @media (max-width:400px){.statrow{grid-template-columns:1fr}}
   .stat .fig{font-family:"IBM Plex Mono";font-size:clamp(24px,4vw,38px);font-weight:500}
-  .stat .cap{font-size:13px;color:var(--muted);margin-top:2px;max-width:26ch}
+  .stat .cap{font-size:13.5px;line-height:1.42;color:var(--muted);margin-top:3px;max-width:30ch}
   .trendctl{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:16px;
             font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.05em;color:var(--muted);flex-wrap:wrap}
   .trendctl button{font:11px "IBM Plex Mono";letter-spacing:.05em;color:var(--muted);
@@ -206,6 +206,8 @@
       </div>
     </div>
     <div class="context" id="peakctx" style="margin-top:14px"></div>
+  </div>
+  <div class="hero">
     <div class="barlabel">ENERGY IN — fuel &amp; electricity purchased</div>
     <div class="barrow">
       <div class="btot" id="tot_in">—</div>
@@ -219,38 +221,37 @@
     <div class="legend" id="mixlegend"></div>
     <div class="combline" id="combline"></div>
   </div>
+  <section id="routes" hidden>
+    <h2>Electricity grid impacts — the 20% what-if, hour by hour</h2>
+    <p class="lede">The same fifth of Britain's heat, replaced three ways —
+    air-source heat pumps, ground source, SCOP-5 geothermal networks —
+    computed hourly across the trailing year. Heat shape is modelled†
+    (dashed); prices and carbon are observed. Source temperature is grid
+    capacity: the colder the source, the harder the worst hour bites.</p>
+    <div class="trendctl" style="margin-top:4px">
+      <span>VIEW</span>
+      <button data-rt="h" aria-pressed="true">Hourly · 7d</button>
+      <button data-rt="d">Daily · 90d</button>
+      <button data-rt="m">Monthly · falcon</button>
+      <span id="rt_span"></span>
+    </div>
+    <div id="rt_main" style="width:100%;height:340px;margin-top:10px"></div>
 
-  
-
-  <section>
-    <h2>What heat costs</h2>
-    <div class="billline" id="billline"></div>
-    <details class="fold" id="fold_cost"><summary>EVIDENCE —
-      <b>every route priced per useful kWh, with its basis</b></summary>
-    <div class="foldbody">
-    <table class="costtable">
-      <thead><tr><th>Route</th><th class="num">p per useful kWh</th><th>Basis</th></tr></thead>
-      <tbody id="costrows"></tbody>
-    </table>
-    <p class="costnote" id="costnote"></p>
-    <p class="costnote">† = Causeway estimate – see Method &amp; caveats.</p>
-    </div></details>
+    <div class="barlabel">WINTER STRESS — THE WORST HOUR, EMPIRICALLY LOCATED</div>
+    <div class="statrow" id="rt_winter"></div>
+    <div class="barlabel" id="rt_bindlbl" hidden style="margin-top:16px">THE BINDING HOUR — WINTER, NET BASIS, UNDER TODAY'S FLEET†</div>
+    <div class="statrow" id="rt_bind"></div>
+    <div id="rt_bindbars" style="width:100%;height:300px;margin-top:12px" hidden></div>
+    <div class="barlabel" style="margin-top:16px">SUMMER STRESS — THE COOLING PEAK (EMBEDDED BASIS†)</div>
+    <div class="statrow" id="rt_summer"></div>
+    <div id="rt_sumbars" style="width:100%;height:300px;margin-top:12px" hidden></div>
+    <div class="barlabel" id="rt_wklbl" style="margin-top:20px">THE WORST WEEK — FROZEN EXHIBIT</div>
+    <div id="rt_worst" style="width:100%;height:320px;margin-top:8px"></div>
+    <div class="barlabel" style="margin-top:20px">COP AGAINST AIR TEMPERATURE — THE PHYSICS</div>
+    <div id="rt_cop" style="width:100%;height:260px;margin-top:8px"></div>
+    <div class="statrow" id="rt_prem" style="margin-top:16px"></div>
+    <p class="costnote" id="rt_note"></p>
   </section>
-
-  <section>
-    <h2>What heat emits</h2>
-    <div class="billline" id="carbline"></div>
-    <details class="fold" id="fold_carb"><summary>EVIDENCE —
-      <b>every route's carbon per useful kWh, live grid intensity</b></summary>
-    <div class="foldbody">
-    <table class="costtable">
-      <thead><tr><th>Route</th><th class="num">gCO2e per useful kWh</th></tr></thead>
-      <tbody id="carbrows"></tbody>
-    </table>
-    <p class="costnote" id="carbnote"></p>
-    </div></details>
-  </section>
-
   <section>
     <div class="geo">
       <h2>Geothermal &amp; ground source — now and next</h2>
@@ -286,53 +287,6 @@
         cooling forecast exists to cite.</p>
     </div>
   </section>
-
-  <section id="routes" hidden>
-    <h2>Three routes, one winter — the 20% what-if, hour by hour</h2>
-    <p class="lede">The same fifth of Britain's heat, replaced three ways —
-    air-source heat pumps, shallow ground source, SCOP-5 geothermal networks —
-    computed hourly across the trailing year. Heat shape is modelled†
-    (dashed); prices and carbon are observed. Source temperature is grid
-    capacity: the colder the source, the harder the worst hour bites.</p>
-    <div class="barlabel">WINTER STRESS — THE WORST HOUR, EMPIRICALLY LOCATED</div>
-    <div class="statrow" id="rt_winter"></div>
-    <div class="barlabel" id="rt_bindlbl" hidden style="margin-top:16px">THE BINDING HOUR — WINTER, NET BASIS, UNDER TODAY'S FLEET†</div>
-    <div class="statrow" id="rt_bind"></div>
-    <div id="rt_bindbars" style="width:100%;height:250px;margin-top:10px" hidden></div>
-    <div class="barlabel" style="margin-top:16px">SUMMER STRESS — THE COOLING PEAK (EMBEDDED BASIS†)</div>
-    <div class="statrow" id="rt_summer"></div>
-    <div class="trendctl" style="margin-top:18px">
-      <span>VIEW</span>
-      <button data-rt="h" aria-pressed="true">Hourly · 7d</button>
-      <button data-rt="d">Daily · 90d</button>
-      <button data-rt="m">Monthly · falcon</button>
-      <button data-rt="s" id="rt_sysbtn" hidden>System · winter</button>
-      <span id="rt_span"></span>
-    </div>
-    <div id="rt_main" style="width:100%;height:340px;margin-top:10px"></div>
-    <div class="barlabel" id="rt_wklbl" style="margin-top:20px">THE WORST WEEK — FROZEN EXHIBIT</div>
-    <div id="rt_worst" style="width:100%;height:320px;margin-top:8px"></div>
-    <div class="barlabel" style="margin-top:20px">COP AGAINST AIR TEMPERATURE — THE PHYSICS</div>
-    <div id="rt_cop" style="width:100%;height:260px;margin-top:8px"></div>
-    <div class="statrow" id="rt_prem" style="margin-top:16px"></div>
-    <p class="costnote" id="rt_note"></p>
-  </section>
-
-  <details class="fold" id="fold_engine"><summary>UNDER THE BONNET —
-    <b>the gas engine: daily LDZ gas regressed on degree days, live</b></summary>
-  <div class="foldbody"><section>
-    <h2>The gas engine room: daily gas to buildings vs the heating signal</h2>
-    <div id="ts"></div>
-    <div class="burnbar" id="burnbar" aria-label="This week's buildings gas split"></div>
-    <div class="legend">
-      <span><span class="key" style="background:var(--ember)"></span><b>Space heating</b> (useful)</span>
-      <span><span class="key" style="background:repeating-linear-gradient(135deg,#b83f1e 0 4px,#7e2c15 4px 8px)"></span><b>Wasted at the boiler</b> (~15–17.5%)</span>
-      <span><span class="key" style="background:var(--ash)"></span><b>Non-weather gas to buildings</b> (hot water, cooking, industry on the distribution network)</span>
-    </div>
-  </section>
-
-  </div></details>
-
   <section>
     <h2>Cooling: demand vs delivery</h2>
     <div class="barlabel">TIER 1 &amp; 2 — WHAT THE EQUIPPED FLEET DELIVERS</div>
@@ -357,15 +311,51 @@
     <p class="costnote" id="utesnote"></p>
     <p class="costnote" id="deficitnote"></p>
   </section>
+  <section>
+    <h2>What heat costs</h2>
+    <div class="billline" id="billline"></div>
+    <details class="fold" id="fold_cost"><summary>EVIDENCE —
+      <b>every route priced per useful kWh, with its basis</b></summary>
+    <div class="foldbody">
+    <table class="costtable">
+      <thead><tr><th>Route</th><th class="num">p per useful kWh</th><th>Basis</th></tr></thead>
+      <tbody id="costrows"></tbody>
+    </table>
+    <p class="costnote" id="costnote"></p>
+    <p class="costnote">† = Causeway estimate – see Method &amp; caveats.</p>
+    </div></details>
+  </section>
+  <section>
+    <h2>What heat emits</h2>
+    <div class="billline" id="carbline"></div>
+    <details class="fold" id="fold_carb"><summary>EVIDENCE —
+      <b>every route's carbon per useful kWh, live grid intensity</b></summary>
+    <div class="foldbody">
+    <table class="costtable">
+      <thead><tr><th>Route</th><th class="num">gCO2e per useful kWh</th></tr></thead>
+      <tbody id="carbrows"></tbody>
+    </table>
+    <p class="costnote" id="carbnote"></p>
+    </div></details>
+  </section>
+  <details class="fold" id="fold_engine"><summary>UNDER THE BONNET —
+    <b>the gas engine: daily LDZ gas regressed on degree days, live</b></summary>
+  <div class="foldbody"><section>
+    <h2>The gas engine room: daily gas to buildings vs the heating signal</h2>
+    <div id="ts"></div>
+    <div class="burnbar" id="burnbar" aria-label="This week's buildings gas split"></div>
+    <div class="legend">
+      <span><span class="key" style="background:var(--ember)"></span><b>Space heating</b> (useful)</span>
+      <span><span class="key" style="background:repeating-linear-gradient(135deg,#b83f1e 0 4px,#7e2c15 4px 8px)"></span><b>Wasted at the boiler</b> (~15–17.5%)</span>
+      <span><span class="key" style="background:var(--ash)"></span><b>Non-weather gas to buildings</b> (hot water, cooking, industry on the distribution network)</span>
+    </div>
+  </section>
 
-  
-
+  </div></details>
   <section>
     <h2>Northern Ireland</h2>
     <p class="costnote" id="nipanel">—</p>
   </section>
-
-
   <section class="method">
     <h2>WHY HEAT?</h2>
     <p class="geosub" id="whyheatline"></p>
@@ -1290,7 +1280,7 @@ fetch('data.json').then(r=>r.json()).then(d=>{
     if(!WR || !WR.stress) return;
     document.getElementById('routes').hidden = false;
     const RC = {ashp:'#e06c5c', shallow:'#5ca8e0', network:css('--geo')};
-    const RN = {ashp:'air-source', shallow:'shallow ground',
+    const RN = {ashp:'air-source', shallow:'ground source',
                 network:'SCOP-5 geothermal network'};
     const AMB = '#e0b13c';
     const st = WR.stress, ss = WR.stress_summer;
@@ -1329,9 +1319,52 @@ fetch('data.json').then(r=>r.json()).then(d=>{
              'what-if relief \u2014 20% moved near-passive removes this at ' +
              'the same hour', css('--geo'));
     }
+    if(ss && ss.hour_demand_GW){
+      const sb = document.getElementById('rt_sumbars');
+      sb.hidden = false;
+      const rest = Math.round((ss.hour_demand_GW - ss.today_GW) * 10) / 10;
+      const cool0 = ss.today_GW;
+      const dbl = ss.x2_scenario_added_GW;
+      const relief = ss.whatif_relief_GW;
+      const cats = ['today',
+                    'if cooling doubles\u2020<br>on today\u2019s kit',
+                    'if cooling doubles\u2020<br>with a geothermal fifth'];
+      Plotly.newPlot(sb, [
+        {type:'bar', width:0.52, name:'everything else on the grid',
+         x:cats, y:[rest, rest, rest], marker:{color:'#6f7883'},
+         text:[rest + ' GW', '', ''], textposition:'inside',
+         insidetextanchor:'middle', hovertemplate:'%{y:.1f} GW<extra></extra>',
+         textfont:{color:'#0d1117', size:13}},
+        {type:'bar', width:0.52, name:'cooling electricity',
+         x:cats, y:[cool0, cool0 + dbl, cool0 + dbl - relief],
+         marker:{color:AMB},
+         text:[cool0.toFixed(1) + ' GW', (cool0 + dbl).toFixed(1) + ' GW',
+               (cool0 + dbl - relief).toFixed(1) + ' GW'],
+         textposition:'inside', insidetextanchor:'middle',
+         hovertemplate:'%{y:.1f} GW of cooling<extra></extra>',
+         textfont:{color:'#0d1117', size:14}},
+        {type:'bar', width:0.52,
+         name:'avoided by ground cooling (COP 20\u2020)',
+         x:cats, y:[0, 0, relief],
+         marker:{color:'rgba(87,194,107,0.30)',
+                 line:{color:css('--geo'), width:1.5}},
+         text:['', '', '\u2212' + relief.toFixed(1) + ' GW'],
+         textposition:'outside', cliponaxis:false,
+         hovertemplate:'%{y:.1f} GW avoided<extra></extra>',
+         textfont:{color:css('--geo'), size:14}}],
+        {paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
+         font:{family:'Lato', color:css('--muted'), size:11},
+         barmode:'stack', showlegend:true,
+         legend:{orientation:'h', y:1.24, font:{size:12},
+                 traceorder:'reversed'},
+         margin:{l:48, r:10, t:14, b:44},
+         xaxis:{gridcolor:css('--line')},
+         yaxis:{title:'GW at the peak cooling hour',
+                gridcolor:css('--line')}},
+        {displayModeBar:false, responsive:true});
+    }
     const sv = WR.system;
     if(sv){
-      document.getElementById('rt_sysbtn').hidden = false;
       document.getElementById('rt_bindlbl').hidden = false;
       const rb = sv.routes;
       document.getElementById('rt_bind').innerHTML =
@@ -1350,19 +1383,30 @@ fetch('data.json').then(r=>r.json()).then(d=>{
             : ''), RC[r])).join('');
       const bb = document.getElementById('rt_bindbars');
       bb.hidden = false;
-      Plotly.newPlot(bb, [{type:'bar', width:0.5,
-        x:['ashp','shallow','network'].map(r => RN[r]),
-        y:['ashp','shallow','network'].map(r => rb[r].dispatch_req_GW),
-        marker:{color:['ashp','shallow','network'].map(r => RC[r])},
-        text:['ashp','shallow','network'].map(r =>
-          rb[r].dispatch_req_GW + ' GW \u00b7 +' + rb[r].headroom_GW),
-        textposition:'inside', insidetextanchor:'end',
-        textfont:{color:'#0d1117', size:13}}],
+      const RK = ['ashp','shallow','network'];
+      const base = RK.map(r => Math.round(
+        (rb[r].dispatch_req_GW - rb[r].net_add_GW) * 10) / 10);
+      Plotly.newPlot(bb, [
+        {type:'bar', width:0.5, name:'actual use',
+         x:RK.map(r => RN[r]), y:base,
+         marker:{color:'#6f7883'},
+         text:base.map(v => v + ' GW'),
+         textposition:'inside', insidetextanchor:'middle',
+         textfont:{color:'#0d1117', size:14}},
+        {type:'bar', width:0.5, name:'+ 20% what-if (net\u2020)',
+         x:RK.map(r => RN[r]),
+         y:RK.map(r => rb[r].net_add_GW),
+         marker:{color:RK.map(r => RC[r])},
+         text:RK.map(r => '+' + rb[r].net_add_GW + ' GW'),
+         textposition:'outside', cliponaxis:false,
+         textfont:{color:css('--paper'), size:14}}],
         {paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
           font:{family:'Lato', color:css('--muted'), size:11},
-          xaxis:{gridcolor:css('--line')}, showlegend:false,
+          xaxis:{gridcolor:css('--line')}, barmode:'stack',
+          showlegend:true, legend:{orientation:'h', y:1.22,
+                                   font:{size:12}, traceorder:'reversed'},
           margin:{l:46, r:10, t:10, b:26},
-          yaxis:{title:'GW required at the binding hour',
+          yaxis:{title:'GW at the binding hour',
                  gridcolor:css('--line'),
                  range:[0, sv.dispatch_derated_GW * 1.12]},
           shapes:[{type:'line', x0:-0.5, x1:2.5, xref:'x',
@@ -1371,7 +1415,7 @@ fetch('data.json').then(r=>r.json()).then(d=>{
           annotations:[{x:0.01, xref:'paper',
             y:sv.dispatch_derated_GW, yref:'y', yshift:9, showarrow:false,
             xanchor:'left', font:{color:css('--muted'), size:11},
-            text:"today's fleet, de-rated\u2020 \u2014 " +
+            text:'capacity to deliver\u2020 \u2014 ' +
                  sv.dispatch_derated_GW + ' GW'}]},
         {displayModeBar:false, responsive:true});
     }
@@ -1407,17 +1451,52 @@ fetch('data.json').then(r=>r.json()).then(d=>{
              rangemode:'tozero'},
       yaxis2:{title:'route added GW', overlaying:'y', side:'right',
               rangemode:'tozero', showgrid:false}});
-    Plotly.newPlot('rt_worst', windowTraces(WR.worst_week), LAYW,
-                   {displayModeBar:false, responsive:true});
+    (function(){
+      const w = WR.worst_week;
+      if(!(WR.system && w.demand_GW)){
+        Plotly.newPlot('rt_worst', windowTraces(w), LAYW,
+                       {displayModeBar:false, responsive:true});
+        return;
+      }
+      const t0 = new Date(w.start + ':00:00Z');
+      const x = w.temp_C.map((_,i) => new Date(t0.getTime() + i*3600e3));
+      const ceil = w.wind_GW.map((wv,i) =>
+        WR.system.dispatch_derated_GW + wv + w.solar_GW[i]);
+      const dsp = w.displaced_GW || w.temp_C.map(() => 0);
+      const tr = [
+        {x, y:ceil, name:'capacity to deliver\u2020 (62 GW de-rated + observed wind + solar)',
+         line:{color:css('--muted'), width:1.7, dash:'dashdot'},
+         fill:'tozeroy', fillcolor:'rgba(154,164,174,0.07)'},
+        {x, y:w.demand_GW, name:'actual use', fill:'tozeroy',
+         fillcolor:'rgba(13,17,23,0.85)',
+         line:{color:'#c9d2da', width:1.5}}];
+      for(const r of ['ashp','shallow','network'])
+        tr.push({x, y:w.routes[r].map((g,i) =>
+                   w.demand_GW[i] + Math.max(0, g - dsp[i])),
+                 name:'actual use + ' + RN[r] + ' fifth (net\u2020)',
+                 line:{color:RC[r], width:1.7}});
+      const bh = WR.system.routes.ashp.binding_hour;
+      const bi = x.findIndex(dd => dd.toISOString().slice(0,13) === bh);
+      Plotly.newPlot('rt_worst', tr, Object.assign({}, P, {
+        yaxis:{title:'GW', gridcolor:css('--line'),
+               range:[Math.max(0, Math.min(...w.demand_GW) - 6),
+                      Math.max(...ceil) + 3]},
+        annotations: bi >= 0 ? [{x:x[bi],
+          y:w.demand_GW[bi] + Math.max(0, w.routes.ashp[bi] - dsp[bi]),
+          showarrow:true, arrowhead:2, ax:-64, ay:-46,
+          font:{color:RC.ashp, size:11}, arrowcolor:RC.ashp,
+          text:'the binding hour'}] : []}),
+        {displayModeBar:false, responsive:true});
+    })();
     (function(){
       const t0 = new Date(WR.worst_week.start + ':00:00Z');
       const t1 = new Date(t0.getTime() + 167*3600e3);
       const f = d => d.toLocaleDateString('en-GB',
         {day:'numeric', month:'short', timeZone:'UTC'});
       document.getElementById('rt_wklbl').textContent =
-        'THE WORST WEEK \u2014 ' + f(t0).toUpperCase() + ' TO ' +
-        f(t1).toUpperCase() + ' \u00b7 THE ROLLING 168 HOURS OF MAXIMUM ' +
-        'HEAT, EMPIRICALLY LOCATED (NOT A CALENDAR WEEK)';
+        'THE WORST WEEK UNDER THE CEILING \u2014 ' + f(t0).toUpperCase() +
+        ' TO ' + f(t1).toUpperCase() + ' \u00b7 THE ROLLING 168 HOURS OF ' +
+        'MAXIMUM HEAT, EMPIRICALLY LOCATED (NOT A CALENDAR WEEK)';
     })();
 
     function drawMain(mode){
@@ -1428,58 +1507,36 @@ fetch('data.json').then(r=>r.json()).then(d=>{
           'live rolling week \u00b7 hourly';
       } else if(mode === 'd'){
         const D = WR.daily_90, x = D.map(r => r.date);
-        const tr = [{x, y:D.map(r => r.heat_GWh), name:'heat (modelled\u2020)',
+        const tr = [{x, y:D.map(r => r.heat_GWh),
+          name:'all buildings heat, delivered (modelled\u2020)',
           line:{color:'#c9d2da', width:1, dash:'dash'}, fill:'tozeroy',
           fillcolor:'rgba(200,210,220,0.06)'}];
         if(D[0].cool_GWh != null) tr.push({x, y:D.map(r => r.cool_GWh),
           name:'cooling (embedded\u2020)',
           line:{color:AMB, width:1.3, dash:'dash'}});
         for(const r of ['ashp','shallow','network'])
-          tr.push({x, y:D.map(q => q[r + '_GWh']), name:RN[r],
+          tr.push({x, y:D.map(q => q[r + '_GWh']), yaxis:'y2',
+                   name:'the fifth via ' + RN[r],
                    line:{color:RC[r], width:1.7}});
         Plotly.react('rt_main', tr, Object.assign({}, P,
-          {yaxis:{title:'GWh per day', gridcolor:css('--line'),
-                  rangemode:'tozero'}}),
+          {yaxis:{title:'heat / cooling GWh per day',
+                  gridcolor:css('--line'), rangemode:'tozero'},
+           yaxis2:{title:'electricity for the fifth, GWh per day',
+                   overlaying:'y', side:'right', rangemode:'tozero',
+                   showgrid:false}}),
           {displayModeBar:false, responsive:true});
         document.getElementById('rt_span').textContent =
           'last 90 days \u00b7 daily sums';
-      } else if(mode === 's' && WR.system){
-        const w = WR.worst_week;
-        const t0 = new Date(w.start + ':00:00Z');
-        const x = w.temp_C.map((_,i) => new Date(t0.getTime() + i*3600e3));
-        const ceil = w.wind_GW.map((wv,i) =>
-          WR.system.dispatch_derated_GW + wv + w.solar_GW[i]);
-        // net additions: gross route minus the displaced resistive share,
-        // reconstructed from the engine's own ratio at each hour
-        const rb = WR.system.routes;
-        const tr = [
-          {x, y:ceil, name:'capacity to deliver\u2020 (62 GW block + observed wind + solar)',
-           line:{color:css('--muted'), width:1.6, dash:'dashdot'}},
-          {x, y:w.demand_GW, name:'observed demand', fill:'tozeroy',
-           fillcolor:'rgba(200,210,220,0.10)',
-           line:{color:'#c9d2da', width:1.4}}];
-        const dsp = w.displaced_GW || w.routes.ashp.map(() => 0);
-        for(const r of ['ashp','shallow','network']){
-          tr.push({x, y:w.routes[r].map((g,i) =>
-                     w.demand_GW[i] + Math.max(0, g - dsp[i])),
-                   name:'demand + ' + RN[r] + ' fifth (net\u2020)',
-                   line:{color:RC[r], width:1.7}});
-        }
-        Plotly.react('rt_main', tr, Object.assign({}, P,
-          {yaxis:{title:'GW', gridcolor:css('--line'),
-                  rangemode:'tozero'}}),
-          {displayModeBar:false, responsive:true});
-        document.getElementById('rt_span').textContent =
-          'the worst week under the ceiling \u00b7 net basis\u2020';
       } else {
         const M = WR.monthly_calendar || WR.monthly_13;
         const x = M.map(r => r.label || r.month);
         const tr = [{x, y:M.map(r => r.heat_GWh/1000),
-          name:'buildings heat (modelled\u2020)',
+          name:'all buildings heat, delivered (modelled\u2020)',
           line:{color:'#c9d2da', width:1, dash:'dash'}, fill:'tozeroy',
           fillcolor:'rgba(200,210,220,0.07)'},
-          {x, y:M.map(r => 0.2*r.heat_GWh/1000), name:'the fifth at COP 1',
-           line:{color:'#77808a', width:1.1, dash:'dot'}}];
+          {x, y:M.map(r => 0.2*r.heat_GWh/1000), yaxis:'y2',
+           name:'the same fifth on resistive heating (COP 1)',
+           line:{color:'#77808a', width:1.3, dash:'dot'}}];
         if(M[0].cool_GWh != null){
           tr.push({x, y:M.map(r => r.cool_GWh/1000),
             name:'cooling today (embedded\u2020)',
@@ -1490,13 +1547,17 @@ fetch('data.json').then(r=>r.json()).then(d=>{
             line:{color:AMB, width:1, dash:'dot'}});
         }
         for(const r of ['ashp','shallow','network'])
-          tr.push({x, y:M.map(q => q[r + '_GWh']/1000), name:RN[r],
+          tr.push({x, y:M.map(q => q[r + '_GWh']/1000), yaxis:'y2',
+                   name:'the fifth via ' + RN[r],
                    mode:'lines+markers', marker:{size:4},
                    line:{color:RC[r], width:2}});
         Plotly.react('rt_main', tr, Object.assign({}, P,
           {xaxis:{gridcolor:css('--line'), type:'category'},
-           yaxis:{title:'TWh per month', gridcolor:css('--line'),
-                  rangemode:'tozero'}}),
+           yaxis:{title:'heat / cooling TWh per month',
+                  gridcolor:css('--line'), rangemode:'tozero'},
+           yaxis2:{title:'electricity for the fifth, TWh per month',
+                   overlaying:'y', side:'right', rangemode:'tozero',
+                   showgrid:false}}),
           {displayModeBar:false, responsive:true});
         document.getElementById('rt_span').textContent =
           (WR.monthly_calendar
