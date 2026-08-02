@@ -141,14 +141,25 @@ setTimeout(() => {
      && /EMBEDDED/.test(get("rt_note").textContent));
   ok("binding cards", /requirement on dispatchable supply/.test(
       get("rt_bind").innerHTML) && /headroom/.test(get("rt_bind").innerHTML));
-  ok("worst-week card is the system chart",
+  ok("exhibit week is the system chart",
      /UNDER THE CEILING/.test(get("rt_wklbl").textContent));
+  ok("exhibit centred on the binding hour", (function(){
+      const wr = data.whatif_routes;
+      if(!(wr.system && wr.binding_week)) return true;
+      const bh = wr.system.routes.ashp.binding_hour;
+      const st = new Date(wr.binding_week.start + ":00:00Z");
+      const en = new Date(st.getTime() + 167*3600e3);
+      const b = new Date(bh + ":00:00Z");
+      return b >= st && b <= en;
+    })());
   ok("winter cards hourly basis", /% of that hour's observed demand/.test(
       get("rt_winter").innerHTML));
   ok("summer card hourly basis", /% of that hour's observed demand/.test(
       get("rt_summer").innerHTML));
   ok("bind bars drawn", !doc.getElementById("rt_bindbars").hidden);
   ok("summer bars drawn", !doc.getElementById("rt_sumbars").hidden);
+  ok("winter stress bars container present",
+     !!doc.getElementById("rt_winbars"));
   ok("toggle precedes winter stress",
      doc.body.innerHTML.indexOf('id="rt_main"') <
      doc.body.innerHTML.indexOf('WINTER STRESS'));
