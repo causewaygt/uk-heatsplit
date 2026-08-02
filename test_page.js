@@ -139,6 +139,15 @@ setTimeout(() => {
   ok("premium cards", /coincidence premium/.test(get("rt_prem").innerHTML));
   ok("routes note basis", /modelled/.test(get("rt_note").textContent)
      && /EMBEDDED/.test(get("rt_note").textContent));
+  ok("system button + binding cards", !doc.getElementById("rt_sysbtn").hidden
+     && /dispatchable requirement/.test(get("rt_bind").innerHTML)
+     && /headroom/.test(get("rt_bind").innerHTML));
+  ok("winter cards hourly basis", /% of that hour's observed demand/.test(
+      get("rt_winter").innerHTML));
+  ok("summer card hourly basis", /% of that hour's observed demand/.test(
+      get("rt_summer").innerHTML));
+  ok("system basis in footer", /static overlay/i.test(get("rt_note").textContent)
+     && /night-storage/.test(get("rt_note").textContent));
   ok("12m wf emissions split+saves",
      /heat [\d.,]+ (Mt|kt) \u00b7 cooling [\d.,]+ (Mt|kt) \u00b7 saves/.test(
       doc.getElementById("wf_carbon_cap").textContent));

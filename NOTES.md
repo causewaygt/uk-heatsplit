@@ -495,6 +495,22 @@ carry on failure):
     the binding line.
   C.2 System view on the existing toggle; stress cards re-worded to
     the hourly basis; ceiling caveats in the engine-assembled footer.
+  C.2 COMPLETE (2 Aug): fourth toggle view "System - winter"
+    (revealed only when slices carry system; absence-proven). Chart =
+    the worst week under the breathing ceiling: dash-dot capacity line
+    (62 GW block (dagger) + observed wind + solar), observed-demand
+    area, three demand+net-fifth lines using the EXACT displaced
+    series (windows now emit displaced_GW - no client-side ratio
+    approximations). Binding-hour card row: per-route dispatchable
+    requirement + headroom vs today's fleet (dagger) + hours-above-
+    block. Winter and summer stress cards re-worded to "% of that
+    hour's observed demand" (schema-1 fallback wording retained).
+    COP curves derive from calibration flow_at + sources (A6 closed -
+    no JS physics hardcodes). Footer appends the system basis + the
+    displaced note incl the NIGHT-STORAGE dagger (E7 profiles would
+    reduce the credit at peaks; gross bounds the zero-credit case).
+    Stub preview regenerated with the System view; REAL preview cut
+    from the next dispatch's data.json on upload.
   D resumed ONCE, after all evidence layers exist: folds done and
     keep; copy deck re-cut against the complete panel for a single
     edit pass.
