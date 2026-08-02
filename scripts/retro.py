@@ -40,6 +40,7 @@ import datetime as dt
 import json
 import math
 import os
+import urllib.parse
 import urllib.request
 
 # --- constants -------------------------------------------------------------
@@ -51,7 +52,7 @@ FLOW_MILD_C, FLOW_COLD_C = 30.0, 50.0   # weather compensation endpoints
 FLOW_MILD_AT, FLOW_COLD_AT = 15.0, -5.0
 DEFROST_MAX = 0.12           # peak fractional COP loss, centre ~2C (dagger)
 R_SHIFT = 0.20
-RETRO_SCHEMA = 1
+RETRO_SCHEMA = 2   # 2: system feeds - demand/wind/solar (A'.2)
 RETRO_PATH = os.path.join(os.path.dirname(__file__), "..", "docs",
                           "retro.json")
 
@@ -328,12 +329,14 @@ def calibrate_eta(route, temps, heat):
 def build_retro(start_day, end_day, space_annual_twh, dhw_annual_twh,
                 base_c=16.5, cooling=None,
                 fetch_temp=fetch_hourly_temp, fetch_mid=fetch_hourly_mid,
-                fetch_ci=fetch_hourly_ci, prev=None):
+                fetch_ci=fetch_hourly_ci, fetch_system=None, prev=None):
     """Build or extend the retrospective store. Frozen once written
     except the trailing 2 days; append-only otherwise."""
     prev = prev if isinstance(prev, dict) else {}
     keep_from = None
-    if (prev.get("schema") == RETRO_SCHEMA
+    upgrading = (prev.get("schema") == 1 and prev.get("start_day") == start_day
+                 and prev.get("temp_C"))
+    if ((prev.get("schema") == RETRO_SCHEMA or upgrading)
             and prev.get("start_day") == start_day
             and prev.get("temp_C")):
         n_prev_days = len(prev["temp_C"]) // 24
@@ -356,6 +359,22 @@ def build_retro(start_day, end_day, space_annual_twh, dhw_annual_twh,
         temps = prev["temp_C"][:k] + temps
         mids = prev["mid_gbp_mwh"][:k] + mids
         cis = prev["ci_g_kwh"][:k] + cis
+
+    _fs = fetch_system or fetch_hourly_system
+    n_cur = min(len(temps), len(mids), len(cis))
+    n_cur -= n_cur % 24
+    span_end = (dt.date.fromisoformat(start_day)
+                + dt.timedelta(days=n_cur // 24 - 1)).isoformat()
+    if keep_from and not upgrading and prev.get("demand_GW"):
+        sysd = _fs(keep_from.isoformat(), span_end)
+        k = (keep_from - dt.date.fromisoformat(start_day)).days * 24
+        demand = prev["demand_GW"][:k] + sysd["demand_GW"]
+        wind = prev["wind_GW"][:k] + sysd["wind_GW"]
+        solar = prev["solar_GW"][:k] + sysd["solar_GW"]
+    else:
+        sysd = _fs(start_day, span_end)
+        demand, wind, solar = (sysd["demand_GW"], sysd["wind_GW"],
+                               sysd["solar_GW"])
 
     heat = hourly_useful_heat(temps, start_day, space_annual_twh,
                               dhw_annual_twh, base_c=base_c)
@@ -387,11 +406,18 @@ def build_retro(start_day, end_day, space_annual_twh, dhw_annual_twh,
             "cooling": cooling,   # production convention, provenance only:
                                   # series derived at slice time from temps
             "flow": [FLOW_MILD_C, FLOW_COLD_C],
+            "flow_at": [FLOW_MILD_AT, FLOW_COLD_AT],
+            "sources": {"air_approach": AIR_APPROACH_C,
+                        "ground_c": GROUND_SOURCE_C,
+                        "network_c": NETWORK_SOURCE_C},
         },
         "temp_C": temps,
         "mid_gbp_mwh": mids,
         "ci_g_kwh": cis,
         "heat_GWh": [round(q, 3) for q in heat],
+        "demand_GW": demand[:len(temps)],
+        "wind_GW": wind[:len(temps)],
+        "solar_GW": solar[:len(temps)],
     }
 
 
@@ -449,7 +475,8 @@ def trim(store, max_days=MAX_DAYS):
     if n_days <= max_days:
         return store
     cut = (n_days - max_days) * 24
-    for k in ("temp_C", "mid_gbp_mwh", "ci_g_kwh", "heat_GWh"):
+    for k in ("temp_C", "mid_gbp_mwh", "ci_g_kwh", "heat_GWh",
+              "demand_GW", "wind_GW", "solar_GW"):
         store[k] = store[k][cut:]
     store["start_day"] = (dt.date.fromisoformat(store["start_day"])
                           + dt.timedelta(days=n_days - max_days)).isoformat()
@@ -689,3 +716,105 @@ def slices(store, nd_daily=None):
         "stress_summer": stress_summer,
         "coincidence_premium": premium,
     }
+
+
+# ===========================================================================
+# A'.2 - the system feeds: observed hourly demand, wind, solar (schema 2)
+# ===========================================================================
+def fetch_hourly_system(start_day, end_day):
+    """Observed system series, hourly GW:
+      demand_GW - UNDERLYING demand: NESO ND plus embedded wind and solar
+        (both sides of the ledger carry embedded; basis stated on-panel)
+      wind_GW   - transmission-metered wind (Elexon FUELINST) + embedded
+        wind (NESO historic demand file)
+      solar_GW  - embedded solar (NESO file; transmission solar immaterial)
+    NESO resources are discovered via CKAN package_show on the stable
+    'historic-demand-data' slug - no hardcoded resource ids (they churn
+    yearly). VERIFY-ON-DISPATCH: field names below match the published
+    demanddata schema; the first branch run confirms or corrects."""
+    import time
+    d0 = dt.date.fromisoformat(start_day)
+    d1 = dt.date.fromisoformat(end_day)
+
+    # ---- NESO: ND + embedded wind/solar, half-hourly ----
+    def _ckan(url):
+        for attempt in range(3):
+            try:
+                with urllib.request.urlopen(url, timeout=90) as r:
+                    return json.load(r)
+            except Exception:
+                if attempt == 2:
+                    raise
+                time.sleep(10 * (attempt + 1))
+    pkg = _ckan("https://api.neso.energy/api/3/action/package_show"
+                "?id=historic-demand-data")
+    res = {r["name"].lower(): r["id"]
+           for r in pkg["result"]["resources"]}
+    need_years = {str(y) for y in range(d0.year, d1.year + 1)}
+    hh = {}
+    for name, rid in res.items():
+        if not any(y in name for y in need_years):
+            continue
+        sql = ("SELECT \"SETTLEMENT_DATE\",\"SETTLEMENT_PERIOD\",\"ND\","
+               "\"EMBEDDED_WIND_GENERATION\",\"EMBEDDED_SOLAR_GENERATION\" "
+               f"FROM \"{rid}\" "
+               f"WHERE \"SETTLEMENT_DATE\" >= '{d0}' "
+               f"AND \"SETTLEMENT_DATE\" <= '{d1}'")
+        data = _ckan("https://api.neso.energy/api/3/action/"
+                     "datastore_search_sql?sql="
+                     + urllib.parse.quote(sql))
+        for rec in data["result"]["records"]:
+            sd = str(rec["SETTLEMENT_DATE"])[:10]
+            key = (sd, (int(rec["SETTLEMENT_PERIOD"]) - 1) // 2)
+            hh.setdefault(key, []).append(
+                (float(rec["ND"] or 0),
+                 float(rec["EMBEDDED_WIND_GENERATION"] or 0),
+                 float(rec["EMBEDDED_SOLAR_GENERATION"] or 0)))
+
+    # ---- Elexon FUELINST: transmission wind, chunked with retries ----
+    tw = {}
+    d = d0
+    while d <= d1:
+        de = min(d + dt.timedelta(days=6), d1)
+        url = ("https://data.elexon.co.uk/bmrs/api/v1/datasets/FUELINST"
+               f"?publishDateTimeFrom={d}T00:00Z"
+               f"&publishDateTimeTo={de}T23:59Z"
+               "&fuelType=WIND&format=json")
+        for _try in range(2):
+            try:
+                with urllib.request.urlopen(url, timeout=90) as r:
+                    payload = json.load(r)
+                break
+            except Exception:
+                if _try:
+                    raise
+                time.sleep(10)
+        for rec in payload.get("data", []):
+            t = str(rec.get("startTime") or rec.get("publishTime"))[:13]
+            g = rec.get("generation")
+            if g is not None:
+                tw.setdefault(t, []).append(float(g))
+        d = de + dt.timedelta(days=1)
+
+    demand, wind, solar = [], [], []
+    d = d0
+    while d <= d1:
+        for h in range(24):
+            v = hh.get((d.isoformat(), h))
+            twv = tw.get(d.isoformat() + "T%02d" % h)
+            if v:
+                nd = sum(x[0] for x in v) / len(v) / 1000.0
+                ew = sum(x[1] for x in v) / len(v) / 1000.0
+                es = sum(x[2] for x in v) / len(v) / 1000.0
+                demand.append(round(nd + ew + es, 2))
+                solar.append(round(es, 2))
+                wind.append(round(ew + (sum(twv) / len(twv) / 1000.0
+                                        if twv else 0.0), 2)
+                            if twv or v else None)
+            else:
+                demand.append(None)
+                solar.append(None)
+                wind.append(None)
+        d += dt.timedelta(days=1)
+    return {"demand_GW": _fill(demand), "wind_GW": _fill(wind),
+            "solar_GW": _fill(solar)}
