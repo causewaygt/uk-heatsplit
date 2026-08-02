@@ -633,6 +633,21 @@ def slices(store, nd_daily=None):
     hourly_live = _window(n - 168, 168)
     worst_week = _window(iww, 168)
 
+    # The exhibit week: 168 h centred on the tightest hour for the
+    # system (the air-source binding hour), clipped to the store. The
+    # max-heat week and the binding week need not coincide - post-B.4
+    # they did not - and the ceiling chart must contain the hour its
+    # own cards describe.
+    binding_week = None
+    sysv = system_view(store) if store.get("demand_GW") else None
+    if sysv:
+        bh = sysv["routes"]["ashp"]["binding_hour"]
+        bday = dt.date.fromisoformat(bh[:10])
+        ib = (bday - d0).days * 24 + int(bh[11:13])
+        i0 = min(max(0, ib - 84), n - 168)
+        binding_week = _window(i0, 168)
+        binding_week["binding_hour"] = bh
+
     # ---- daily (last 90) and monthly (13 calendar months) ----
     def _agg(i0, i1):
         seg = slice(i0, i1)
@@ -795,11 +810,11 @@ def slices(store, nd_daily=None):
     return {
         "schema": 2,
         "basis": store["basis"],
-        "system": (system_view(store)
-                   if store.get("demand_GW") else None),
+        "system": sysv,
         "calibration": store["calibration"],
         "hourly_live_7d": hourly_live,
         "worst_week": worst_week,
+        "binding_week": binding_week,
         "daily_90": daily,
         "monthly_13": monthly,
         "monthly_calendar": monthly_calendar,
