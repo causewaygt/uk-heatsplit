@@ -296,6 +296,8 @@
     capacity: the colder the source, the harder the worst hour bites.</p>
     <div class="barlabel">WINTER STRESS — THE WORST HOUR, EMPIRICALLY LOCATED</div>
     <div class="statrow" id="rt_winter"></div>
+    <div class="barlabel" id="rt_bindlbl" hidden style="margin-top:16px">THE BINDING HOUR — WINTER, NET BASIS, UNDER TODAY'S FLEET†</div>
+    <div class="statrow" id="rt_bind"></div>
     <div class="barlabel" style="margin-top:16px">SUMMER STRESS — THE COOLING PEAK (EMBEDDED BASIS†)</div>
     <div class="statrow" id="rt_summer"></div>
     <div class="trendctl" style="margin-top:18px">
@@ -303,6 +305,7 @@
       <button data-rt="h" aria-pressed="true">Hourly · 7d</button>
       <button data-rt="d">Daily · 90d</button>
       <button data-rt="m">Monthly · falcon</button>
+      <button data-rt="s" id="rt_sysbtn" hidden>System · winter</button>
       <span id="rt_span"></span>
     </div>
     <div id="rt_main" style="width:100%;height:340px;margin-top:10px"></div>
@@ -1300,16 +1303,21 @@ fetch('data.json').then(r=>r.json()).then(d=>{
            ' GWh of heat at ' + st.worst_hour_temp_C + ' \u00b0C') +
       ['ashp','shallow','network'].map(r => stat(
         '+' + st[r].added_GW + '<small> GW</small>',
-        RN[r] + ' added load' + (st[r].pct_of_record_day != null
-          ? ' \u00b7 ' + st[r].pct_of_record_day + '% of the record day\u2020'
-          : ''), RC[r])).join('');
+        RN[r] + ' added load' + (st[r].pct_of_hour != null
+          ? ' \u00b7 ' + st[r].pct_of_hour + "% of that hour's observed demand"
+          : (st[r].pct_of_record_day != null
+             ? ' \u00b7 ' + st[r].pct_of_record_day + '% of the record day\u2020'
+             : '')), RC[r])).join('');
     if(ss){
       document.getElementById('rt_summer').innerHTML =
         stat(ss.peak_hour.slice(5,13).replace('T',' ') + '<small>h</small>',
              'peak cooling hour \u00b7 ' + ss.peak_temp_C + ' \u00b0C' +
-             (ss.today_pct_of_same_day != null
-               ? " \u00b7 " + ss.today_pct_of_same_day +
-                 "% of that day's demand\u2020" : '')) +
+             (ss.today_pct_of_hour != null
+               ? " \u00b7 " + ss.today_pct_of_hour +
+                 "% of that hour's observed demand"
+               : (ss.today_pct_of_same_day != null
+                  ? " \u00b7 " + ss.today_pct_of_same_day +
+                    "% of that day's demand\u2020" : ''))) +
         stat(ss.today_GW + '<small> GW</small>',
              'cooling electricity today \u2014 embedded in observed demand, ' +
              'not added', AMB) +
@@ -1319,6 +1327,26 @@ fetch('data.json').then(r=>r.json()).then(d=>{
         stat('\u2212' + ss.whatif_relief_GW + '<small> GW</small>',
              'what-if relief \u2014 20% moved near-passive removes this at ' +
              'the same hour', css('--geo'));
+    }
+    const sv = WR.system;
+    if(sv){
+      document.getElementById('rt_sysbtn').hidden = false;
+      document.getElementById('rt_bindlbl').hidden = false;
+      const rb = sv.routes;
+      document.getElementById('rt_bind').innerHTML =
+        stat(rb.ashp.binding_hour.slice(5,13).replace('T',' ') +
+             '<small>h</small>',
+             'the binding hour — highest net requirement on ' +
+             'dispatchable supply · ' + rb.ashp.binding_temp_C +
+             ' °C, wind ' + rb.ashp.binding_wind_GW + ' GW') +
+        ['ashp','shallow','network'].map(r => stat(
+          rb[r].dispatch_req_GW + '<small> GW</small>',
+          RN[r] + ' dispatchable requirement · headroom ' +
+          (rb[r].headroom_GW >= 0 ? '+' : '') + rb[r].headroom_GW +
+          ' GW vs today’s fleet†' +
+          (rb[r].hours_above_block
+            ? ' · ' + rb[r].hours_above_block + ' h above the block'
+            : ''), RC[r])).join('');
     }
     const pr = WR.coincidence_premium;
     document.getElementById('rt_prem').innerHTML =
@@ -1378,6 +1406,34 @@ fetch('data.json').then(r=>r.json()).then(d=>{
           {displayModeBar:false, responsive:true});
         document.getElementById('rt_span').textContent =
           'last 90 days \u00b7 daily sums';
+      } else if(mode === 's' && WR.system){
+        const w = WR.worst_week;
+        const t0 = new Date(w.start + ':00:00Z');
+        const x = w.temp_C.map((_,i) => new Date(t0.getTime() + i*3600e3));
+        const ceil = w.wind_GW.map((wv,i) =>
+          WR.system.dispatch_derated_GW + wv + w.solar_GW[i]);
+        // net additions: gross route minus the displaced resistive share,
+        // reconstructed from the engine's own ratio at each hour
+        const rb = WR.system.routes;
+        const tr = [
+          {x, y:ceil, name:'capacity to deliver\u2020 (62 GW block + observed wind + solar)',
+           line:{color:css('--muted'), width:1.6, dash:'dashdot'}},
+          {x, y:w.demand_GW, name:'observed demand', fill:'tozeroy',
+           fillcolor:'rgba(200,210,220,0.10)',
+           line:{color:'#c9d2da', width:1.4}}];
+        const dsp = w.displaced_GW || w.routes.ashp.map(() => 0);
+        for(const r of ['ashp','shallow','network']){
+          tr.push({x, y:w.routes[r].map((g,i) =>
+                     w.demand_GW[i] + Math.max(0, g - dsp[i])),
+                   name:'demand + ' + RN[r] + ' fifth (net\u2020)',
+                   line:{color:RC[r], width:1.7}});
+        }
+        Plotly.react('rt_main', tr, Object.assign({}, P,
+          {yaxis:{title:'GW', gridcolor:css('--line'),
+                  rangemode:'tozero'}}),
+          {displayModeBar:false, responsive:true});
+        document.getElementById('rt_span').textContent =
+          'the worst week under the ceiling \u00b7 net basis\u2020';
       } else {
         const M = WR.monthly_calendar || WR.monthly_13;
         const x = M.map(r => r.label || r.month);
@@ -1422,17 +1478,19 @@ fetch('data.json').then(r=>r.json()).then(d=>{
     drawMain('h');
 
     const cal = WR.calibration, eta = cal.eta;
+    const fAt = cal.flow_at || [15, -5];
+    const src = cal.sources || {air_approach: -3, ground_c: 8, network_c: 10};
     const flow = t => cal.flow[0] + (cal.flow[1]-cal.flow[0]) *
-                      Math.min(1, Math.max(0, (15-t)/20));
+                      Math.min(1, Math.max(0, (fAt[0]-t)/(fAt[0]-fAt[1])));
     const carnot = (tf, tsrc) => (tf+273.15)/Math.max(5, tf-tsrc);
     const dfr = t => 1 - cal.defrost_max*Math.exp(-(((t-2)/3)**2));
     const ts = Array.from({length:61}, (_,i) => -10 + i*0.5);
     Plotly.newPlot('rt_cop', [
-      {x:ts, y:ts.map(t => Math.max(1, eta.ashp*carnot(flow(t), t-3)*dfr(t))),
+      {x:ts, y:ts.map(t => Math.max(1, eta.ashp*carnot(flow(t), t+src.air_approach)*dfr(t))),
        name:RN.ashp, line:{color:RC.ashp, width:2}},
-      {x:ts, y:ts.map(t => Math.max(1, eta.shallow*carnot(flow(t), 8))),
+      {x:ts, y:ts.map(t => Math.max(1, eta.shallow*carnot(flow(t), src.ground_c))),
        name:RN.shallow, line:{color:RC.shallow, width:2}},
-      {x:ts, y:ts.map(t => Math.max(1, eta.network*carnot(flow(t), 10))),
+      {x:ts, y:ts.map(t => Math.max(1, eta.network*carnot(flow(t), src.network_c))),
        name:RN.network, line:{color:RC.network, width:2}}],
       Object.assign({}, P, {
         xaxis:{title:'air temperature \u00b0C', gridcolor:css('--line')},
@@ -1441,7 +1499,8 @@ fetch('data.json').then(r=>r.json()).then(d=>{
       {displayModeBar:false, responsive:true});
 
     document.getElementById('rt_note').textContent =
-      WR.basis + ' ' + st.basis + (ss ? ' ' + ss.basis : '') + ' ' +
+      WR.basis + ' ' + st.basis + (ss ? ' ' + ss.basis : '') +
+      (sv ? ' ' + sv.basis + ' ' + sv.displaced_note : '') + ' ' +
       WR.coincidence_premium.note + ' \u03b7 calibrated so each route ' +
       'integrates to its published SPF anchor (2.80 / 3.24 / 5.0); the ' +
       'air-source defrost band\u2020 is shaped on the monitored fleet, ' +
