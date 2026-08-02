@@ -123,6 +123,15 @@ setTimeout(() => {
      /heat \u00a3[\d.,]+(bn|m) \u00b7 cooling \u00a3[\d.,]+(bn|m) \u00b7 saves/.test(
       get("wf_bill_cap").textContent));
   ok("routes panel visible", !doc.getElementById("routes").hidden);
+  ok("folds present closed", ["fold_engine","fold_cool","fold_cost",
+     "fold_carb"].every(id => { const f = doc.getElementById(id);
+       return f && !f.hasAttribute("open"); }));
+  ok("engine inside fold", !!doc.querySelector("#fold_engine #ts"));
+  ok("conclusions outside folds", !doc.querySelector("#fold_cost #billline")
+     && !doc.querySelector("#fold_cool #coolobsline"));
+  ok("geothermal networks rename", /SCOP-5 geothermal network/.test(
+      get("rt_winter").innerHTML) || /SCOP-5 geothermal/.test(
+      doc.body.innerHTML));
   ok("winter stress cards", /added load/.test(get("rt_winter").innerHTML)
      && /GW/.test(get("rt_winter").innerHTML));
   ok("summer stress cards", /embedded in observed demand/.test(

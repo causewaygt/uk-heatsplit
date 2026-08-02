@@ -371,6 +371,116 @@ CUTOVER DAY (same-day rule, learned from the restatements x3):
   dotted line. Standalone rebuilt (plotly inlined + blob-URL shim -
   the shim goes into Phase C's real panel too).
 
+## v7.1 DESIGN OF RECORD - the system view (frozen 1 Aug, build in Aug)
+STRATEGIC FRAME (Simon): this panel, delivered with the layers below,
+is the candidate deal-clincher in Heat Split's strategic case for
+geothermal in the UK. Timeline: August build, September peer review,
+October conference presentation. Single cutover, late August, complete
+- v7.0 does not ship separately.
+
+THE THREE LAYERS
+1. OBSERVED HOURLY DEMAND (new feed): Elexon INDO / NESO historic
+   half-hourly demand incl embedded wind+solar estimates (the same
+   file the cooling estimator uses daily). 13 months, hourly means.
+   Chart base layer; retires the daily-average stress basis - cards
+   move to "% of that HOUR's demand" and "% of the record hour".
+2. ROUTE ADDITIONS STACKED ON IT, with the netting refinement: the
+   what-if displaces a fifth of existing resistive heating already
+   inside observed demand - net it off the addition (currently
+   overstated by ignoring it). Touches G2; re-verify.
+3. THE CEILING - capacity to deliver, breathing with weather:
+   dispatchable de-rated block (seasonal constant, SOURCED - decision
+   needed: NESO Winter Outlook de-rated margin vs DUKES 5.7; whole
+   credibility of "exceeds headroom" hangs on the choice and its
+   statement; search current Winter Outlook before coding, dagger
+   regardless) + OBSERVED hourly wind (FUELINST transmission +
+   embedded from feed above) + observed solar. Ceiling sags on still
+   cold nights exactly when the ashp stack peaks - the point.
+
+CLAIM DISCIPLINE (engine-assembled basis text, non-negotiable):
+- "hours where the addition exceeds available headroom under today's
+  fleet (dagger)" - NEVER "blackout hours"; static overlay, not a
+  dispatch model (no redispatch/imports/price response modelled).
+- Transmission-level; distribution constraints unmodelled, stated.
+- GW ceiling cannot represent storage DURATION - batteries serve the
+  peak hour, not the fifth cold day; the worst-week exhibit shows the
+  multi-day draw that duration-limited storage cannot cover. State it
+  - it is the geothermal argument's friend.
+- Dunkelflaute check the moment wind data lands: was w/e 2026-01-06
+  still as well as cold? If yes, the exhibit shows the ashp fifth
+  squeezing into a sagging ceiling - the strategic case at system
+  level in one picture; also explains the coincidence premium.
+
+MECHANICS: retro.json schema 2 (three new hourly arrays: demand_GW,
+wind_GW, solar_GW; same restatement discipline, warm store rebuilt
+once); panel gains a fourth toggle view "System"; stress block
+re-based; copy deck stress rows re-drafted on the hourly basis before
+Simon's edit (do not polish the 43% wording twice - it changes shape
+entirely on an hourly denominator).
+
+BUILD ORDER (corrected to the original strategy's layering - these
+are the A'/B/C phases run again for the second data family, with the
+proven discipline applied wholesale: stub-first validation with
+injected truth, gap-refusal, schema restatement, gates before render,
+carry on failure):
+  AUDIT PASS (precedes all new code, per Simon 2 Aug): a written
+    audit memo on the EXISTING retro.py + build.py retro block +
+    harnesses before anything new lands. Scope: constants provenance
+    and dagger inventory (every number traced to source or marked);
+    basis strings vs actual computation (no drift); error/carry paths
+    exercised; schema+restatement correctness; the known netting
+    overstatement quantified; duplicated logic; fetcher timeouts and
+    failure modes; dead code. Findings fixed or explicitly accepted
+    before A'.2 opens.
+  AUDIT COMPLETE (2 Aug): memo delivered (uk-heatsplit-audit-memo
+    .docx). 12 findings: 6 fixed (incl a syntactically broken MID
+    block from an unverified session-boundary edit - caught here, not
+    in production; zip builds now syntax-gated), 3 accepted with
+    statement, 3 deferred to named phases (netting -> B.2 quantified
+    at ~1.6 GW worst-hour, 10-22% of stated additions; COP-param
+    centralisation + ERA5 recency check -> A'.2; premium-note wording
+    -> D). Store schema governs restatement; slices schema versions
+    the render contract. A'.2 CLEARED TO OPEN.
+  A'.2 hourly demand + wind + solar fetchers (Elexon INDO / NESO
+    historic HH file / FUELINST), stub twins in fetch_hourly with
+    injected truth, retro.json schema 2, warm-store rebuild via
+    branch dispatch.
+  B.2 stress re-based to hourly-observed denominators; resistive
+    netting; ceiling construction (dispatchable de-rated block from
+    the NESO Winter Outlook 2025/26 workbook (dagger) + observed
+    renewables - the construction that sidesteps the de-rated-wind
+    critique); headroom-exceedance slices; gates re-verified incl
+    netting's touch on G2; Dunkelflaute check on w/e 2026-01-06.
+  C.2 System view on the existing toggle; stress cards re-worded to
+    the hourly basis; ceiling caveats in the engine-assembled footer.
+  D resumed ONCE, after all evidence layers exist: folds done and
+    keep; copy deck re-cut against the complete panel for a single
+    edit pass.
+  E docs + conventions + README; cutover late August.
+FRAMING (Simon endorses, for the strategic case): v6 DESCRIBES the
+heat transition; v7 TESTS it against the grid Britain actually has,
+hour by hour, weather included.
+
+## Phase D - collapse the evidence + copy deck (branch)
+- Rename shipped with it: "SCOP-5 ambient networks" -> "SCOP-5
+  geothermal networks" (panel lede + trace/card label + retro.py
+  docstring).
+- FOLDS (details.fold, closed by default, + / - markers, conclusion
+  stays visible above each): fold_engine (the whole gas engine room
+  under "UNDER THE BONNET"), fold_cool (observed response curve +
+  reconciliation diagnostic; the coolobsline conclusion stays out),
+  fold_cost (route price table; billline spark conclusion stays out),
+  fold_carb (route carbon table; carbline stays out). Page tests
+  assert folds exist, are closed, engine content is inside, and
+  conclusions are outside.
+- Kept open by design: hero + what-if strip, routes panel, dual bars,
+  sparklines, empty bar + shares, tier-3 comfort deficit + UTES, NI,
+  WHY HEAT.
+- COPY DECK delivered for Simon's edit (uk-heatsplit-copy-deck.docx):
+  current vs proposed for the panels' user-facing text, including the
+  summer-43% caveat clause and the cold-economy scope clause, both
+  awaiting his sign-off before Phase E freezes the wording.
+
 ## Phase C - the three-routes panel (v7.0.0, branch)
 - New section id="routes" in the gas engine's slot (engine stays visible
   until Phase D collapses it), hidden by default and revealed only when
