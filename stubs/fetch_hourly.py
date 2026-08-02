@@ -59,3 +59,40 @@ def hourly_ci(start_day, n_days):
                  + _rng("ci", iso).gauss(0, 12))
             out.append(round(max(20.0, v), 1))
     return out
+
+
+def hourly_system(start_day, n_days, temps):
+    """Stub system feeds with injected truth (GW, hourly):
+      demand: 22 + 14*winter + 6*evening_bell + 0.6*max(0,15-T) + n(0,1.2)
+              - underlying-demand convention (embedded generation included
+              on both sides of the ledger)
+      wind:   (8 + 8*season) * (1 - 0.55*coldness) + n(0,1.5), floor 0.3
+              - the cold-still correlation IS the injected truth: stub
+              Dunkelflautes exist by construction, tests assert them
+      solar:  daylight bell * season_amp * (1 - cloud), zero at night
+    Returns dict {demand_GW, wind_GW, solar_GW} lists of n_days*24."""
+    import datetime as dt, math
+    d0 = dt.date.fromisoformat(start_day)
+    demand, wind, solar = [], [], []
+    k = 0
+    for i in range(n_days):
+        d = d0 + dt.timedelta(days=i)
+        doy = d.timetuple().tm_yday
+        winter = 0.5 * (1 + math.cos((doy - 15) / 365.0 * 2 * math.pi))
+        for h in range(24):
+            iso = d.isoformat() + "T%02d" % h
+            t = temps[k]; k += 1
+            evening = math.exp(-((h - 18) / 2.5) ** 2)
+            coldness = min(1.0, max(0.0, (10.0 - t) / 12.0))
+            dem = (22.0 + 14.0 * winter + 6.0 * evening
+                   + 0.6 * max(0.0, 15.0 - t)
+                   + _rng("sd", iso).gauss(0, 1.2))
+            w = ((8.0 + 8.0 * winter) * (1 - 0.55 * coldness)
+                 + _rng("sw", iso).gauss(0, 1.5))
+            daylight = max(0.0, math.cos((h - 13) / 7.0 * math.pi / 2))
+            cloud = min(1.0, max(0.0, _rng("sc", iso).gauss(0.35, 0.25)))
+            sv = 9.0 * (1.2 - winter) * daylight * (1 - cloud)
+            demand.append(round(max(15.0, dem), 2))
+            wind.append(round(max(0.3, w), 2))
+            solar.append(round(max(0.0, sv), 2))
+    return {"demand_GW": demand, "wind_GW": wind, "solar_GW": solar}
