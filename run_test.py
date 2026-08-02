@@ -39,11 +39,17 @@ def _rc(a, b, **kw):
         _hcache[k] = _fh.hourly_ci(a, _days(a, b))
     return list(_hcache[k])
 
+def _rs(a, b, **kw):
+    k = ("s", a, b)
+    if k not in _hcache:
+        _hcache[k] = _fh.hourly_system(a, _days(a, b), _rt(a, b))
+    return {kk: list(v) for kk, v in _hcache[k].items()}
+
 RETRO_TMP = "/tmp/retro_rt.json"
 
 def wire_retro(bld):
     bld.RETRO_FETCHERS = {"fetch_temp": _rt, "fetch_mid": _rm,
-                          "fetch_ci": _rc}
+                          "fetch_ci": _rc, "fetch_system": _rs}
     _retro.RETRO_PATH = RETRO_TMP
     if os.path.exists(RETRO_TMP):
         os.remove(RETRO_TMP)

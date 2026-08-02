@@ -445,6 +445,27 @@ carry on failure):
     historic HH file / FUELINST), stub twins in fetch_hourly with
     injected truth, retro.json schema 2, warm-store rebuild via
     branch dispatch.
+  A'.2 COMPLETE (2 Aug): retro.json schema 2. Real fetchers:
+    NESO historic-demand-data via CKAN package_show DISCOVERY (no
+    hardcoded resource ids - they churn yearly) -> ND + embedded
+    wind/solar, half-hourly, SQL-filtered per year-file; Elexon
+    FUELINST (fuelType=WIND) chunked+retried -> transmission wind.
+    demand_GW = ND + embedded wind + embedded solar (UNDERLYING-demand
+    convention, embedded on both sides of the ledger - basis to be
+    stated on-panel in C.2). wind_GW = transmission + embedded.
+    VERIFY-ON-DISPATCH: field names vs the published demanddata
+    schema; first branch run confirms or corrects (the MID lesson).
+    Upgrade path: schema-1 store keeps its four arrays frozen; system
+    arrays fetched FULL-SPAN once (they cannot be restated from stored
+    inputs), incremental thereafter; trim covers all seven arrays.
+    A6 shipped: calibration carries flow_at + source approaches so the
+    panel derives physics from data, no JS hardcodes (C.2 consumes).
+    Stub twins carry injected truths - cold-still wind correlation
+    (stub Dunkelflautes by construction), dark-night solar, winter
+    demand - all asserted end-to-end through the store; upgrade test
+    proves one-shot full-span fetch + frozen-array preservation.
+    A8 note: ERA5 recency check deferred to the first schema-2
+    dispatch (count trailing filled hours in the log).
   B.2 stress re-based to hourly-observed denominators; resistive
     netting; ceiling construction (dispatchable de-rated block from
     the NESO Winter Outlook 2025/26 workbook (dagger) + observed

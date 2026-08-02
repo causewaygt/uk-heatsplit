@@ -32,8 +32,16 @@ def f_ci(a, b):
     return hourly_ci(a, (d1 - d0).days + 1)
 
 # --- 1. full-year build: shape, calibration, gates --------------------------
+from fetch_hourly import hourly_system
+def f_sys(a, b, **kw):
+    d0, d1 = dt.date.fromisoformat(a), dt.date.fromisoformat(b)
+    nd = (d1 - d0).days + 1
+    return hourly_system(a, nd, hourly_temp(a, nd))
+from fetch_hourly import hourly_temp
+
 r1 = retro.build_retro(S, E, SPACE_TWH, DHW_TWH, base_c=16.5,
-                       fetch_temp=f_temp, fetch_mid=f_mid, fetch_ci=f_ci)
+                       fetch_temp=f_temp, fetch_mid=f_mid, fetch_ci=f_ci,
+                       fetch_system=f_sys)
 assert r1["calibration"]["shaping_base_c"] == 16.5
 n = r1["n_hours"]
 assert n == 397 * 24, n
@@ -86,7 +94,7 @@ E2 = (END + dt.timedelta(days=1)).isoformat()
 t_calls[0] = 0
 r2 = retro.build_retro(S, E2, SPACE_TWH, DHW_TWH, base_c=16.5,
                        fetch_temp=f_temp, fetch_mid=f_mid, fetch_ci=f_ci,
-                       prev=r1b)
+                       fetch_system=f_sys, prev=r1b)
 assert r2["n_hours"] == n + 24
 assert r2["temp_C"][:n - 48] == r1["temp_C"][:n - 48]    # frozen bulk kept
 frozen_days = (n - 48) // 24
@@ -194,5 +202,48 @@ for r in mc:
 assert all(r["complete"] for r in mc)
 print("calendar falcon: Jan", mc[0]["label"], "... Dec", mc[11]["label"],
       "| 12 distinct complete months, lossless  OK")
+
+# --- 10. A'.2: system feeds, schema 2, upgrade path -------------------------
+assert r1["schema"] == 2
+for k in ("demand_GW", "wind_GW", "solar_GW"):
+    assert len(r1[k]) == r1["n_hours"], k
+assert r1["calibration"]["flow_at"] == [15.0, -5.0]        # A6
+assert r1["calibration"]["sources"]["ground_c"] == 8.0
+# injected truths hold end-to-end
+D, W, SOL, T = (r1["demand_GW"], r1["wind_GW"], r1["solar_GW"],
+                r1["temp_C"])
+cold_w = [w for w, tt in zip(W, T) if tt < 0]
+# compare within-season: deep-cold vs winter-mild, so the seasonal
+# wind term does not mask the injected coldness derating
+mild_w = [w for w, tt in zip(W, T) if 4 < tt < 10]
+assert sum(cold_w)/len(cold_w) < 0.75 * sum(mild_w)/len(mild_w)  # cold-still
+night = [SOL[i] for i in range(0, len(SOL), 24)]           # 00:00 each day
+assert max(night) == 0.0                                   # solar dark
+jan_d = [d_ for d_, tt in zip(D, T) if tt < 0]
+jul_d = [d_ for d_, tt in zip(D, T) if tt > 16]
+assert sum(jan_d)/len(jan_d) > sum(jul_d)/len(jul_d) + 5   # winter demand
+# schema-1 upgrade: strip system arrays + downgrade, rebuild, verify
+seedU = json.loads(json.dumps(r1))
+for k in ("demand_GW", "wind_GW", "solar_GW"):
+    del seedU[k]
+seedU["schema"] = 1
+sys_calls = [0]
+def f_sys_count(a, b, **kw):
+    sys_calls[0] += 1
+    f_sys_count.last_span = (a, b)
+    return f_sys(a, b)
+rU = retro.build_retro(S, E, SPACE_TWH, DHW_TWH, base_c=16.5,
+                       fetch_temp=f_temp, fetch_mid=f_mid, fetch_ci=f_ci,
+                       fetch_system=f_sys_count, prev=seedU)
+assert rU["schema"] == 2
+assert rU["temp_C"][:len(seedU["temp_C"]) - 48]        == seedU["temp_C"][:len(seedU["temp_C"]) - 48]      # frozen kept
+assert sys_calls[0] == 1 and f_sys_count.last_span[0] == S  # full-span once
+assert rU["demand_GW"] == r1["demand_GW"]                  # deterministic
+# trim covers the new arrays
+tr = retro.trim(json.loads(json.dumps(rU)), max_days=300)
+for k in ("demand_GW", "wind_GW", "solar_GW"):
+    assert len(tr[k]) == 300 * 24, k
+print("A'.2: schema 2, cold-still + dark-night + winter-demand truths, "
+      "one-shot full-span upgrade, trim  OK")
 
 print("\nALL PHASE B TESTS PASSED")
