@@ -52,6 +52,10 @@ FLOW_MILD_C, FLOW_COLD_C = 30.0, 50.0   # weather compensation endpoints
 FLOW_MILD_AT, FLOW_COLD_AT = 15.0, -5.0
 DEFROST_MAX = 0.12           # peak fractional COP loss, centre ~2C (dagger)
 R_SHIFT = 0.20
+# Summer damping thresholds, daily HDD (dagger - shaping convention,
+# chosen to reconcile with the weekly model's zero-space-heat summers)
+SUMMER_HDD_OFF = 1.0
+SUMMER_HDD_FULL = 3.0
 # Ceiling dispatchable block (dagger): NESO Winter Outlook 2025/26 base
 # case - de-rated margin 6.1 GW at 10.0% of ACS peak => ACS 61.0 GW,
 # de-rated supply 67.1 GW; less the Outlook's own wind+solar de-rate
@@ -267,7 +271,10 @@ def hourly_useful_heat(temps, start_day, space_annual_twh, dhw_annual_twh,
     """Hourly USEFUL heat, GWh. Space: annual total distributed by daily
     HDD share, then by within-day heating degree-hours at base_c - the
     LIVE regression's selected base, supplied by the caller (dagger -
-    modelled shape; misses DHW-and-setback peaks, stated). DHW: flat."""
+    modelled shape; misses DHW-and-setback peaks, stated). Days below
+    SUMMER_HDD_OFF contribute no space heat and the weights are
+    renormalised, so summer nights no longer receive winter-strength
+    allocations and the annual anchor is still met exactly. DHW: flat."""
     n = len(temps)
     days = n // 24
     hdd_day, hdh = [], []
@@ -279,11 +286,28 @@ def hourly_useful_heat(temps, start_day, space_annual_twh, dhw_annual_twh,
     # Annual quantities are defined on the TRAILING 365 days, so a
     # 13-month store carries 13 months of heat and the trailing year
     # sums to the annual EXACTLY - the gates slice that year.
-    den = sum(hdd_day[-365:]) or 1.0
+    # Summer damping (B.3): raw HDD-share allocates full-strength space
+    # heat to cool summer nights - behaviourally implausible (systems
+    # off, no occupancy model) and INCONSISTENT with the weekly model,
+    # whose baseline subtraction reports zero space heat in those weeks.
+    # Damp each day's weight by a smooth ramp in daily HDD: nil below
+    # HDD_OFF, full above HDD_FULL. Annual conservation is preserved by
+    # normalising on the DAMPED weights, so the trailing year still
+    # sums exactly to the annual anchor - the damping redistributes
+    # into the heating season rather than discarding heat.
+    def _damp(hd):
+        if hd <= SUMMER_HDD_OFF:
+            return 0.0
+        if hd >= SUMMER_HDD_FULL:
+            return 1.0
+        x = (hd - SUMMER_HDD_OFF) / (SUMMER_HDD_FULL - SUMMER_HDD_OFF)
+        return x * x * (3 - 2 * x)                   # smoothstep
+    wgt = [hd * _damp(hd) for hd in hdd_day]
+    den = sum(wgt[-365:]) or 1.0
     dhw_h = dhw_annual_twh * 1000.0 / 8760.0        # rate, not spread
     out = []
     for i in range(days):
-        day_space = space_annual_twh * 1000.0 * hdd_day[i] / den
+        day_space = space_annual_twh * 1000.0 * wgt[i] / den
         day_hdh = sum(hdh[i]) or 1.0
         for h in range(24):
             sp = day_space * (hdh[i][h] / day_hdh if day_hdh else 0.0)
