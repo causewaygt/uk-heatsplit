@@ -54,6 +54,13 @@ DEFROST_MAX = 0.12           # peak fractional COP loss, centre ~2C (dagger)
 R_SHIFT = 0.20
 # Summer damping thresholds, daily HDD (dagger - shaping convention,
 # chosen to reconcile with the weekly model's zero-space-heat summers)
+# B.4 - flow temperature by SERVICE, not by weather alone. Hot water
+# needs its cylinder temperature year-round; only space heat follows the
+# weather-compensated curve. Before this split, summer DHW was served at
+# the 30 C mild-weather flow, which produced absurd summer air-source
+# COPs (16+) once B.3 made summer heat 100% DHW.
+DHW_FLOW_C = 52.0        # dagger - cylinder flow, year-round
+MIN_LIFT_K = 8.0         # dagger - floor on Carnot lift (was 5)
 SUMMER_HDD_OFF = 1.0
 SUMMER_HDD_FULL = 3.0
 # Ceiling dispatchable block (dagger): NESO Winter Outlook 2025/26 base
@@ -249,12 +256,14 @@ def defrost_factor(t_out):
 
 
 def carnot_cop(t_flow, t_source):
-    dt_lift = max(5.0, t_flow - t_source)
+    dt_lift = max(MIN_LIFT_K, t_flow - t_source)
     return (t_flow + 273.15) / dt_lift
 
 
-def route_cop(route, t_out, eta):
-    tf = flow_temp(t_out)
+def route_cop(route, t_out, eta, t_flow=None):
+    """Point COP at the weather-compensated SPACE flow unless t_flow is
+    given (pass DHW_FLOW_C for the hot-water leg)."""
+    tf = t_flow if t_flow is not None else flow_temp(t_out)
     if route == "ashp":
         base = carnot_cop(tf, t_out - AIR_APPROACH_C)
         return max(1.0, eta * base * defrost_factor(t_out))
@@ -316,12 +325,14 @@ def hourly_useful_heat(temps, start_day, space_annual_twh, dhw_annual_twh,
 
 
 # --- calibration -----------------------------------------------------------
-def _route_base(route, temps):
+def _route_base(route, temps, t_flow=None):
     """Per-hour Carnot-with-defrost base b(t): COP = max(1, eta*b(t)).
-    Precomputed once so calibration and integration are fast."""
+    t_flow=None uses the weather-compensated space curve; pass
+    DHW_FLOW_C for the hot-water leg (B.4). Precomputed once so
+    calibration and integration stay fast."""
     out = []
     for t in temps:
-        tf = flow_temp(t)
+        tf = flow_temp(t) if t_flow is None else t_flow
         if route == "ashp":
             b = carnot_cop(tf, t - AIR_APPROACH_C) * defrost_factor(t)
         elif route == "shallow":
@@ -334,18 +345,37 @@ def _route_base(route, temps):
     return out
 
 
-def calibrate_eta(route, temps, heat):
-    """eta such that annual SPF == anchor: SPF = sum(Q)/sum(Q/COP(t)).
-    Monotone in eta -> bisection on the precomputed base array."""
+def route_elec_hourly(route, temps, heat, eta, dhw_h, shift=1.0):
+    """Hourly electricity for `shift` of the heat, GWh: the space leg on
+    the weather-compensated flow, the DHW leg on the cylinder flow, each
+    hour's split taken from the constant DHW rate (B.4)."""
+    bs = _route_base(route, temps)
+    bd = _route_base(route, temps, t_flow=DHW_FLOW_C)
+    out = []
+    for q, a, b in zip(heat, bs, bd):
+        q_dhw = min(q, dhw_h)
+        q_sp = max(0.0, q - q_dhw)
+        out.append(shift * (q_sp / max(1.0, eta * a)
+                            + q_dhw / max(1.0, eta * b)))
+    return out
+
+
+def calibrate_eta(route, temps, heat, dhw_h=0.0):
+    """eta such that annual SPF == anchor: SPF = sum(Q)/sum(elec), with
+    the space and DHW legs on their own flow temperatures (B.4).
+    Monotone in eta -> bisection on the precomputed bases."""
     target = SPF_ANCHORS[route]
     temps = temps[-8760:]          # calibrate on the trailing year
     heat = heat[-8760:]            # (audit F2)
-    base = _route_base(route, temps)
-    qb = [(q, b) for q, b in zip(heat, base) if q > 0]
-    q_tot = sum(q for q, _ in qb)
+    bs = _route_base(route, temps)
+    bd = _route_base(route, temps, t_flow=DHW_FLOW_C)
+    qb = [(min(q, dhw_h), max(0.0, q - min(q, dhw_h)), a, b)
+          for q, a, b in zip(heat, bs, bd) if q > 0]
+    q_tot = sum(qd + qs for qd, qs, _, _ in qb)
 
     def spf(eta):
-        return q_tot / sum(q / max(1.0, eta * b) for q, b in qb)
+        return q_tot / sum(qs / max(1.0, eta * a) + qd / max(1.0, eta * b)
+                           for qd, qs, a, b in qb)
 
     lo, hi = 0.05, 1.5
     for _ in range(60):
@@ -410,12 +440,13 @@ def build_retro(start_day, end_day, space_annual_twh, dhw_annual_twh,
 
     heat = hourly_useful_heat(temps, start_day, space_annual_twh,
                               dhw_annual_twh, base_c=base_c)
-    etas = {r: calibrate_eta(r, temps, heat) for r in SPF_ANCHORS}
+    dhw_h_rate = dhw_annual_twh * 1000.0 / 8760.0
+    etas = {r: calibrate_eta(r, temps, heat, dhw_h=dhw_h_rate)
+            for r in SPF_ANCHORS}
     spfs = {}
     h_y, t_y = heat[-8760:], temps[-8760:]
     for r in SPF_ANCHORS:
-        e = sum(q / route_cop(r, t, etas[r])
-                for q, t in zip(h_y, t_y) if q > 0)
+        e = sum(route_elec_hourly(r, t_y, h_y, etas[r], dhw_h_rate))
         spfs[r] = round(sum(q for q in h_y if q > 0) / e, 3)
 
     return {
@@ -468,8 +499,9 @@ def gates(retro, weekly_whatif_repl_elec_twh=None):
         heat = retro["heat_GWh"][-8760:]
         temps = retro["temp_C"][-8760:]
         eta = retro["calibration"]["eta"]["network"]
-        elec = sum(R_SHIFT * q / route_cop("network", t, eta)
-                   for q, t in zip(heat, temps)) / 1000.0
+        dhw_h = retro["calibration"]["dhw_annual_TWh"] * 1000.0 / 8760.0
+        elec = sum(route_elec_hourly("network", temps, heat, eta, dhw_h,
+                                     shift=R_SHIFT)) / 1000.0
         d = abs(elec - weekly_whatif_repl_elec_twh) \
             / weekly_whatif_repl_elec_twh
         rep["g2_network_vs_weekly"] = {
@@ -519,10 +551,10 @@ def trim(store, max_days=MAX_DAYS):
 
 def _route_elec(store, route):
     """Hourly what-if replacement electricity, GWh (== average GW)."""
-    eta = store["calibration"]["eta"][route]
-    base = _route_base(route, store["temp_C"])
-    return [R_SHIFT * q / max(1.0, eta * b)
-            for q, b in zip(store["heat_GWh"], base)]
+    cal = store["calibration"]
+    dhw_h = cal["dhw_annual_TWh"] * 1000.0 / 8760.0
+    return route_elec_hourly(route, store["temp_C"], store["heat_GWh"],
+                             cal["eta"][route], dhw_h, shift=R_SHIFT)
 
 
 ROUTES = ("ashp", "shallow", "network")
