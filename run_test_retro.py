@@ -281,4 +281,22 @@ print("B.2: binding %s (%.1fC) req %.1f GW headroom %.1f | net %.1f < gross"
          sv["routes"]["shallow"]["hours_above_block"],
          sv["routes"]["network"]["hours_above_block"]))
 
+# --- 12. B.3: summer damping, annual conserved -------------------------------
+import datetime as _dt2
+d0_ = _dt2.date.fromisoformat(r1["start_day"])
+hh_ = r1["heat_GWh"]; tt_ = r1["temp_C"]
+dhw_h_ = r1["calibration"]["dhw_annual_TWh"] * 1000.0 / 8760.0
+base_ = r1["calibration"]["shaping_base_c"]
+# any day whose HDD is below the OFF threshold carries DHW only
+for di in range(r1["n_hours"] // 24):
+    seg_t = tt_[di*24:(di+1)*24]
+    hdd = sum(max(0.0, base_ - x) for x in seg_t) / 24.0
+    if hdd <= retro.SUMMER_HDD_OFF:
+        seg_q = hh_[di*24:(di+1)*24]
+        assert max(seg_q) - dhw_h_ < 0.01, (di, hdd, max(seg_q))
+# annual conservation survives the damping
+assert abs(sum(hh_[-8760:]) - (SPACE_TWH + DHW_TWH) * 1000) < 1.0
+print("B.3: summer days below %.1f HDD carry DHW only; annual conserved  OK"
+      % retro.SUMMER_HDD_OFF)
+
 print("\nALL PHASE B TESTS PASSED")

@@ -139,14 +139,19 @@ setTimeout(() => {
   ok("premium cards", /coincidence premium/.test(get("rt_prem").innerHTML));
   ok("routes note basis", /modelled/.test(get("rt_note").textContent)
      && /EMBEDDED/.test(get("rt_note").textContent));
-  ok("system button + binding cards", !doc.getElementById("rt_sysbtn").hidden
-     && /dispatchable requirement/.test(get("rt_bind").innerHTML)
+  ok("binding cards", /dispatchable requirement/.test(get("rt_bind").innerHTML)
      && /headroom/.test(get("rt_bind").innerHTML));
+  ok("worst-week card is the system chart",
+     /UNDER THE CEILING/.test(get("rt_wklbl").textContent));
   ok("winter cards hourly basis", /% of that hour's observed demand/.test(
       get("rt_winter").innerHTML));
   ok("summer card hourly basis", /% of that hour's observed demand/.test(
       get("rt_summer").innerHTML));
   ok("bind bars drawn", !doc.getElementById("rt_bindbars").hidden);
+  ok("summer bars drawn", !doc.getElementById("rt_sumbars").hidden);
+  ok("toggle precedes winter stress",
+     doc.body.innerHTML.indexOf('id="rt_main"') <
+     doc.body.innerHTML.indexOf('WINTER STRESS'));
   ok("exhibit label carries dates", /ROLLING 168 HOURS/.test(
       get("rt_wklbl").textContent) && /TO/.test(get("rt_wklbl").textContent));
   ok("system basis in footer", /static overlay/i.test(get("rt_note").textContent)

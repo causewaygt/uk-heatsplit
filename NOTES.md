@@ -511,6 +511,24 @@ carry on failure):
     reduce the credit at peaks; gross bounds the zero-credit case).
     Stub preview regenerated with the System view; REAL preview cut
     from the next dispatch's data.json on upload.
+  B.3 SUMMER DAMPING (2 Aug, from Simon's spot of July heat spikes in
+    the live view): raw HDD-share gave cool summer nights full-strength
+    space-heat allocations (31 Jul 05:00, 12.7C -> 23 GWh/h of space
+    heat on top of DHW) - behaviourally implausible AND inconsistent
+    with the weekly model, which reported gas_space_heat_GWh = 0.0 for
+    the same week. Fix: smoothstep damping on daily HDD (nil at or
+    below SUMMER_HDD_OFF 1.0, full at SUMMER_HDD_FULL 3.0 (dagger)),
+    with the annual normalised on the DAMPED weights so the trailing
+    year still meets the anchor EXACTLY - the heat is redistributed
+    into the heating season, not discarded. Real-data effect: Aug
+    -35%, Jul -22%, Jun -12%, Sep -8%; Dec/Jan/Feb +2.8-2.9%; annual
+    371.0 TWh unchanged; worst hour 132.7 -> 136.7 GWh (the winter
+    statistics get slightly STRONGER, so this is not a
+    convenience-shaped edit); live-week peak 31.1 -> 7.6 GWh/h (DHW
+    only, matching the weekly model's zero-space-heat summer).
+    Harness asserts sub-threshold days carry DHW only and that annual
+    conservation survives. Gates re-verified: G1 anchors exact, G2
+    0.00%.
   D resumed ONCE, after all evidence layers exist: folds done and
     keep; copy deck re-cut against the complete panel for a single
     edit pass.
