@@ -239,6 +239,7 @@
 
     <div class="barlabel">WINTER STRESS — EXTRA ELECTRICITY THE FIFTH WOULD DRAW AT THE WORST HOUR (GROSS)</div>
     <div class="statrow" id="rt_winter"></div>
+    <div id="rt_winbars" style="width:100%;height:300px;margin-top:12px"></div>
     <div class="barlabel" id="rt_bindlbl" hidden style="margin-top:16px">THE BINDING HOUR — TOTAL CALL ON DISPATCHABLE SUPPLY, NET† , UNDER TODAY'S FLEET†</div>
     <div class="statrow" id="rt_bind"></div>
     <div id="rt_bindbars" style="width:100%;height:300px;margin-top:12px" hidden></div>
@@ -1299,6 +1300,44 @@ fetch('data.json').then(r=>r.json()).then(d=>{
           : (st[r].pct_of_record_day != null
              ? ' \u00b7 ' + st[r].pct_of_record_day + '% of the record day\u2020'
              : '')), RC[r])).join('');
+    (function(){
+      const fifth = 0.2 * st.worst_hour_heat_GWh;      // GW of heat
+      const RK = ['ashp','shallow','network'];
+      const cats = ['resistive heating<br>(COP 1)'].concat(
+        RK.map(r => RN[r].replace(' ', '<br>')));
+      const elec = [fifth].concat(RK.map(r => st[r].added_GW));
+      const free = elec.map(e => Math.round((fifth - e) * 10) / 10);
+      Plotly.newPlot('rt_winbars', [
+        {type:'bar', width:0.55, name:'electricity bought',
+         x:cats, y:elec,
+         marker:{color:['#6f7883'].concat(RK.map(r => RC[r]))},
+         text:elec.map(v => v.toFixed(1) + ' GW'),
+         textposition:'inside', insidetextanchor:'middle',
+         textfont:{color:'#0d1117', size:14},
+         hovertemplate:'%{y:.1f} GW of electricity<extra></extra>'},
+        {type:'bar', width:0.55,
+         name:'heat harvested free from the ground or air',
+         x:cats, y:free,
+         marker:{color:'rgba(87,194,107,0.22)',
+                 line:{color:css('--geo'), width:1.2}},
+         text:free.map(v => v > 0.5 ? '+' + v.toFixed(1) + ' GW free' : ''),
+         textposition:'inside', insidetextanchor:'middle',
+         textfont:{color:css('--geo'), size:13},
+         hovertemplate:'%{y:.1f} GW harvested<extra></extra>'}],
+        {paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
+         font:{family:'Lato', color:css('--muted'), size:11},
+         barmode:'stack', showlegend:true,
+         legend:{orientation:'h', y:1.24, font:{size:12},
+                 traceorder:'reversed'},
+         margin:{l:48, r:10, t:14, b:44},
+         xaxis:{gridcolor:css('--line')},
+         yaxis:{title:'GW at the worst hour', gridcolor:css('--line')},
+         annotations:[{x:0.5, xref:'paper', y:fifth, yshift:14,
+           showarrow:false, font:{color:css('--muted'), size:11},
+           text:'every bar delivers the same ' + fifth.toFixed(1) +
+                ' GW of heat \u2014 the fifth, at the worst hour'}]},
+        {displayModeBar:false, responsive:true});
+    })();
     if(ss){
       document.getElementById('rt_summer').innerHTML =
         stat(ss.peak_hour.slice(5,13).replace('T',' ') + '<small>h</small>',
@@ -1454,7 +1493,8 @@ fetch('data.json').then(r=>r.json()).then(d=>{
               overlaying:'y', side:'right',
               rangemode:'tozero', showgrid:false}});
     (function(){
-      const w = WR.worst_week;
+      const w = (WR.system && WR.binding_week) ? WR.binding_week
+                                              : WR.worst_week;
       if(!(WR.system && w.demand_GW)){
         Plotly.newPlot('rt_worst', windowTraces(w), LAYW,
                        {displayModeBar:false, responsive:true});
@@ -1491,14 +1531,20 @@ fetch('data.json').then(r=>r.json()).then(d=>{
         {displayModeBar:false, responsive:true});
     })();
     (function(){
-      const t0 = new Date(WR.worst_week.start + ':00:00Z');
+      const ew = (WR.system && WR.binding_week) ? WR.binding_week
+                                                : WR.worst_week;
+      const t0 = new Date(ew.start + ':00:00Z');
       const t1 = new Date(t0.getTime() + 167*3600e3);
       const f = d => d.toLocaleDateString('en-GB',
         {day:'numeric', month:'short', timeZone:'UTC'});
       document.getElementById('rt_wklbl').textContent =
-        'THE WORST WEEK UNDER THE CEILING \u2014 ' + f(t0).toUpperCase() +
-        ' TO ' + f(t1).toUpperCase() + ' \u00b7 THE ROLLING 168 HOURS OF ' +
-        'MAXIMUM HEAT, EMPIRICALLY LOCATED (NOT A CALENDAR WEEK)';
+        (WR.system && WR.binding_week
+          ? 'THE TIGHTEST WEEK UNDER THE CEILING \u2014 ' + f(t0).toUpperCase()
+            + ' TO ' + f(t1).toUpperCase() + ' \u00b7 168 HOURS CENTRED ON '
+            + 'THE BINDING HOUR, EMPIRICALLY LOCATED (NOT A CALENDAR WEEK)'
+          : 'THE WORST WEEK UNDER THE CEILING \u2014 ' + f(t0).toUpperCase()
+            + ' TO ' + f(t1).toUpperCase() + ' \u00b7 THE ROLLING 168 HOURS '
+            + 'OF MAXIMUM HEAT, EMPIRICALLY LOCATED (NOT A CALENDAR WEEK)');
     })();
 
     function drawMain(mode){
