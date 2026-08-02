@@ -146,6 +146,9 @@ setTimeout(() => {
       get("rt_winter").innerHTML));
   ok("summer card hourly basis", /% of that hour's observed demand/.test(
       get("rt_summer").innerHTML));
+  ok("bind bars drawn", !doc.getElementById("rt_bindbars").hidden);
+  ok("exhibit label carries dates", /ROLLING 168 HOURS/.test(
+      get("rt_wklbl").textContent) && /TO/.test(get("rt_wklbl").textContent));
   ok("system basis in footer", /static overlay/i.test(get("rt_note").textContent)
      && /night-storage/.test(get("rt_note").textContent));
   ok("12m wf emissions split+saves",
