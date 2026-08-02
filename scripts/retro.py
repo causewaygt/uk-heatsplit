@@ -4,7 +4,7 @@ Computes, for the trailing year at hourly resolution, the three-route
 20% what-if replacement loads:
   ashp     - air-source heat pumps, COP from hourly air temperature
   shallow  - closed-loop ground source, near-constant source
-  network  - SCOP-5 ambient networks (the site's standing what-if case)
+  network  - SCOP-5 geothermal networks (the site's standing what-if case)
 
 DESIGN (all decisions per the v7 plan of record):
 - Heat shape is MODELLED (dagger): daily space heat = beta x HDD_d from
@@ -127,12 +127,20 @@ def fetch_hourly_mid(start_day, end_day):
         # timestamp closes it.
         url = ("https://data.elexon.co.uk/bmrs/api/v1/datasets/MID"
                f"?from={d}T00:00Z&to={de}T23:59Z&format=json")
-        with urllib.request.urlopen(url, timeout=60) as r:
-            for rec in json.load(r).get("data", []):
-                key = (rec["settlementDate"],
-                       (rec["settlementPeriod"] - 1) // 2)
-                vol = rec.get("volume") or 0.0
-                out.setdefault(key, []).append((rec["price"], vol))
+        for _try in range(2):                     # audit F3
+            try:
+                with urllib.request.urlopen(url, timeout=60) as r:
+                    payload = json.load(r)
+                break
+            except Exception:
+                if _try:
+                    raise
+                import time as _t; _t.sleep(10)
+        for rec in payload.get("data", []):
+            key = (rec["settlementDate"],
+                   (rec["settlementPeriod"] - 1) // 2)
+            vol = rec.get("volume") or 0.0
+            out.setdefault(key, []).append((rec["price"], vol))
         d = de + dt.timedelta(days=1)
     hours = []
     missing_days = {}
@@ -166,8 +174,17 @@ def fetch_hourly_ci(start_day, end_day):
         de = min(d + dt.timedelta(days=12), d1)
         url = (f"https://api.carbonintensity.org.uk/intensity/"
                f"{d}T00:00Z/{de}T23:59Z")
-        with urllib.request.urlopen(url, timeout=60) as r:
-            for rec in json.load(r)["data"]:
+        for _try in range(2):                     # audit F3b
+            try:
+                with urllib.request.urlopen(url, timeout=60) as r:
+                    payload = json.load(r)
+                break
+            except Exception:
+                if _try:
+                    raise
+                import time as _t
+                _t.sleep(10)
+        for rec in payload["data"]:
                 t = rec["from"][:13]          # YYYY-MM-DDTHH
                 v = (rec["intensity"].get("actual")
                      or rec["intensity"].get("forecast"))
@@ -200,6 +217,7 @@ def _fill(xs):
             xs[i] = last
         else:
             last = xs[i]
+    assert all(x is not None for x in xs), "fill left holes"  # audit F4
     return xs
 
 
@@ -287,6 +305,8 @@ def calibrate_eta(route, temps, heat):
     """eta such that annual SPF == anchor: SPF = sum(Q)/sum(Q/COP(t)).
     Monotone in eta -> bisection on the precomputed base array."""
     target = SPF_ANCHORS[route]
+    temps = temps[-8760:]          # calibrate on the trailing year
+    heat = heat[-8760:]            # (audit F2)
     base = _route_base(route, temps)
     qb = [(q, b) for q, b in zip(heat, base) if q > 0]
     q_tot = sum(q for q, _ in qb)
@@ -341,10 +361,11 @@ def build_retro(start_day, end_day, space_annual_twh, dhw_annual_twh,
                               dhw_annual_twh, base_c=base_c)
     etas = {r: calibrate_eta(r, temps, heat) for r in SPF_ANCHORS}
     spfs = {}
+    h_y, t_y = heat[-8760:], temps[-8760:]
     for r in SPF_ANCHORS:
         e = sum(q / route_cop(r, t, etas[r])
-                for q, t in zip(heat, temps) if q > 0)
-        spfs[r] = round(sum(q for q in heat if q > 0) / e, 3)
+                for q, t in zip(h_y, t_y) if q > 0)
+        spfs[r] = round(sum(q for q in h_y if q > 0) / e, 3)
 
     return {
         "schema": RETRO_SCHEMA,
@@ -485,12 +506,15 @@ def slices(store, nd_daily=None):
         return (d0 + dt.timedelta(days=i // 24)).isoformat() + "T%02d" % (i % 24)
 
     # ---- worst hour + worst week, empirically located ----
-    iw = max(range(n), key=lambda i: heat[i])
-    iww, best = 0, -1.0
-    if n >= 168:
-        run = sum(heat[:168])
-        iww, best = 0, run
-        for i in range(1, n - 167):
+    # Searches confined to the trailing year: a 13-month store holds a
+    # duplicate calendar month and must not offer it twice (audit F1b).
+    s0 = max(0, n - 8760)
+    iw = max(range(s0, n), key=lambda i: heat[i])
+    iww, best = s0, -1.0
+    if n - s0 >= 168:
+        run = sum(heat[s0:s0 + 168])
+        iww, best = s0, run
+        for i in range(s0 + 1, n - 167):
             run += heat[i + 167] - heat[i - 1]
             if run > best:
                 best, iww = run, i
@@ -592,13 +616,13 @@ def slices(store, nd_daily=None):
                 100 * add / stress["record_day_avg_GW"], 1)
         # hours-above-threshold distribution: added GW exceeded for X h
         stress[r]["hours_above"] = {
-            str(g): sum(1 for v in elec[r] if v > g)
-            for g in (5, 10, 15, 20, 25)}
+            str(g): sum(1 for v in elec[r][max(0, n - 8760):] if v > g)
+            for g in (5, 10, 15, 20, 25)}   # trailing year (audit F1)
 
     # ---- summer stress: the cooling peak (embedded basis, stated) ----
     stress_summer = None
     if cool:
-        ic = max(range(n), key=lambda i: cool[i])
+        ic = max(range(s0, n), key=lambda i: cool[i])   # audit F1b
         u_pk = (c_flat_h * 1.0
                 + (cool[ic] - c_flat_h) * cooling["eer"])
         relief_pk = R_SHIFT * (cool[ic] - u_pk / cooling["passive_cop"])
@@ -627,14 +651,19 @@ def slices(store, nd_daily=None):
                     100 * cool[ic] / sd, 2)
 
     # ---- coincidence cost premium ----
-    mean_mid = sum(mid) / len(mid)
+    # Trailing-year window for all "annual" statements - a 13-month
+    # store must never masquerade as a year (audit F1).
+    Y = slice(max(0, n - 8760), n)
+    mid_y = mid[Y]
+    mean_mid = sum(mid_y) / len(mid_y)
     premium = {}
     for r in ROUTES:
-        e = elec[r]
-        hourly_cost = sum(v * m for v, m in zip(e, mid)) / 1000.0
+        e = elec[r][Y]
+        hourly_cost = sum(v * m for v, m in zip(e, mid_y)) / 1000.0
         flat_cost = sum(e) * mean_mid / 1000.0
         premium[r] = {
             "annual_GWh": round(sum(e), 0),
+            "window": "trailing 12 months",
             "hourly_priced_Mgbp": round(hourly_cost, 1),
             "flat_priced_Mgbp": round(flat_cost, 1),
             "premium_pct": round(100 * (hourly_cost / flat_cost - 1), 2)
