@@ -568,7 +568,9 @@ def slices(store, nd_daily=None):
                          if cool else None),
             **({"demand_GW": store["demand_GW"][i0:i0 + ln],
                 "wind_GW": store["wind_GW"][i0:i0 + ln],
-                "solar_GW": store["solar_GW"][i0:i0 + ln]}
+                "solar_GW": store["solar_GW"][i0:i0 + ln],
+                "displaced_GW": [round(v, 3) for v in
+                                 _displaced_gw(store)[i0:i0 + ln]]}
                if store.get("demand_GW") else {}),
         }
 
@@ -946,7 +948,10 @@ def system_view(store):
             "Net additions: the what-if removes the displaced fifth of "
             "existing resistive space heating (route-independent) from "
             "the same observed demand it sits in; gross additions are "
-            "retained for comparison."),
+            "retained for comparison. Displaced resistive is space-"
+            "shaped (dagger): night-storage tariff profiles would "
+            "reduce the credit at morning and evening peaks - the "
+            "gross figures bound the zero-credit case."),
         "basis": (
             "System view basis: observed hourly underlying demand (NESO "
             "ND + embedded wind and solar - embedded generation counted "
