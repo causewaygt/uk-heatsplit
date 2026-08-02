@@ -298,6 +298,7 @@
     <div class="statrow" id="rt_winter"></div>
     <div class="barlabel" id="rt_bindlbl" hidden style="margin-top:16px">THE BINDING HOUR — WINTER, NET BASIS, UNDER TODAY'S FLEET†</div>
     <div class="statrow" id="rt_bind"></div>
+    <div id="rt_bindbars" style="width:100%;height:250px;margin-top:10px" hidden></div>
     <div class="barlabel" style="margin-top:16px">SUMMER STRESS — THE COOLING PEAK (EMBEDDED BASIS†)</div>
     <div class="statrow" id="rt_summer"></div>
     <div class="trendctl" style="margin-top:18px">
@@ -309,7 +310,7 @@
       <span id="rt_span"></span>
     </div>
     <div id="rt_main" style="width:100%;height:340px;margin-top:10px"></div>
-    <div class="barlabel" style="margin-top:20px">THE WORST WEEK — FROZEN EXHIBIT</div>
+    <div class="barlabel" id="rt_wklbl" style="margin-top:20px">THE WORST WEEK — FROZEN EXHIBIT</div>
     <div id="rt_worst" style="width:100%;height:320px;margin-top:8px"></div>
     <div class="barlabel" style="margin-top:20px">COP AGAINST AIR TEMPERATURE — THE PHYSICS</div>
     <div id="rt_cop" style="width:100%;height:260px;margin-top:8px"></div>
@@ -1347,6 +1348,32 @@ fetch('data.json').then(r=>r.json()).then(d=>{
           (rb[r].hours_above_block
             ? ' · ' + rb[r].hours_above_block + ' h above the block'
             : ''), RC[r])).join('');
+      const bb = document.getElementById('rt_bindbars');
+      bb.hidden = false;
+      Plotly.newPlot(bb, [{type:'bar', width:0.5,
+        x:['ashp','shallow','network'].map(r => RN[r]),
+        y:['ashp','shallow','network'].map(r => rb[r].dispatch_req_GW),
+        marker:{color:['ashp','shallow','network'].map(r => RC[r])},
+        text:['ashp','shallow','network'].map(r =>
+          rb[r].dispatch_req_GW + ' GW \u00b7 +' + rb[r].headroom_GW),
+        textposition:'inside', insidetextanchor:'end',
+        textfont:{color:'#0d1117', size:13}}],
+        {paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
+          font:{family:'Lato', color:css('--muted'), size:11},
+          xaxis:{gridcolor:css('--line')}, showlegend:false,
+          margin:{l:46, r:10, t:10, b:26},
+          yaxis:{title:'GW required at the binding hour',
+                 gridcolor:css('--line'),
+                 range:[0, sv.dispatch_derated_GW * 1.12]},
+          shapes:[{type:'line', x0:-0.5, x1:2.5, xref:'x',
+                   y0:sv.dispatch_derated_GW, y1:sv.dispatch_derated_GW,
+                   line:{color:css('--muted'), width:1.5, dash:'dashdot'}}],
+          annotations:[{x:0.01, xref:'paper',
+            y:sv.dispatch_derated_GW, yref:'y', yshift:9, showarrow:false,
+            xanchor:'left', font:{color:css('--muted'), size:11},
+            text:"today's fleet, de-rated\u2020 \u2014 " +
+                 sv.dispatch_derated_GW + ' GW'}]},
+        {displayModeBar:false, responsive:true});
     }
     const pr = WR.coincidence_premium;
     document.getElementById('rt_prem').innerHTML =
@@ -1382,6 +1409,16 @@ fetch('data.json').then(r=>r.json()).then(d=>{
               rangemode:'tozero', showgrid:false}});
     Plotly.newPlot('rt_worst', windowTraces(WR.worst_week), LAYW,
                    {displayModeBar:false, responsive:true});
+    (function(){
+      const t0 = new Date(WR.worst_week.start + ':00:00Z');
+      const t1 = new Date(t0.getTime() + 167*3600e3);
+      const f = d => d.toLocaleDateString('en-GB',
+        {day:'numeric', month:'short', timeZone:'UTC'});
+      document.getElementById('rt_wklbl').textContent =
+        'THE WORST WEEK \u2014 ' + f(t0).toUpperCase() + ' TO ' +
+        f(t1).toUpperCase() + ' \u00b7 THE ROLLING 168 HOURS OF MAXIMUM ' +
+        'HEAT, EMPIRICALLY LOCATED (NOT A CALENDAR WEEK)';
+    })();
 
     function drawMain(mode){
       if(mode === 'h'){
