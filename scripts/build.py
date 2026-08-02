@@ -1760,6 +1760,8 @@ def main():
             r_start = prev_retro["start_day"]
         rstore = retro.build_retro(
             r_start, r_end, useful_space, useful_dhw,
+            resistive_space_twh=max(
+                0.0, ANNUAL_TWH["elec_space"] - HP_ELEC_TWH),
             base_c=float(best["base_temp"]),
             cooling={"annual_gwh": ANNUAL_TWH["cooling_vent"]
                      * GB_SHARE_OF_UK_GAS_HEAT * 1000.0,
@@ -1793,6 +1795,14 @@ def main():
             print("retro summer: peak cool hour", ss["peak_hour"],
                   ss["today_GW"], "GW today |", ss["x2_scenario_added_GW"],
                   "GW if doubled |", ss["whatif_relief_GW"], "GW relief")
+        sv_ = out["whatif_routes"].get("system")
+        if sv_:
+            ab = sv_["routes"]["ashp"]
+            print("retro binding hour:", ab["binding_hour"],
+                  "req", ab["dispatch_req_GW"], "GW, headroom",
+                  ab["headroom_GW"], "GW |",
+                  {r: sv_["routes"][r]["dispatch_req_GW"]
+                   for r in ("ashp", "shallow", "network")})
         print("retro premium:",
               {r: out["whatif_routes"]["coincidence_premium"][r]
                   ["premium_pct"] for r in ("ashp", "shallow",

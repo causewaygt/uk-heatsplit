@@ -52,6 +52,14 @@ FLOW_MILD_C, FLOW_COLD_C = 30.0, 50.0   # weather compensation endpoints
 FLOW_MILD_AT, FLOW_COLD_AT = 15.0, -5.0
 DEFROST_MAX = 0.12           # peak fractional COP loss, centre ~2C (dagger)
 R_SHIFT = 0.20
+# Ceiling dispatchable block (dagger): NESO Winter Outlook 2025/26 base
+# case - de-rated margin 6.1 GW at 10.0% of ACS peak => ACS 61.0 GW,
+# de-rated supply 67.1 GW; less the Outlook's own wind+solar de-rate
+# (~5.1 GW) => ~62 GW of dispatchable-and-interconnector de-rated
+# capacity. Winter-assessed: the ceiling and every headroom statement
+# are confined to Nov-Mar. Static overlay, not a dispatch model.
+DISPATCH_DERATED_GW = 62.0
+CEILING_MONTHS = (11, 12, 1, 2, 3)
 RETRO_SCHEMA = 2   # 2: system feeds - demand/wind/solar (A'.2)
 RETRO_PATH = os.path.join(os.path.dirname(__file__), "..", "docs",
                           "retro.json")
@@ -327,7 +335,7 @@ def calibrate_eta(route, temps, heat):
 
 # --- engine ----------------------------------------------------------------
 def build_retro(start_day, end_day, space_annual_twh, dhw_annual_twh,
-                base_c=16.5, cooling=None,
+                base_c=16.5, cooling=None, resistive_space_twh=0.0,
                 fetch_temp=fetch_hourly_temp, fetch_mid=fetch_hourly_mid,
                 fetch_ci=fetch_hourly_ci, fetch_system=None, prev=None):
     """Build or extend the retrospective store. Frozen once written
@@ -400,6 +408,7 @@ def build_retro(start_day, end_day, space_annual_twh, dhw_annual_twh,
         "calibration": {
             "eta": etas, "spf_check": spfs, "anchors": SPF_ANCHORS,
             "space_annual_TWh": round(space_annual_twh, 1),
+            "resistive_space_TWh": round(resistive_space_twh, 1),
             "shaping_base_c": base_c,
             "dhw_annual_TWh": round(dhw_annual_twh, 1),
             "defrost_max": DEFROST_MAX,
@@ -557,6 +566,10 @@ def slices(store, nd_daily=None):
                        for r in ROUTES},
             "cool_GWh": ([round(v, 3) for v in cool[i0:i0 + ln]]
                          if cool else None),
+            **({"demand_GW": store["demand_GW"][i0:i0 + ln],
+                "wind_GW": store["wind_GW"][i0:i0 + ln],
+                "solar_GW": store["solar_GW"][i0:i0 + ln]}
+               if store.get("demand_GW") else {}),
         }
 
     hourly_live = _window(n - 168, 168)
@@ -625,9 +638,17 @@ def slices(store, nd_daily=None):
               "worst_hour_temp_C": temps[iw],
               "basis": ("Added load per route at the year's highest-"
                         "demand modelled hour (dagger). Ceilings on a "
-                        "daily-average observed-demand basis - hourly "
-                        "observed demand is not a feed here; stated.")}
-    if nd_daily:
+                        "OBSERVED-HOURLY basis - the hour itself and "
+                        "the trailing year's record hour. Gross here; "
+                        "net-of-displaced and the binding hour live in "
+                        "the System view.")}
+    D_obs = store.get("demand_GW")
+    if D_obs:
+        rec_i = max(range(max(0, n - 8760), n), key=lambda i: D_obs[i])
+        stress["hour_demand_GW"] = round(D_obs[iw], 1)
+        stress["record_hour_GW"] = round(D_obs[rec_i], 1)
+        stress["record_hour"] = _iso(rec_i)
+    elif nd_daily:
         day_iso = _iso(iw)[:10]
         same_day_gw = (nd_daily.get(day_iso, 0.0)) / 24.0
         rec_gw = max(nd_daily.values()) / 24.0
@@ -636,7 +657,12 @@ def slices(store, nd_daily=None):
     for r in ROUTES:
         add = elec[r][iw]
         stress[r] = {"added_GW": round(add, 1)}
-        if nd_daily and stress.get("same_day_avg_GW"):
+        if stress.get("hour_demand_GW"):
+            stress[r]["pct_of_hour"] = round(
+                100 * add / stress["hour_demand_GW"], 1)
+            stress[r]["pct_of_record_hour"] = round(
+                100 * add / stress["record_hour_GW"], 1)
+        elif nd_daily and stress.get("same_day_avg_GW"):
             stress[r]["pct_of_same_day"] = round(
                 100 * add / stress["same_day_avg_GW"], 1)
             stress[r]["pct_of_record_day"] = round(
@@ -657,6 +683,8 @@ def slices(store, nd_daily=None):
             "peak_hour": _iso(ic),
             "peak_temp_C": temps[ic],
             "today_GW": round(cool[ic], 2),
+            "hour_demand_GW": (round(store["demand_GW"][ic], 1)
+                               if store.get("demand_GW") else None),
             "x2_scenario_added_GW": round(cool[ic], 2),
             "whatif_relief_GW": round(relief_pk, 2),
             "basis": ("Cooling is EMBEDDED in observed demand - the "
@@ -670,7 +698,10 @@ def slices(store, nd_daily=None):
                       "near-passive (COP " +
                       str(cooling["passive_cop"]) + ") REMOVES this "
                       "much at the same hour.")}
-        if nd_daily:
+        if stress_summer.get("hour_demand_GW"):
+            stress_summer["today_pct_of_hour"] = round(
+                100 * cool[ic] / stress_summer["hour_demand_GW"], 1)
+        elif nd_daily:
             day_iso = _iso(ic)[:10]
             sd = nd_daily.get(day_iso, 0.0) / 24.0
             if sd:
@@ -704,8 +735,10 @@ def slices(store, nd_daily=None):
         "draw. Wholesale basis - sits beside the spark gap.")
 
     return {
-        "schema": 1,
+        "schema": 2,
         "basis": store["basis"],
+        "system": (system_view(store)
+                   if store.get("demand_GW") else None),
         "calibration": store["calibration"],
         "hourly_live_7d": hourly_live,
         "worst_week": worst_week,
@@ -862,3 +895,96 @@ def fetch_hourly_system(start_day, end_day):
         d += dt.timedelta(days=1)
     return {"demand_GW": _fill(demand), "wind_GW": _fill(wind),
             "solar_GW": _fill(solar)}
+
+
+# ===========================================================================
+# B.2 - netting, hourly stress re-base, the ceiling, the binding hour
+# ===========================================================================
+def _displaced_gw(store):
+    """Hourly electricity the what-if REMOVES from observed demand: the
+    fifth of existing resistive space heating, shaped like space heat.
+    Route-independent (the displaced kit is the same whichever route
+    replaces it)."""
+    cal = store["calibration"]
+    res = cal.get("resistive_space_TWh", 0.0)
+    if not res:
+        return [0.0] * store["n_hours"]
+    dhw_h = cal["dhw_annual_TWh"] * 1000.0 / 8760.0
+    space_u = cal["space_annual_TWh"] * 1000.0
+    return [R_SHIFT * res * 1000.0
+            * max(0.0, q - dhw_h) / space_u
+            for q in store["heat_GWh"]]
+
+
+def system_view(store):
+    """Everything the System panel renders (slices schema 2 material):
+    net route additions on observed demand under the breathing ceiling.
+    All statistics trailing-year; ceiling statements Nov-Mar only."""
+    n = store["n_hours"]
+    d0 = dt.date.fromisoformat(store["start_day"])
+    D, W, S = store["demand_GW"], store["wind_GW"], store["solar_GW"]
+    disp = _displaced_gw(store)
+    gross = {r: _route_elec(store, r) for r in ROUTES}
+    net = {r: [g - d for g, d in zip(gross[r], disp)] for r in ROUTES}
+
+    def _iso(i):
+        return ((d0 + dt.timedelta(days=i // 24)).isoformat()
+                + "T%02d" % (i % 24))
+
+    s0 = max(0, n - 8760)
+    Yr = range(s0, n)
+    winter = [i for i in Yr
+              if (d0 + dt.timedelta(days=i // 24)).month in CEILING_MONTHS]
+
+    # record observed hour (trailing year)
+    irec = max(Yr, key=lambda i: D[i])
+
+    out = {
+        "dispatch_derated_GW": DISPATCH_DERATED_GW,
+        "record_hour": {"hour": _iso(irec), "demand_GW": round(D[irec], 1)},
+        "displaced_note": (
+            "Net additions: the what-if removes the displaced fifth of "
+            "existing resistive space heating (route-independent) from "
+            "the same observed demand it sits in; gross additions are "
+            "retained for comparison."),
+        "basis": (
+            "System view basis: observed hourly underlying demand (NESO "
+            "ND + embedded wind and solar - embedded generation counted "
+            "on both sides of the ledger), observed hourly wind "
+            "(transmission + embedded) and solar. Ceiling = a fixed "
+            "dispatchable-and-interconnector de-rated block (dagger - "
+            "NESO Winter Outlook 2025/26 arithmetic, stated in Method) "
+            "plus OBSERVED wind and solar - no wind de-rating "
+            "assumption to dispute; the ceiling sags when the wind "
+            "actually did not blow. Winter-assessed block: ceiling "
+            "statements confined to Nov-Mar. Static overlay, not a "
+            "dispatch model - no redispatch, imports response or price "
+            "response; distribution constraints unmodelled; a GW "
+            "ceiling cannot represent storage DURATION - the worst "
+            "week's multi-day draw is what duration-limited storage "
+            "cannot cover. One-winter sample (dagger): 2025-26's cold "
+            "snap was windy; its still spell (18-21 Mar, wind to 1.6 "
+            "GW) was mild; a year where they coincide is the risk case "
+            "this chart lets the reader construct."),
+        "routes": {},
+    }
+
+    for r in ROUTES:
+        ib = max(winter, key=lambda i: D[i] + net[r][i] - W[i] - S[i])
+        req = D[ib] + net[r][ib] - W[ib] - S[ib]
+        exceed = sum(1 for i in winter
+                     if D[i] + net[r][i] - W[i] - S[i]
+                     > DISPATCH_DERATED_GW)
+        out["routes"][r] = {
+            "binding_hour": _iso(ib),
+            "binding_temp_C": store["temp_C"][ib],
+            "binding_demand_GW": round(D[ib], 1),
+            "binding_wind_GW": round(W[ib], 1),
+            "binding_solar_GW": round(S[ib], 2),
+            "net_add_GW": round(net[r][ib], 1),
+            "gross_add_GW": round(gross[r][ib], 1),
+            "dispatch_req_GW": round(req, 1),
+            "headroom_GW": round(DISPATCH_DERATED_GW - req, 1),
+            "hours_above_block": exceed,
+        }
+    return out
