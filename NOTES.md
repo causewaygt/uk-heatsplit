@@ -529,6 +529,29 @@ carry on failure):
     Harness asserts sub-threshold days carry DHW only and that annual
     conservation survives. Gates re-verified: G1 anchors exact, G2
     0.00%.
+  B.4 FLOW BY SERVICE (2 Aug, from Simon checking the fifth-over-COP
+    arithmetic): DHW was being served at the weather-compensated SPACE
+    flow, so post-B.3 (summer = 100% DHW) the model gave summer ashp
+    COPs of 16+ - the 30 C mild-weather flow against 24 C air, with the
+    5 K lift floor doing the rest. Fix: DHW_FLOW_C 52.0 (dagger,
+    cylinder flow year-round) with the space leg still on the
+    weather-compensated curve; each hour's electricity is the
+    load-weighted blend (route_elec_hourly), used by calibration,
+    spf_check, G2 and the slices alike. MIN_LIFT_K raised 5 -> 8 K
+    (dagger). FLOW REGIME UNCHANGED per Simon: retrofit onto existing
+    emitters is the base assumption of a REPLACEMENT what-if, so all
+    three routes keep the shared 30-50 C curve (flat-5 for networks
+    was considered and rejected - it would have cut the network's
+    worst-hour addition 7.4 -> 5.5 GW, i.e. improved the number most
+    favourable to the thesis, and could not be justified on retrofit
+    physics).
+    Real-data effect: eta re-calibrated 0.307/0.308/0.443 ->
+    0.332/0.336/0.487; worst-hour additions 15.4/11.2/7.4 ->
+    14.3/10.3/6.8 GW (implied COPs 1.91/2.65/4.03); summer COPs now
+    physical - ashp 3.5-4.6, network 3.8, ground 2.5, i.e. AIR BEATS
+    GROUND IN SUMMER because warm air is the better source for hot
+    water, and the routes swap order between seasons. Anchors still
+    exact (G1), G2 0.00%.
   D resumed ONCE, after all evidence layers exist: folds done and
     keep; copy deck re-cut against the complete panel for a single
     edit pass.

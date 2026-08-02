@@ -56,8 +56,10 @@ print("G1: SPF anchors reproduced:",
 
 # --- 2. G2 wiring: network-route annual vs a consistent weekly figure -------
 eta_n = r1["calibration"]["eta"]["network"]
-truth = sum(retro.R_SHIFT * q / retro.route_cop("network", t, eta_n)
-            for q, t in zip(r1["heat_GWh"], r1["temp_C"])) / 1000.0
+dhw_rate = r1["calibration"]["dhw_annual_TWh"] * 1000.0 / 8760.0
+truth = sum(retro.route_elec_hourly(
+    "network", r1["temp_C"][-8760:], r1["heat_GWh"][-8760:], eta_n,
+    dhw_rate, shift=retro.R_SHIFT)) / 1000.0
 ok2, rep2 = retro.gates(r1, weekly_whatif_repl_elec_twh=truth * 1.01)
 assert ok2 and rep2["g2_network_vs_weekly"]["pass"], rep2
 ok3, rep3 = retro.gates(r1, weekly_whatif_repl_elec_twh=truth * 1.10)
@@ -298,5 +300,31 @@ for di in range(r1["n_hours"] // 24):
 assert abs(sum(hh_[-8760:]) - (SPACE_TWH + DHW_TWH) * 1000) < 1.0
 print("B.3: summer days below %.1f HDD carry DHW only; annual conserved  OK"
       % retro.SUMMER_HDD_OFF)
+
+# --- 13. B.4: DHW served at cylinder flow, summer COPs plausible -------------
+cal_ = r1["calibration"]
+dhw_rate_ = cal_["dhw_annual_TWh"] * 1000.0 / 8760.0
+# a warm summer hour: heat is DHW only, so implied COP must sit in a
+# physical band - not the 16+ the shared space-flow used to produce
+warm = [i for i in range(r1["n_hours"] - 8760, r1["n_hours"])
+        if r1["temp_C"][i] > 20 and r1["heat_GWh"][i] <= dhw_rate_ * 1.02]
+assert warm, "no warm DHW-only hours in the stub year"
+for r_ in ("ashp", "shallow", "network"):
+    e_ = retro.route_elec_hourly(r_, r1["temp_C"], r1["heat_GWh"],
+                                 cal_["eta"][r_], dhw_rate_,
+                                 shift=retro.R_SHIFT)
+    cops = [0.2 * r1["heat_GWh"][i] / e_[i] for i in warm]
+    assert 1.5 < min(cops) and max(cops) < 6.5, (r_, min(cops), max(cops))
+# and air-source should beat ground source on a hot day (warmer source)
+ea = retro.route_elec_hourly("ashp", r1["temp_C"], r1["heat_GWh"],
+                             cal_["eta"]["ashp"], dhw_rate_, shift=0.2)
+es = retro.route_elec_hourly("shallow", r1["temp_C"], r1["heat_GWh"],
+                             cal_["eta"]["shallow"], dhw_rate_, shift=0.2)
+hot = max(warm, key=lambda i: r1["temp_C"][i])
+assert ea[hot] < es[hot], (r1["temp_C"][hot], ea[hot], es[hot])
+print("B.4: summer DHW COPs %.2f-%.2f (ashp), air beats ground at %.1fC  OK"
+      % (min(0.2 * r1["heat_GWh"][i] / ea[i] for i in warm),
+         max(0.2 * r1["heat_GWh"][i] / ea[i] for i in warm),
+         r1["temp_C"][hot]))
 
 print("\nALL PHASE B TESTS PASSED")

@@ -139,8 +139,8 @@ setTimeout(() => {
   ok("premium cards", /coincidence premium/.test(get("rt_prem").innerHTML));
   ok("routes note basis", /modelled/.test(get("rt_note").textContent)
      && /EMBEDDED/.test(get("rt_note").textContent));
-  ok("binding cards", /dispatchable requirement/.test(get("rt_bind").innerHTML)
-     && /headroom/.test(get("rt_bind").innerHTML));
+  ok("binding cards", /requirement on dispatchable supply/.test(
+      get("rt_bind").innerHTML) && /headroom/.test(get("rt_bind").innerHTML));
   ok("worst-week card is the system chart",
      /UNDER THE CEILING/.test(get("rt_wklbl").textContent));
   ok("winter cards hourly basis", /% of that hour's observed demand/.test(
