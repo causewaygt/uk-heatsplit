@@ -472,6 +472,27 @@ carry on failure):
     renewables - the construction that sidesteps the de-rated-wind
     critique); headroom-exceedance slices; gates re-verified incl
     netting's touch on G2; Dunkelflaute check on w/e 2026-01-06.
+  B.2 COMPLETE (2 Aug): netting + hourly re-base + ceiling + binding
+    hour. _displaced_gw: the fifth of existing resistive space heating
+    (input from build: elec_space - HP_ELEC = 19.2 TWh), shaped like
+    space heat, route-independent; net = gross - displaced everywhere
+    in the System view; G2 stays on GROSS (the site's weekly what-if
+    is gross - basis match, not oversight). Stress cards re-based to
+    OBSERVED HOURLY denominators (pct_of_hour, record hour + its
+    timestamp); daily-average fields retained only as fallback for a
+    schema-1 store; summer card gains today_pct_of_hour. Windows carry
+    demand/wind/solar arrays for C.2. slices schema 2 with "system":
+    per-route binding hour (argmax D + net - W - S over Nov-Mar,
+    trailing year), dispatch requirement, headroom vs the 62 GW
+    block (dagger - WO 2025/26 arithmetic in the constant's comment),
+    hours_above_block exceedance counts, record observed hour, full
+    claim-discipline basis string (static overlay, no dispatch model,
+    duration point, one-winter caveat with the windy-cold/mild-still
+    facts). Real-data preview from the banked store: binding hour =
+    Jan 5 08:00, ashp req 46.5 GW vs network 38.8 - the ~8 GW spread.
+    Stub harness: netting bites, identity holds, winter-only binding,
+    exceedance ordering, windows carry system arrays. Build log gains
+    the binding line.
   C.2 System view on the existing toggle; stress cards re-worded to
     the hourly basis; ceiling caveats in the engine-assembled footer.
   D resumed ONCE, after all evidence layers exist: folds done and

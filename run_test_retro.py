@@ -139,7 +139,8 @@ assert sl["stress"]["worst_hour_heat_GWh"] == round(r1["heat_GWh"][iw], 1)
 st = sl["stress"]
 assert st["ashp"]["added_GW"] > st["shallow"]["added_GW"] \
        > st["network"]["added_GW"] > 0
-assert st["ashp"]["pct_of_record_day"] > 0
+assert st["ashp"]["pct_of_record_hour"] > 0
+assert st["ashp"]["pct_of_hour"] > st["network"]["pct_of_hour"]
 # hours-above distributions are monotone declining in the threshold
 for r in ("ashp", "shallow", "network"):
     ha = st[r]["hours_above"]
@@ -245,5 +246,39 @@ for k in ("demand_GW", "wind_GW", "solar_GW"):
     assert len(tr[k]) == 300 * 24, k
 print("A'.2: schema 2, cold-still + dark-night + winter-demand truths, "
       "one-shot full-span upgrade, trim  OK")
+
+# --- 11. B.2: netting, hourly stress, binding hour, ceiling ------------------
+r1["calibration"]["resistive_space_TWh"] = 19.2
+disp = retro._displaced_gw(r1)
+assert abs(sum(disp[-8760:]) - 0.2 * 19.2 * 1000) < 25          # annual exact-ish
+assert min(disp) >= 0
+sv = retro.system_view(r1)
+assert sv["dispatch_derated_GW"] == 62.0
+for r_ in ("ashp", "shallow", "network"):
+    rr = sv["routes"][r_]
+    assert rr["net_add_GW"] < rr["gross_add_GW"]                # netting bites
+    assert abs(rr["dispatch_req_GW"] - (rr["binding_demand_GW"]
+               + rr["net_add_GW"] - rr["binding_wind_GW"]
+               - rr["binding_solar_GW"])) < 0.15                # identity
+    assert int(rr["binding_hour"][5:7]) in (11, 12, 1, 2, 3)    # winter only
+assert (sv["routes"]["ashp"]["hours_above_block"]
+        >= sv["routes"]["shallow"]["hours_above_block"]
+        >= sv["routes"]["network"]["hours_above_block"])
+assert (sv["routes"]["ashp"]["dispatch_req_GW"]
+        > sv["routes"]["network"]["dispatch_req_GW"])
+sl2 = retro.slices(r1)
+assert sl2["schema"] == 2 and sl2["system"]
+assert len(sl2["worst_week"]["demand_GW"]) == 168               # windows carry
+assert len(sl2["hourly_live_7d"]["wind_GW"]) == 168
+assert sl2["stress"]["ashp"]["pct_of_hour"] > 0
+assert sl2["stress_summer"]["today_pct_of_hour"] > 0
+b_ = sv["routes"]["ashp"]
+print("B.2: binding %s (%.1fC) req %.1f GW headroom %.1f | net %.1f < gross"
+      " %.1f | exceed a/s/n = %d/%d/%d  OK"
+      % (b_["binding_hour"], b_["binding_temp_C"], b_["dispatch_req_GW"],
+         b_["headroom_GW"], b_["net_add_GW"], b_["gross_add_GW"],
+         sv["routes"]["ashp"]["hours_above_block"],
+         sv["routes"]["shallow"]["hours_above_block"],
+         sv["routes"]["network"]["hours_above_block"]))
 
 print("\nALL PHASE B TESTS PASSED")
