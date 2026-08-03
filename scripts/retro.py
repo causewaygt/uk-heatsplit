@@ -1043,6 +1043,15 @@ def system_view(store):
             "GW) was mild; a year where they coincide is the risk case "
             "this chart lets the reader construct."),
         "routes": {},
+        "basis_short": (
+            "Heat demand is modelled from weather (dagger); prices, "
+            "carbon, demand, wind and solar are measured. Cooling shown "
+            "here is already inside today's demand, not added to it. "
+            "The capacity line is a fixed generation block (dagger - "
+            "NESO Winter Outlook 2025/26) plus the wind and solar "
+            "actually generated: a simple overlay, not a model of how "
+            "the grid would really respond. One winter of data. Full "
+            "method and every assumption: see the methodology."),
     }
 
     for r in ROUTES:
