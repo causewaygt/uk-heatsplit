@@ -552,10 +552,51 @@ carry on failure):
     GROUND IN SUMMER because warm air is the better source for hot
     water, and the routes swap order between seasons. Anchors still
     exact (G1), G2 0.00%.
+  D COPY DECK ISSUED (2 Aug) - uk-heatsplit-copy-deck.docx, against
+    the final post-B.4 panel. THREE-TIER DRAFTING RULE set by Simon:
+    page = minimal layman's language; README = fuller explanation;
+    methodology = every technical detail. Biggest proposal: the
+    engine-assembled basis footer (~420 words on-page today) splits
+    into a SHORT string for the page (~60 words) and the full text for
+    the methodology - engine still assembles both, so caveats cannot
+    drift from the computation. Section labels and card captions
+    de-jargoned (binding/dispatchable/gross/net/embedded all move off
+    the page into README). Four open questions for Simon: cooling
+    scope clause, "cold economy" naming symmetry with the Irish
+    sibling, whether to name NESO Winter Outlook on-page as the
+    capacity source, and the summer 35.3% figure.
   D resumed ONCE, after all evidence layers exist: folds done and
     keep; copy deck re-cut against the complete panel for a single
     edit pass.
-  E docs + conventions + README; cutover late August.
+  D COMPLETE (3 Aug): Simon's marks applied in full - all agreed with
+    five amendments: COP label leads with "COP:", "doubles this
+    decade" -> "over the next 10 years", COP-1 legend -> "plug-in
+    electric heating - the comparison case", NESO Winter Outlook NAMED
+    on-page as the capacity source (his call), cooling-scope clause
+    stays README-only until the cold-economy layer exists. Section
+    labels now plain (COLDEST HOUR / TIGHTEST HOUR OF THE YEAR /
+    HOTTEST HOUR / TIGHTEST WEEK OF THE YEAR); card captions plain
+    ("38% on top of what Britain was using that hour", "13.0 GW of
+    spare capacity left"); engine emits basis_short (~60 words) for
+    the page with the full basis text reserved for the methodology.
+    Page suite re-synced to the new wording throughout.
+    "COLD ECONOMY" SCOPE - RESOLVED 3 Aug, REVERTED: the coinage was
+    briefly applied to the UK page's comfort-cooling figures and
+    immediately pulled. Simon's definition is DATA CENTRES, COLD
+    STORE AND THE COLD CHAIN - NOT comfort cooling. The site's
+    cooling numbers are the ECUK buildings anchor (comfort cooling +
+    ventilation), so labelling them "cold economy" would have
+    misapplied his own public coinage and conflated two scopes.
+    RULE: the page says "cooling" for the buildings anchor; "cold
+    economy" is reserved for the future layer (DC + cold chain +
+    industrial refrigeration), which enters as its OWN series, never
+    by inflating the buildings anchor. The same rule governs the
+    Irish sibling. (d) summer 35.3% still open, low priority.
+  E docs + conventions + README; cutover late August. AUTUMN
+    MAINTENANCE SET (must be written into README + methodology):
+    NESO Winter Outlook 2026/27 (Oct) -> update DISPATCH_DERATED_GW
+    and its dagger; ECUK 2026 re-anchor; cooling-reconciliation gate
+    decision (Sept); CAP_HISTORY quarterly.
 FRAMING (Simon endorses, for the strategic case): v6 DESCRIBES the
 heat transition; v7 TESTS it against the grid Britain actually has,
 hour by hour, weather included.

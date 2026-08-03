@@ -132,17 +132,17 @@ setTimeout(() => {
   ok("geothermal networks rename", /SCOP-5 geothermal network/.test(
       get("rt_winter").innerHTML) || /SCOP-5 geothermal/.test(
       doc.body.innerHTML));
-  ok("winter stress cards", /added load/.test(get("rt_winter").innerHTML)
-     && /GW/.test(get("rt_winter").innerHTML));
-  ok("summer stress cards", /embedded in observed demand/.test(
+  ok("winter stress cards", /on top of what Britain was using/.test(
+      get("rt_winter").innerHTML) && /GW/.test(get("rt_winter").innerHTML));
+  ok("summer stress cards", /inside today's demand, not on top of it/.test(
       get("rt_summer").innerHTML));
   ok("premium cards", /coincidence premium/.test(get("rt_prem").innerHTML));
-  ok("routes note basis", /modelled/.test(get("rt_note").textContent)
-     && /EMBEDDED/.test(get("rt_note").textContent));
-  ok("binding cards", /requirement on dispatchable supply/.test(
-      get("rt_bind").innerHTML) && /headroom/.test(get("rt_bind").innerHTML));
-  ok("exhibit week is the system chart",
-     /UNDER THE CEILING/.test(get("rt_wklbl").textContent));
+  ok("routes note basis", /modelled from weather/.test(
+      get("rt_note").textContent)
+     && /already inside today's demand/.test(get("rt_note").textContent));
+  ok("binding cards", /spare capacity left/.test(get("rt_bind").innerHTML));
+  ok("exhibit week labelled",
+     /TIGHTEST WEEK/.test(get("rt_wklbl").textContent));
   ok("exhibit centred on the binding hour", (function(){
       const wr = data.whatif_routes;
       if(!(wr.system && wr.binding_week)) return true;
@@ -152,7 +152,7 @@ setTimeout(() => {
       const b = new Date(bh + ":00:00Z");
       return b >= st && b <= en;
     })());
-  ok("winter cards hourly basis", /% of that hour's observed demand/.test(
+  ok("winter cards hourly basis", /% on top of what Britain was using/.test(
       get("rt_winter").innerHTML));
   ok("summer card hourly basis", /% of that hour's observed demand/.test(
       get("rt_summer").innerHTML));
@@ -160,13 +160,15 @@ setTimeout(() => {
   ok("summer bars drawn", !doc.getElementById("rt_sumbars").hidden);
   ok("winter stress bars container present",
      !!doc.getElementById("rt_winbars"));
-  ok("toggle precedes winter stress",
+  ok("toggle precedes the card rows",
      doc.body.innerHTML.indexOf('id="rt_main"') <
-     doc.body.innerHTML.indexOf('WINTER STRESS'));
-  ok("exhibit label carries dates", /ROLLING 168 HOURS/.test(
-      get("rt_wklbl").textContent) && /TO/.test(get("rt_wklbl").textContent));
-  ok("system basis in footer", /static overlay/i.test(get("rt_note").textContent)
-     && /night-storage/.test(get("rt_note").textContent));
+     doc.body.innerHTML.indexOf('THE COLDEST HOUR'));
+  ok("exhibit label carries dates",
+     /168 HOURS|SEVEN DAYS/.test(get("rt_wklbl").textContent)
+     && / TO /.test(get("rt_wklbl").textContent));
+  ok("system basis in footer", /simple overlay/i.test(get("rt_note").textContent)
+     && /methodology/.test(get("rt_note").textContent)
+     && get("rt_note").textContent.length < 700);
   ok("12m wf emissions split+saves",
      /heat [\d.,]+ (Mt|kt) \u00b7 cooling [\d.,]+ (Mt|kt) \u00b7 saves/.test(
       doc.getElementById("wf_carbon_cap").textContent));
