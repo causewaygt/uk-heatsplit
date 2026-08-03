@@ -157,6 +157,13 @@ setTimeout(() => {
   ok("summer card hourly basis", /% of that hour's observed demand/.test(
       get("rt_summer").innerHTML));
   ok("bind bars drawn", !doc.getElementById("rt_bindbars").hidden);
+  ok("gas key collapses when one leg runs", (function(){
+      const c = data.weekly_mix.components_GWh;
+      const both = (c.gas_space || 0) > 0 && (c.gas_dhw || 0) > 0;
+      const keys = [...doc.getElementById("mixlegend").querySelectorAll("b")]
+        .map(b => b.textContent).filter(x => /Gas/.test(x));
+      return both ? keys.length === 2 : keys.length === 1 && keys[0] === "Gas";
+    })());
   ok("summer bars drawn", !doc.getElementById("rt_sumbars").hidden);
   ok("winter stress bars container present",
      !!doc.getElementById("rt_winbars"));
