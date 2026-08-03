@@ -561,6 +561,12 @@ fetch('data.json').then(r=>r.json()).then(d=>{
     const seen = {};
     function renderBar(el, def, comp, wasted, legendId){
       legendId = legendId || 'mixlegend';
+      // When only one gas leg is running - as in summer, when space
+      // heating is off - the split label is noise: just say "Gas".
+      const oneGas = !((comp.gas_space || 0) > 0 && (comp.gas_dhw || 0) > 0);
+      def = def.map(([k, lbl, v]) =>
+        (oneGas && (k === 'gas_space' || k === 'gas_dhw'))
+          ? [k, 'Gas', v] : [k, lbl, v]);
       def.forEach(([key,label,varname])=>{
         const v = comp[key] || 0;
         if(v <= 0) return;
