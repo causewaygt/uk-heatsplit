@@ -214,3 +214,5 @@ what-if alike, at every window from 1 week to 12 months (history
 schemas 3–6, restated by the same stored-CI mechanism).
 
 *A Causeway Energies public-interest tool — https://causewaygt.com*
+
+eod
