@@ -592,7 +592,23 @@ carry on failure):
     industrial refrigeration), which enters as its OWN series, never
     by inflating the buildings anchor. The same rule governs the
     Irish sibling. (d) summer 35.3% still open, low priority.
-  E docs + conventions + README; cutover late August. AUTUMN
+  E COMPLETE (3 Aug): methodology gains Section 10 "The hourly
+    retrospective and the system view" (10.1 purpose/construction,
+    10.2 hourly shaping incl the summer damping, 10.3 COP and
+    calibration incl the DHW flow split and the rejected flat-5,
+    10.4 stress/netting/binding hour, 10.5 the capacity line with the
+    Winter Outlook arithmetic shown, 10.6 what the comparison is NOT,
+    10.7 coincidence premium, 10.8 verification incl the independent
+    corroborations); old 10/11 renumbered to 11/12; three v7
+    limitations added. 12pp. README gains "The hourly engine (v7)"
+    (middle tier), an AUTUMN MAINTENANCE table (Winter Outlook
+    2026/27 -> DISPATCH_DERATED_GW, ECUK 2026, Sept cooling gate,
+    quarterly caps), v7 entries in repo layout, data sources and the
+    challenge list, SITE_VERSION 7.0.0 and the version history line.
+    RELEASE-v7.md written. Three-tier rule now materially in place:
+    page 441 chars, README ~900 words on the engine, methodology
+    ~2,000 words.
+  REMAINING: cutover late August. AUTUMN
     MAINTENANCE SET (must be written into README + methodology):
     NESO Winter Outlook 2026/27 (Oct) -> update DISPATCH_DERATED_GW
     and its dagger; ECUK 2026 re-anchor; cooling-reconciliation gate
