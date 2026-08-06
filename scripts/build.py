@@ -34,12 +34,14 @@ from fetch_gas import fetch_gas_demand                       # noqa: E402
 from fetch_prices import fetch_gas_sap, fetch_elec_mid        # noqa: E402
 from fetch_carbon import fetch_carbon_intensity               # noqa: E402
 from fetch_electricity import fetch_daily_underlying_demand   # noqa: E402
+import retro                                                  # noqa: E402
 from fetch_odh import fetch_odh                               # noqa: E402
 
 OUT_PATH = os.path.join(os.path.dirname(__file__), "..", "docs", "data.json")
 WINDOW_DAYS = 365
 EST = " \u2020"   # marks a Causeway estimate - see site footnote
-HISTORY_MAX = 60  # weekly entries kept (spec: cap and roll)
+HISTORY_MAX = 60
+RETRO_FETCHERS = {}   # tests inject {'fetch_temp':..,'fetch_mid':..,'fetch_ci':..}  # weekly entries kept (spec: cap and roll)
 
 
 def _recency(status, last_good, lag_ok_days=7):
@@ -1734,6 +1736,84 @@ def main():
     print(f"history: {len(hist)} weeks",
           f"({hist[0]['week_ending']} .. {hist[-1]['week_ending']})"
           if hist else "")
+    # ---- v7 Phase B: hourly retrospective + slices (gated) --------------
+    try:
+        useful_space = (annual_space_twh * EFF["gas"]
+                        + ANNUAL_TWH["oil_space"] * EFF["oil"]
+                        + ANNUAL_TWH["bio_space"] * EFF["bio"]
+                        + ANNUAL_TWH["solid"] * EFF["solid"]
+                        + ANNUAL_TWH["heat_networks"] * EFF["heat_networks"]
+                        + max(0.0, ANNUAL_TWH["elec_space"] - HP_ELEC_TWH)
+                        * EFF["resistive"]
+                        + HP_ELEC_TWH * HP_SPF)
+        useful_dhw = (ANNUAL_TWH["gas_dhw"] * EFF["gas"]
+                      + ANNUAL_TWH["oil_dhw"] * EFF["oil"]
+                      + ANNUAL_TWH["bio_dhw"] * EFF["bio"]
+                      + ANNUAL_TWH["elec_dhw"] * EFF["resistive"])
+        g2_weekly_twh = (useful_space + useful_dhw) * 0.20 / 5.0
+        r_end = (dt.date.today() - dt.timedelta(days=2)).isoformat()
+        prev_retro = retro.load()
+        if not prev_retro:
+            r_start = (dt.date.today()
+                       - dt.timedelta(days=2 + 396)).isoformat()
+        else:
+            r_start = prev_retro["start_day"]
+        rstore = retro.build_retro(
+            r_start, r_end, useful_space, useful_dhw,
+            resistive_space_twh=max(
+                0.0, ANNUAL_TWH["elec_space"] - HP_ELEC_TWH),
+            base_c=float(best["base_temp"]),
+            cooling={"annual_gwh": ANNUAL_TWH["cooling_vent"]
+                     * GB_SHARE_OF_UK_GAS_HEAT * 1000.0,
+                     "base_c": float(COOL_BASE),
+                     "eer": COOL_EER,
+                     "passive_cop": PASSIVE_COOL_COP},
+            prev=prev_retro, **RETRO_FETCHERS)
+        rstore = retro.trim(rstore)
+        r_ok, r_rep = retro.gates(rstore, g2_weekly_twh)
+        print("retro gates:", "PASS" if r_ok else "FAIL",
+              {k: v for k, v in r_rep.items()})
+        print("retro eta:", rstore["calibration"]["eta"],
+              "| spf:", rstore["calibration"]["spf_check"])
+        if not r_ok:
+            raise RuntimeError("retro gates failed")
+        retro.save(rstore)
+        nd_daily = None
+        try:
+            nd_daily = elec if isinstance(elec, dict) else None
+        except NameError:
+            pass
+        out["whatif_routes"] = retro.slices(rstore, nd_daily=nd_daily)
+        st = out["whatif_routes"]["stress"]
+        print("retro stress: worst hour", st["worst_hour"],
+              "heat", st["worst_hour_heat_GWh"], "GWh at",
+              st["worst_hour_temp_C"], "C |",
+              {r: st[r]["added_GW"] for r in ("ashp", "shallow",
+                                              "network")}, "GW added")
+        ss = out["whatif_routes"].get("stress_summer")
+        if ss:
+            print("retro summer: peak cool hour", ss["peak_hour"],
+                  ss["today_GW"], "GW today |", ss["x2_scenario_added_GW"],
+                  "GW if doubled |", ss["whatif_relief_GW"], "GW relief")
+        sv_ = out["whatif_routes"].get("system")
+        if sv_:
+            ab = sv_["routes"]["ashp"]
+            print("retro binding hour:", ab["binding_hour"],
+                  "req", ab["dispatch_req_GW"], "GW, headroom",
+                  ab["headroom_GW"], "GW |",
+                  {r: sv_["routes"][r]["dispatch_req_GW"]
+                   for r in ("ashp", "shallow", "network")})
+        print("retro premium:",
+              {r: out["whatif_routes"]["coincidence_premium"][r]
+                  ["premium_pct"] for r in ("ashp", "shallow",
+                                            "network")}, "%")
+    except Exception:
+        traceback.print_exc()
+        if prev.get("whatif_routes"):
+            out["whatif_routes"] = prev["whatif_routes"]
+            print("retro: carried previous whatif_routes")
+        else:
+            print("retro: unavailable, no previous to carry")
     _write(out)
 
 

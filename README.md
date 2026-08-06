@@ -109,6 +109,87 @@ contact@causewaygt.com.
   fossil fuel), a major import driver, and a top-tier emitter — which is why
   it is the transition's biggest prize.
 
+- **Electricity grid impacts (v7)** — the same 20% what-if, computed
+  hour by hour across the trailing twelve months against the electricity
+  system Britain actually ran. Three views (live week, last 90 days, the
+  calendar-year falcon curve), two stress statistics, the tightest week
+  under a capacity line, and the COP curves the whole thing rests on.
+  See **The hourly engine** below.
+
+## The hourly engine (v7)
+
+The weekly panels describe the transition; this one tests it against the
+grid. A second engine (`scripts/retro.py`) keeps a rolling 13-month hourly
+store — `docs/retro.json`, append-only with a 2-day revision window — of
+temperature, wholesale price, grid carbon intensity, observed underlying
+demand, and observed wind and solar. Thirteen months are held so twelve
+complete calendar months always exist for the falcon curve; every annual
+figure is computed on the trailing 8,760 hours.
+
+**What is modelled and what is measured.** Heat demand is modelled: annual
+useful heat is distributed by daily heating-degree-day share, then within
+the day by degree-hours, with hot water flat. Everything else — price,
+carbon, demand, wind, solar — is measured. Days below 1 heating degree day
+carry no space heat (ramping to full at 3†), because raw degree-hour
+allocation otherwise assigns winter-strength heat to cool summer nights,
+which the weekly estimator itself contradicts; weights are renormalised so
+the annual total is unchanged.
+
+**The three routes.** Each hour's replacement electricity is a Carnot
+fraction with weather-compensated flow (30–50 °C) for space heat and a
+fixed 52 °C for hot water†, sources being outdoor air less 3 K, ground at
+8 °C, and networks at 10 °C†. A single scale factor per route is solved so
+the year integrates exactly to the published seasonal performance factors
+(2.80 / 3.24 / 5.0†). The flow curve is the same for all three routes
+deliberately: the what-if replaces heat in the existing building stock, so
+weather compensation applies whatever the source. One consequence worth
+knowing: above about 11 °C, air-source outperforms ground source, because
+outdoor air less its approach is then warmer than the ground.
+
+**Two different stress figures.** The *coldest hour* is the year's peak
+modelled heat demand and reports each route's addition alone — gross, and
+separated by the ratio of coefficients of performance. The *binding hour*
+is the hour of greatest total call on dispatchable supply (observed demand
+plus the net addition, less the wind and solar actually generated), and
+reports a system total dominated by standing demand. Net subtracts the
+fifth of existing resistive heating the what-if displaces; that credit is
+space-shaped, so night-storage profiles would reduce it at peaks† and the
+gross figures bound the zero-credit case. The two hours need not coincide.
+
+**The capacity line.** A fixed de-rated block of dispatchable and
+interconnector capacity — 62 GW†, derived from the NESO Winter Outlook
+2025/26 — plus the wind and solar actually generated. Renewables enter as
+observed rather than de-rated, which removes the most contested assumption
+in margin arithmetic and lets the line sag when the wind genuinely
+dropped. It is a **static overlay, not a dispatch model**: no redispatch,
+imports response, demand-side response or price response, no distribution
+constraints, and a GW figure cannot represent storage duration. Exceedance
+is reported as hours above available headroom under today's fleet, never
+as a claim about supply interruption.
+
+**Scope of the cooling figures.** Cooling here is the ECUK *buildings*
+anchor — comfort cooling and ventilation. Data centres, cold store and the
+wider cold chain sit outside it†, and would enter as their own series
+rather than by inflating this one.
+
+**Gates.** Four checks run before anything is published: the performance
+anchors are reproduced; the hourly network route reconciles with the
+weekly estimator (near-tautological by design — it proves wiring, not
+physics); cooling is conserved against its annual; and any feed missing
+more than 5% of its hours is refused. A failed gate leaves the previous
+hourly output in place and the weekly panels untouched.
+
+## Autumn maintenance — things that expire
+
+These are constants and anchors that go stale on a known schedule:
+
+| When | What | Why |
+|---|---|---|
+| October | **NESO Winter Outlook 2026/27** → update `DISPATCH_DERATED_GW` in `scripts/retro.py` and its dagger | The capacity line is a fixed block; last winter's fleet is not this winter's |
+| Autumn | **ECUK 2026** re-anchor (heat-pump electricity, domestic shares, sectoral revisions) | Annual anchors lag 9–15 months |
+| September | **Cooling reconciliation gate** — decide whether the year-round fit replaces the ECUK-anchored cooling estimate | Diagnostic published since v5.2; switchover would restate summer figures |
+| Quarterly | **Ofgem cap history** | Bill layer |
+
 ## Method in one paragraph
 
 Daily gas offtake to Britain's local distribution zones (LDZ — the network
@@ -140,6 +221,16 @@ round-trip, indigenous input-origin shares, the NI heat total, and the WHY
 HEAT? service-level allocations. Challenge and input welcome:
 **contact@causewaygt.com**.
 
+- **The hourly heat shape** is modelled from weather with no occupancy
+  model; the summer damping threshold and the flow temperatures are
+  conventions†, chosen to reconcile with the weekly estimator.
+- **The capacity line** is one winter of observed weather under a fixed
+  de-rated block†, and says nothing about storage duration or network
+  constraints.
+- **The displaced resistive credit** assumes the what-if samples the
+  existing stock proportionally and that displaced load is space-shaped†;
+  gross and net figures bound the truth between them.
+
 ## Data sources & licences
 
 National Gas Transmission open data (demand and SAP publications, REST API;
@@ -152,6 +243,13 @@ statistics, under the Open Government Licence v3.0 · EGEC 2025 UK Country
 Update and EGEC Geothermal Market Report 2025, English Housing Survey, CCC
 adaptation reporting, ONS/UKHSA heat mortality and productivity statistics
 (cited). Full bibliography with DOIs in the methodology PDF.
+
+Hourly layer (v7): ERA5 reanalysis via Open-Meteo (temperature, twelve
+population-weighted points); Elexon BMRS market index (wholesale price) and
+FUELINST (transmission wind); NESO historic demand and daily demand update
+(underlying demand, embedded wind and solar) and Carbon Intensity API;
+NESO Winter Outlook 2025/26 (the de-rated capacity block†). All open data,
+no authentication.
 
 ## How it runs
 
@@ -183,7 +281,10 @@ docs/
   uk-heatsplit-methodology.pdf    full technical methodology statement
 scripts/
   build.py                        pulls feeds, fits, computes, writes data.json
+  retro.py                        hourly engine: store, calibration, gates,
+                                  slices, system view (v7)
   fetch_*.py                      per-source fetchers
+docs/retro.json                   13-month hourly store, append-only (v7)
 .github/workflows/update.yml      daily cron
 ```
 
@@ -191,7 +292,7 @@ scripts/
 
 The site carries a version (footer, `SITE_VERSION` in `docs/index.html`):
 x.y.z where **x** = new data source or panel, **y** = update to an existing
-source or anchor, **z** = wording or formatting. Current: **6.7.0**.
+source or anchor, **z** = wording or formatting. Current: **7.0.0**.
 History: v1 launch (gas split, costs, spark gap, geothermal, NI) → v2 carbon
 layer → v3.0–3.2 observed cooling analysis (NESO demand, response curve,
 recency-aware sources) → v3.3–3.4 comfort deficit, tier graphic and UTES
@@ -211,7 +312,12 @@ under the empty bar → v6.2 indigenous share stored at one decimal
 2026 re-anchor (UK-origin gas share 0.38→0.42) → v6.4–6.7 heat/cool
 splits — purchased energy, bill and emissions, actuals and the 20%
 what-if alike, at every window from 1 week to 12 months (history
-schemas 3–6, restated by the same stored-CI mechanism).
+schemas 3–6, restated by the same stored-CI mechanism) → **v7.0 the
+hourly engine and the electricity grid impacts panel**: a 13-month hourly
+retrospective (ERA5, Elexon, NESO), three replacement routes calibrated to
+published SPFs, the coldest hour and the binding hour, a weather-breathing
+capacity line from the NESO Winter Outlook, the calendar-year falcon curve
+with its cooling wing, and the coincidence premium.
 
 *A Causeway Energies public-interest tool — https://causewaygt.com*
 
