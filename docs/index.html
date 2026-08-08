@@ -451,7 +451,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '7.0.0';
+const SITE_VERSION = '7.1.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1552,32 +1552,42 @@ fetch('data.json').then(r=>r.json()).then(d=>{
       document.getElementById('rt_limlbl').hidden = false;
       document.getElementById('rt_lim').innerHTML =
         RKl.map(r => stat(
-          (L.routes[r].all_of_it ? 'all of it'
-                                 : Math.round(L.routes[r].share_pct) + '%'),
+          Math.round(L.routes[r].share_pct) + '<small>%</small>',
+          (L.routes[r].all_of_it ? 'all of Britain\u2019s building heat \u2014 ' : '') +
           RN[r] + ' \u00b7 ' + L.routes[r].heat_TWh.toLocaleString() +
-          ' TWh of heat a year, electrified, before the winter peak fills ' +
+          ' TWh a year, electrified, before the winter peak fills ' +
           'today\u2019s fleet\u2020', RC[r])).join('');
 
       const lb = document.getElementById('rt_limbars');
       lb.hidden = false;
       const obs = RKl.map(r => L.routes[r].share_pct);
       const stl = (L.scenarios.find(x => x.key === 'zero') || {}).shares;
-      const tr = [{type:'bar', width:0.5, name:'the wind that actually blew',
+      const hex2rgba = (h, a) => {
+        const c = h.trim().replace('#','');
+        const n = parseInt(c.length === 3 ? c.split('').map(x=>x+x).join('') : c, 16);
+        return 'rgba(' + [(n>>16)&255, (n>>8)&255, n&255].join(',') + ',' + a + ')';
+      };
+      const tr = [{type:'bar', name:'with last winter\u2019s actual wind',
         x:RKl.map(r => RN[r]), y:obs,
         marker:{color:RKl.map(r => RC[r])},
-        text:obs.map((v,i) => L.routes[RKl[i]].all_of_it
-          ? 'all of it \u00b7 ' + v.toFixed(0) + '%' : v.toFixed(0) + '%'),
+        text:obs.map(v => v.toFixed(0) + '%'),
         textposition:'outside', cliponaxis:false,
+        hovertemplate:'%{y:.0f}% of Britain\u2019s heat<extra></extra>',
         textfont:{color:css('--paper'), size:14}}];
       if(stl){
-        tr.push({type:'scatter', mode:'markers', name:'if the wind never blew',
+        tr.push({type:'bar', name:'if the wind had never blown, all winter',
           x:RKl.map(r => RN[r]), y:RKl.map(r => stl[r]),
-          marker:{color:css('--paper'), size:11, symbol:'line-ew-open',
-                  line:{width:3, color:css('--paper')}}});
+          marker:{color:RKl.map(r => hex2rgba(RC[r], 0.28)),
+                  line:{width:1.4, color:RKl.map(r => RC[r])}},
+          text:RKl.map(r => stl[r].toFixed(0) + '%'),
+          textposition:'outside', cliponaxis:false,
+          hovertemplate:'%{y:.0f}% with no wind<extra></extra>',
+          textfont:{color:css('--muted'), size:13}});
       }
       Plotly.newPlot(lb, tr, {
         paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
         font:{family:'Lato', color:css('--muted'), size:11},
+        barmode:'group', bargap:0.34, bargroupgap:0.08,
         showlegend:true, legend:{orientation:'h', y:1.22, font:{size:12}},
         margin:{l:52, r:12, t:14, b:30},
         xaxis:{gridcolor:css('--line')},
@@ -1591,14 +1601,14 @@ fetch('data.json').then(r=>r.json()).then(d=>{
           text:'all Britain\u2019s building heat'}]},
         {displayModeBar:false, responsive:true});
 
-      const sc = L.scenarios.map(x => x.label + ': ' +
-        RKl.map(r => Math.round(x.shares[r]) + '%').join(' / ')).join('. ');
+      const mid = L.scenarios.filter(x => x.key === 'cap5' || x.key === 'still')
+        .map(x => x.label + ' \u2014 ' +
+             RKl.map(r => Math.round(x.shares[r]) + '%').join(' / ')).join('; ');
       document.getElementById('rt_limnote').textContent =
-        'Air-source / ground source / geothermal networks, under ' +
-        'progressively stiller winters \u2014 ' + sc +
-        '. The ordering does not change: all three draw on the same ' +
-        'ceiling, so wind moves how far you get, not which route gets ' +
-        'furthest. ' + L.note;
+        'Bars are air-source / ground source / geothermal networks. ' +
+        'Between the two cases shown: ' + mid + '. The ordering never ' +
+        'changes \u2014 all three draw on the same ceiling, so wind moves ' +
+        'how far you get, not which route gets furthest. ' + L.note;
     }
     const pr = WR.coincidence_premium;
     document.getElementById('rt_prem').innerHTML =
