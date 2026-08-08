@@ -989,6 +989,88 @@ def _displaced_gw(store):
             for q in store["heat_GWh"]]
 
 
+def _elec_limits(store, D, W, S, disp, gross, winter, _iso):
+    """How far could the country electrify its heat before the winter
+    peak fills the dispatchable block?
+
+    For each route, bisect on the what-if share until the highest
+    winter-hour call on dispatchable supply meets DISPATCH_DERATED_GW.
+    The share is expressed as a percentage of national building heat and
+    as the heat itself; above 100% means the whole of it fits.
+
+    Also reported under progressively stiller winters, because the
+    observed answer depends on the wind that actually blew: capping
+    every winter hour at 5 GW, at the winter's own stillest hour, and at
+    zero. The ORDERING of the three routes is invariant to all of them -
+    they share one ceiling - which is the point worth making."""
+    cal = store["calibration"]
+    heat_annual = (cal["space_annual_TWh"] + cal["dhw_annual_TWh"])
+    # per-unit-share series: gross/R_SHIFT is the 100%-share draw
+    unit = {r: [g / R_SHIFT for g in gross[r]] for r in ROUTES}
+    unit_disp = [x / R_SHIFT for x in disp]
+
+    def peak(route, share, wind):
+        best, bi = -1e9, winter[0]
+        u, ud = unit[route], unit_disp
+        for i in winter:
+            v = (D[i] + max(0.0, share * u[i] - share * ud[i])
+                 - wind(i) - S[i])
+            if v > best:
+                best, bi = v, i
+        return best, bi
+
+    def solve(route, wind):
+        lo, hi = 0.0, 4.0
+        for _ in range(42):
+            mid = (lo + hi) / 2
+            if peak(route, mid, wind)[0] < DISPATCH_DERATED_GW:
+                lo = mid
+            else:
+                hi = mid
+        share = (lo + hi) / 2
+        _, bi = peak(route, share, wind)
+        return share, bi
+
+    still = min(W[i] for i in winter) if winter else 0.0
+    scenarios = [
+        ("observed", "the wind that actually blew", lambda i: W[i]),
+        ("cap5", "every winter hour capped at 5 GW of wind",
+         lambda i: min(W[i], 5.0)),
+        ("still", "capped at %.1f GW - the winter's own stillest hour"
+         % still, lambda i: min(W[i], still)),
+        ("zero", "no wind at all, all winter", lambda i: 0.0),
+    ]
+    out = {"heat_annual_TWh": round(heat_annual, 0),
+           "block_GW": DISPATCH_DERATED_GW, "scenarios": [], "routes": {}}
+    for key, label, wind in scenarios:
+        row = {"key": key, "label": label, "shares": {}}
+        for r in ROUTES:
+            share, bi = solve(r, wind)
+            row["shares"][r] = round(100 * share, 1)
+            if key == "observed":
+                out["routes"][r] = {
+                    "share_pct": round(100 * share, 1),
+                    "heat_TWh": round(share * heat_annual, 0),
+                    "limiting_hour": _iso(bi),
+                    "all_of_it": share >= 1.0,
+                }
+        out["scenarios"].append(row)
+    o = out["routes"]
+    out["ratio_vs_air"] = (round(o["network"]["share_pct"]
+                                 / o["ashp"]["share_pct"], 2)
+                           if o["ashp"]["share_pct"] else None)
+    out["note"] = (
+        "A PEAK-CAPACITY test, not an energy test: it asks how much heat "
+        "can be electrified before the winter peak fills today's "
+        "dispatchable block (dagger), not whether the year's energy could "
+        "be generated. Wind enters as observed, so the answer moves with "
+        "the weather that actually occurred; the stiller scenarios show "
+        "by how much. Distribution networks are unmodelled, no new "
+        "capacity, storage or flexibility is credited, and one winter is "
+        "one sample.")
+    return out
+
+
 def system_view(store):
     """Everything the System panel renders (slices schema 2 material):
     net route additions on observed demand under the breathing ceiling.
@@ -1043,6 +1125,7 @@ def system_view(store):
             "GW) was mild; a year where they coincide is the risk case "
             "this chart lets the reader construct."),
         "routes": {},
+        "limits": _elec_limits(store, D, W, S, disp, gross, winter, _iso),
         "basis_short": (
             "Heat demand is modelled from weather (dagger); prices, "
             "carbon, demand, wind and solar are measured. Cooling shown "

@@ -514,12 +514,48 @@ def load_previous():
         return {}
 
 
-HISTORY_SCHEMA = 6   # 2: indig_pct at one decimal (restated Jul 2026)
+HISTORY_SCHEMA = 7   # 2: indig_pct at one decimal (restated Jul 2026)
+# 7: per-fuel in/useful block on every entry, so the energy bars can be
+#    re-totalled over a trend window (Irish sibling's fix, ported 7 Aug).
+# ANCHOR_EPOCH tracks a changed BASIS rather than new FIELDS: bump it
+# whenever a constant changes what a past week WOULD have computed, and
+# every recomputable stored week is restated. Schema adds fields; epoch
+# rewrites values. (Irish handover, trap 2.)
+ANCHOR_EPOCH = 1
                      # 3: per-week heat/cool split of purchased energy
                      #    (restated Aug 2026, same stored-CI mechanism)
                      # 4: what-if heat/cool split per week (Aug 2026)
                      # 5: bill and emissions heat/cool splits (Aug 2026)
                      # 6: what-if bill and emissions splits (Aug 2026)
+
+
+def _fuel_block(r):
+    """Compact per-fuel {in, useful} for one week, so a trend window can
+    re-total the energy bars. Short keys: this rides in every entry.
+    Cooling carried separately - its useful output legitimately exceeds
+    its input, so it must be excluded from any conversion-loss sum."""
+    mix, use = r["mix"], r["useful"]
+    keys = ("gas_space", "gas_dhw", "oil", "bio_other", "solid",
+            "heat_networks", "elec_heat")
+    out = {}
+    for k in keys:
+        i_ = round(mix.get(k, 0.0), 1)
+        if k == "elec_heat":
+            u_ = round(use.get("elec_resistive", 0.0)
+                       + use.get("hp_electricity", 0.0)
+                       + use.get("hp_ambient", 0.0), 1)
+        else:
+            u_ = round(use.get(k, 0.0), 1)
+        if i_ or u_:
+            out[k] = {"i": i_, "u": u_}
+    # split the electric leg so the useful bar can rebuild its segments
+    for k in ("elec_resistive", "hp_electricity", "hp_ambient"):
+        v = round(use.get(k, 0.0), 1)
+        if v:
+            out.setdefault("_u", {})[k] = v
+    out["cool"] = {"i": round(mix.get("cooling", 0.0), 1),
+                   "u": round(use.get("cooling_delivered", 0.0), 1)}
+    return out
 
 
 def build_history(prev, dd, base, slope, target):
@@ -533,6 +569,7 @@ def build_history(prev, dd, base, slope, target):
     hist_prev = {e["week_ending"]: e for e in (prev.get("history") or [])
                  if isinstance(e, dict) and e.get("week_ending")}
     schema_prev = prev.get("history_schema", 1)
+    epoch_prev = prev.get("anchor_epoch", 0)
 
     hdd_by_date = dict(zip(dd["dates"], dd["hdd"][base]))
     cdd_by_date = dict(zip(dd["dates"], dd["cdd"][COOL_BASE]))
@@ -568,7 +605,7 @@ def build_history(prev, dd, base, slope, target):
     # force; all other fields re-round identically. Weeks outside the
     # window keep their integer value - unrecomputable, and stated.
     restate = set()
-    if schema_prev < HISTORY_SCHEMA:
+    if schema_prev < HISTORY_SCHEMA or epoch_prev < ANCHOR_EPOCH:
         restate = set(w for w in complete if w in hist_prev) - set(todo)
         todo = sorted(set(todo) | restate)
     built = dict(hist_prev)
@@ -624,6 +661,7 @@ def build_history(prev, dd, base, slope, target):
                 "bill_Mgbp": round(r["bill_20"], 0),
                 "emissions_kt": e["whatif_kt"],
             },
+            "fuels": _fuel_block(r),
             "grid_ci": week_ci,
             "cap_from": cap_from,
         }
@@ -1211,6 +1249,7 @@ def main():
     # --- ticker history (phase 1): live weekly hero four + what-if twins -------
     try:
         out["history_schema"] = HISTORY_SCHEMA
+        out["anchor_epoch"] = ANCHOR_EPOCH
         out["history"] = build_history(prev, dd, base,
                                        best["slope_GWh_per_HDD"], target)
         out["history_note"] = (
