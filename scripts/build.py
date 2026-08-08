@@ -514,6 +514,14 @@ def load_previous():
         return {}
 
 
+ANCHOR_YEAR = 2024   # ECUK vintage the space-heat anchor is drawn from;
+#                      moves to 2025 at the ECUK 2026 re-anchor. The
+#                      weather normalisation divides by this year's HDD,
+#                      so the degree-day fetch must ALWAYS cover it in
+#                      full - a rolling window silently clips January and
+#                      the ratio drifts (found 8 Aug 2026: hdd_2024 fell
+#                      2137 -> 2048 in six days, ratio 1.092 -> 1.047,
+#                      purely because the window had rolled past 11 Jan).
 HISTORY_SCHEMA = 7   # 2: indig_pct at one decimal (restated Jul 2026)
 # 7: per-fuel in/useful block on every entry, so the energy bars can be
 #    re-totalled over a trend window (Irish sibling's fix, ported 7 Aug).
@@ -677,7 +685,11 @@ def main():
            "history": prev.get("history") or []}
 
     try:
-        dd = fetch_degree_days(days=940)  # covers calendar 2024 for anchor
+        # Reach back far enough to hold the WHOLE anchor year, whatever
+        # today is: a fixed 940 days stops covering it after ~19 months.
+        _anchor_span = (dt.date.today()
+                        - dt.date(ANCHOR_YEAR, 1, 1)).days + 40
+        dd = fetch_degree_days(days=max(940, _anchor_span))
         out["sources"]["degree_days"] = {"status": "ok",
                                          "last_good": dd["dates"][-1]}
     except Exception:
@@ -743,17 +755,33 @@ def main():
     # --- calibration (weather-normalised ECUK anchor) -------------------------
     annual_space_twh = sum(space_heat) / 1000.0
     hdd_all = dd["hdd"][base]
+    _ay = str(ANCHOR_YEAR)
+    _anchor_days = sum(1 for d_ in dd["dates"] if d_.startswith(_ay))
     hdd_2024 = sum(h for d_, h in zip(dd["dates"], hdd_all)
-                   if d_.startswith("2024"))
+                   if d_.startswith(_ay))
+    _full_year = 366 if ANCHOR_YEAR % 4 == 0 else 365
+    _anchor_complete = _anchor_days >= _full_year
     hdd_12m = sum(hdd_series)
     anchor_gb = ECUK_UK_GAS_SPACE_HEAT_TWH_2024 * GB_SHARE_OF_UK_GAS_HEAT
-    anchor_scaled = anchor_gb * (hdd_12m / hdd_2024) if hdd_2024 else anchor_gb
+    # Refuse to weather-normalise on a truncated reference year: a
+    # partial anchor year understates its HDD, inflates the anchor and
+    # flatters the ratio, all without any visible failure.
+    if hdd_2024 and _anchor_complete:
+        anchor_scaled = anchor_gb * (hdd_12m / hdd_2024)
+    else:
+        anchor_scaled = anchor_gb
+        print("calibration: anchor year %s incomplete (%d/%d days) - "
+              "weather normalisation SKIPPED" % (_ay, _anchor_days,
+                                                 _full_year))
     ratio = annual_space_twh / anchor_scaled
     calibration = {
         "model_12m_gas_space_heat_TWh": round(annual_space_twh, 1),
         "ecuk_anchor_TWh": round(anchor_scaled, 1),
         "anchor_raw_UK_2024_TWh": ECUK_UK_GAS_SPACE_HEAT_TWH_2024,
         "gb_share": GB_SHARE_OF_UK_GAS_HEAT,
+        "anchor_year": ANCHOR_YEAR,
+        "anchor_year_days": _anchor_days,
+        "anchor_year_complete": _anchor_complete,
         "hdd_2024": round(hdd_2024, 1),
         "hdd_trailing_12m": round(hdd_12m, 1),
         "anchor_status": ECUK_ANCHOR_STATUS,
