@@ -211,7 +211,7 @@
     <div class="context" id="peakctx" style="margin-top:14px"></div>
   </div>
   <div class="hero">
-    <div class="barlabel">ENERGY IN — fuel &amp; electricity purchased</div>
+    <div class="barlabel">ENERGY IN — fuel &amp; electricity purchased<span id="barwin"></span></div>
     <div class="barrow">
       <div class="btot" id="tot_in">—</div>
       <div class="mixbar" id="mixbar" aria-label="This week's heat and cooling mix — energy in"></div>
@@ -249,6 +249,10 @@
     <div class="barlabel" id="rt_bindlbl" hidden style="margin-top:16px">THE TIGHTEST HOUR OF THE YEAR — WHAT BRITAIN'S POWER STATIONS WOULD HAVE TO COVER†</div>
     <div class="statrow" id="rt_bind"></div>
     <div id="rt_bindbars" style="width:100%;height:300px;margin-top:12px" hidden></div>
+    <div class="barlabel" id="rt_limlbl" hidden style="margin-top:22px">HOW FAR COULD BRITAIN ELECTRIFY ITS HEAT INSIDE TODAY'S FLEET?†</div>
+    <div class="statrow" id="rt_lim"></div>
+    <div id="rt_limbars" style="width:100%;height:320px;margin-top:12px" hidden></div>
+    <p class="costnote" id="rt_limnote"></p>
     <div class="barlabel" style="margin-top:16px">THE HOTTEST HOUR — COOLING, AND WHAT DOUBLING IT WOULD COST†</div>
     <div class="statrow" id="rt_summer"></div>
     <div id="rt_sumbars" style="width:100%;height:300px;margin-top:12px" hidden></div>
@@ -559,8 +563,9 @@ fetch('data.json').then(r=>r.json()).then(d=>{
     }
 
     const seen = {};
-    function renderBar(el, def, comp, wasted, legendId){
+    function renderBar(el, def, comp, wasted, legendId, scaleOverride){
       legendId = legendId || 'mixlegend';
+      const scale = scaleOverride || Math.max(totalIn, totalOut) || 1;
       // When only one gas leg is running - as in summer, when space
       // heating is off - the split label is noise: just say "Gas".
       const oneGas = !((comp.gas_space || 0) > 0 && (comp.gas_dhw || 0) > 0);
@@ -600,25 +605,45 @@ fetch('data.json').then(r=>r.json()).then(d=>{
         }
       }
     }
-    document.getElementById('tot_in').innerHTML =
-      fmt(totalIn) + '<small>GWh in</small>';
-    renderBar(document.getElementById('mixbar'), IN_DEF, m.components_GWh, 0);
-    if(u){
-      document.getElementById('tot_out').innerHTML =
-        fmt(totalOut) + '<small>GWh useful</small>';
-      renderBar(document.getElementById('usebar'), OUT_DEF,
-                u.components_GWh, u.wasted_GWh, 'uselegend');
-    }
-    if(m.combustion_share != null){
-      let line = 'Combustion share of energy in: <b>' +
-        (100*m.combustion_share).toFixed(0) + '%</b>';
-      if(u && u.components_GWh.hp_ambient > 0){
-        line += ' · Ambient heat harvested by heat pumps this week: ' +
-          '<b style="color:'+css('--geo')+'">' +
-          fmt(u.components_GWh.hp_ambient) + ' GWh — free heat from the environment</b>';
+    // Bars draw from `agg` when a trend window is active, from the live
+    // week otherwise. `m` and `u` stay in scope throughout so no caption
+    // or guard below can dereference a missing block (Irish trap 3).
+    window.drawEnergyBars = function(agg){
+      const W    = !!(agg && agg.fuels);
+      const inC  = W ? agg.in_components  : m.components_GWh;
+      const outC = W ? agg.out_components : (u ? u.components_GWh : null);
+      const tIn  = W ? agg.total_in  : totalIn;
+      const tOut = W ? agg.total_out : totalOut;
+      const lost = W ? agg.wasted : (u ? u.wasted_GWh : 0);
+      const when = W ? agg.when : 'this week';
+      const sc   = Math.max(tIn, tOut) || 1;
+      document.getElementById('mixlegend').innerHTML = '';
+      document.getElementById('uselegend').innerHTML = '';
+      Object.keys(seen).forEach(k => { delete seen[k]; });
+      document.getElementById('tot_in').innerHTML =
+        fmt(tIn) + '<small>GWh in</small>';
+      renderBar(document.getElementById('mixbar'), IN_DEF, inC, 0,
+                'mixlegend', sc);
+      if(outC){
+        document.getElementById('tot_out').innerHTML =
+          fmt(tOut) + '<small>GWh useful</small>';
+        renderBar(document.getElementById('usebar'), OUT_DEF, outC, lost,
+                  'uselegend', sc);
       }
-      document.getElementById('combline').innerHTML = line;
-    }
+      const cShare = W ? agg.combustion_share : m.combustion_share;
+      if(cShare != null){
+        let line = 'Combustion share of energy in: <b>' +
+          (100*cShare).toFixed(0) + '%</b>';
+        const amb = outC ? (outC.hp_ambient || 0) : 0;
+        if(amb > 0){
+          line += ' · Ambient heat harvested by heat pumps ' + when +
+            ': <b style="color:'+css('--geo')+'">' + fmt(amb) +
+            ' GWh — free heat from the environment</b>';
+        }
+        document.getElementById('combline').innerHTML = line;
+      }
+    };
+    window.drawEnergyBars(null);
   }
 
   if(d.peak_week){
@@ -1142,6 +1167,9 @@ fetch('data.json').then(r=>r.json()).then(d=>{
           snap[id].fig.innerHTML = snap[id].figHTML;
           snap[id].cap.innerHTML = snap[id].capHTML;
         });
+        if(window.drawEnergyBars) window.drawEnergyBars(null);
+        const bl = document.getElementById('barwin');
+        if(bl) bl.textContent = '';
         return;
       }
       const sumN = {5: 4, 13: 12, 53: 52}[win];
@@ -1168,6 +1196,55 @@ fetch('data.json').then(r=>r.json()).then(d=>{
       const fEc = g => g >= 9999.5
         ? Math.round(g/1000).toLocaleString('en-GB') + ' TWh'
         : fmt(g) + ' GWh';
+      // Energy bars over the window: sum the per-fuel blocks, but only
+      // when EVERY row carries them - a stranded old week degrades the
+      // bars to their live-week form rather than showing a wrong sum.
+      if(window.drawEnergyBars){
+        const okF = rows.every(e => e.fuels);
+        const barLbl = document.getElementById('barwin');
+        if(barLbl) barLbl.textContent = okF
+          ? ' \u2014 totals ' + label + ', shares of the window, not of one week'
+          : '';
+        if(!okF){
+          window.drawEnergyBars(null);
+        } else {
+          const inC = {}, outC = {};
+          let tIn = 0, tOut = 0, lost = 0, comb = 0;
+          const COMB = ['gas_space','gas_dhw','oil','bio_other','solid',
+                        'heat_networks'];
+          rows.forEach(e => {
+            for(const k in e.fuels){
+              if(k === '_u') continue;
+              const f = e.fuels[k];
+              if(k === 'cool'){
+                inC.cooling = (inC.cooling || 0) + f.i;
+                outC.cooling_delivered = (outC.cooling_delivered || 0) + f.u;
+                tIn += f.i; tOut += f.u;
+              } else {
+                inC[k] = (inC[k] || 0) + f.i;
+                tIn += f.i; tOut += f.u;
+                // conversion loss: the per-fuel gap, HEATING FUELS ONLY -
+                // cooling's useful output legitimately exceeds its input
+                // (Irish trap 4). Never zero this for windowed calls.
+                if(COMB.indexOf(k) >= 0){
+                  lost += Math.max(0, f.i - f.u);
+                  comb += f.i;
+                }
+                if(k !== 'elec_heat') outC[k] = (outC[k] || 0) + f.u;
+              }
+            }
+            const su = e.fuels._u || {};
+            ['elec_resistive','hp_electricity','hp_ambient'].forEach(k => {
+              if(su[k]) outC[k] = (outC[k] || 0) + su[k];
+            });
+          });
+          window.drawEnergyBars({
+            fuels: true, in_components: inC, out_components: outC,
+            total_in: tIn, total_out: tOut, wasted: lost,
+            combustion_share: tIn ? comb / tIn : null,
+            when: 'over the window'});
+        }
+      }
       const hasSplit = rows.every(e => e.heat_GWh != null &&
                                        e.cooling_GWh != null);
       set('st_energy', fE(S('purchased_GWh')),
@@ -1469,6 +1546,59 @@ fetch('data.json').then(r=>r.json()).then(d=>{
             text:'capacity to deliver\u2020 \u2014 ' + sv.dispatch_derated_GW +
                  ' GW (NESO Winter Outlook 2025/26)'}]},
         {displayModeBar:false, responsive:true});
+    }
+    if(sv && sv.limits){
+      const L = sv.limits, RKl = ['ashp','shallow','network'];
+      document.getElementById('rt_limlbl').hidden = false;
+      document.getElementById('rt_lim').innerHTML =
+        RKl.map(r => stat(
+          (L.routes[r].all_of_it ? 'all of it'
+                                 : Math.round(L.routes[r].share_pct) + '%'),
+          RN[r] + ' \u00b7 ' + L.routes[r].heat_TWh.toLocaleString() +
+          ' TWh of heat a year, electrified, before the winter peak fills ' +
+          'today\u2019s fleet\u2020', RC[r])).join('');
+
+      const lb = document.getElementById('rt_limbars');
+      lb.hidden = false;
+      const obs = RKl.map(r => L.routes[r].share_pct);
+      const stl = (L.scenarios.find(x => x.key === 'zero') || {}).shares;
+      const tr = [{type:'bar', width:0.5, name:'the wind that actually blew',
+        x:RKl.map(r => RN[r]), y:obs,
+        marker:{color:RKl.map(r => RC[r])},
+        text:obs.map((v,i) => L.routes[RKl[i]].all_of_it
+          ? 'all of it \u00b7 ' + v.toFixed(0) + '%' : v.toFixed(0) + '%'),
+        textposition:'outside', cliponaxis:false,
+        textfont:{color:css('--paper'), size:14}}];
+      if(stl){
+        tr.push({type:'scatter', mode:'markers', name:'if the wind never blew',
+          x:RKl.map(r => RN[r]), y:RKl.map(r => stl[r]),
+          marker:{color:css('--paper'), size:11, symbol:'line-ew-open',
+                  line:{width:3, color:css('--paper')}}});
+      }
+      Plotly.newPlot(lb, tr, {
+        paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
+        font:{family:'Lato', color:css('--muted'), size:11},
+        showlegend:true, legend:{orientation:'h', y:1.22, font:{size:12}},
+        margin:{l:52, r:12, t:14, b:30},
+        xaxis:{gridcolor:css('--line')},
+        yaxis:{title:'% of Britain\u2019s building heat', gridcolor:css('--line'),
+               range:[0, Math.max(120, Math.max.apply(null, obs) * 1.22)]},
+        shapes:[{type:'line', x0:-0.5, x1:2.5, xref:'x', y0:100, y1:100,
+                 line:{color:css('--muted'), width:1.4, dash:'dash'}}],
+        annotations:[{x:0.01, xref:'paper', y:100, yref:'y', yshift:9,
+          showarrow:false, xanchor:'left',
+          font:{color:css('--muted'), size:11},
+          text:'all Britain\u2019s building heat'}]},
+        {displayModeBar:false, responsive:true});
+
+      const sc = L.scenarios.map(x => x.label + ': ' +
+        RKl.map(r => Math.round(x.shares[r]) + '%').join(' / ')).join('. ');
+      document.getElementById('rt_limnote').textContent =
+        'Air-source / ground source / geothermal networks, under ' +
+        'progressively stiller winters \u2014 ' + sc +
+        '. The ordering does not change: all three draw on the same ' +
+        'ceiling, so wind moves how far you get, not which route gets ' +
+        'furthest. ' + L.note;
     }
     const pr = WR.coincidence_premium;
     document.getElementById('rt_prem').innerHTML =
