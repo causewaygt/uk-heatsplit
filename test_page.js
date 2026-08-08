@@ -157,6 +157,16 @@ setTimeout(() => {
   ok("summer card hourly basis", /% of that hour's observed demand/.test(
       get("rt_summer").innerHTML));
   ok("bind bars drawn", !doc.getElementById("rt_bindbars").hidden);
+  ok("electrification limits shown", (function(){
+      const L = (data.whatif_routes.system || {}).limits;
+      if(!L) return true;
+      return !doc.getElementById("rt_limlbl").hidden
+        && /before the winter peak fills/.test(get("rt_lim").innerHTML)
+        && /all of it|%/.test(get("rt_lim").innerHTML);
+    })());
+  ok("limit note carries the stiller scenarios",
+     /no wind at all/.test(get("rt_limnote").textContent)
+     && /peak-capacity test/i.test(get("rt_limnote").textContent));
   ok("gas key collapses when one leg runs", (function(){
       const c = data.weekly_mix.components_GWh;
       const both = (c.gas_space || 0) > 0 && (c.gas_dhw || 0) > 0;

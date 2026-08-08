@@ -608,7 +608,67 @@ carry on failure):
     RELEASE-v7.md written. Three-tier rule now materially in place:
     page 441 chars, README ~900 words on the engine, methodology
     ~2,000 words.
-  REMAINING: cutover late August. AUTUMN
+  REMAINING: cutover late August.
+
+## v7.1 - the electrification limit on the page (7 Aug)
+- The LinkedIn graphic's finding becomes a live panel block, sitting
+  directly under the binding-hour bars: how far could Britain electrify
+  its building heat before the winter peak fills today's dispatchable
+  block? Engine bisects the what-if share per route until the highest
+  winter-hour call meets DISPATCH_DERATED_GW.
+- Live figures: air-source 44% (162 TWh), ground source 63% (235 TWh),
+  geothermal networks 108% - all of it (400 TWh). Ratio 2.47x. All three
+  limited by the same hour, 5 Jan 18:00.
+- WIND SCENARIOS ship with it, because the observed answer depends on
+  the wind that actually blew: capped at 5 GW (33/49/83), at the
+  winter's own stillest hour 1.6 GW (27/40/67), and zero wind all
+  winter (24/35/60). The chart plots the observed bars with zero-wind
+  markers over them. The ORDERING is invariant - all three draw on one
+  ceiling - which is the honest headline: wind moves how far you get,
+  not which route gets furthest.
+- Framed as a PEAK-CAPACITY test, not an energy test, in the engine
+  note and therefore on the page; distribution unmodelled; no new
+  capacity, storage or flexibility credited; one winter is one sample.
+- system_view costs +0.5s (42-step bisection x 3 routes x 4 scenarios
+  over the winter hours).
+
+## v7.0.1 - windowed energy bars (7 Aug, ported from Irish Heat Split)
+- DEFECT: the energy in/out bars did not respond to the trend-window
+  selector - at 12m the headline read 373 TWh while the bars beneath
+  read one week's 1,990 GWh, and the ambient-heat footer said "this
+  week" under a twelve-month headline. The windowed branch returned
+  before reaching the bars, so the 1w drawing simply stayed on screen.
+  Identical defect and fix on the Irish side; their handover
+  (uk-windowed-bars-handover.md) carried five traps, all honoured.
+- PIPELINE: HISTORY_SCHEMA 6 -> 7 adds a compact per-fuel block to
+  every history entry - fuels: {<fuel>: {i, u}, _u: {electric legs},
+  cool: {i, u}} - built by _fuel_block(r) and ASSIGNED, never
+  setdefault (trap 1; our entries are wholly rebuilt each time, so the
+  trap does not bite here, but the rule is now explicit).
+- ANCHOR_EPOCH introduced (trap 2): schema tracks new FIELDS, epoch
+  tracks a changed BASIS. Bump the epoch whenever a constant changes
+  what a past week WOULD have computed, and every recomputable stored
+  week is restated. The restatement trigger now fires on either.
+- FRONT END: window.drawEnergyBars(agg) draws from a windowed
+  aggregate when one is supplied and from the live week otherwise; the
+  live m/u blocks stay in scope throughout so no caption below can
+  dereference a missing block (trap 3). renderBar gained a scale
+  override so windowed totals size correctly. The window aggregate is
+  omitted entirely unless EVERY row carries fuels - a stranded old week
+  degrades the bars to live-week form rather than showing a wrong sum.
+- CONVERSION LOSS is recomputed over the window, not zeroed (trap 4):
+  the per-fuel gap between input and useful output, HEATING FUELS ONLY
+  - cooling is excluded because its useful output legitimately exceeds
+  its input.
+- CAPTIONS: the ambient-heat callout switches "this week" -> "over the
+  window"; the ENERGY IN label gains "totals over the last 12 months,
+  shares of the window, not of one week".
+- TESTS: test_bars.js executes the renderer live AND windowed against a
+  fixture (trap 5 - node --check proves parsing, not that a function
+  survives its arguments); run_test.py gains per-fuel reconciliation
+  against each entry's own stored totals, and a MIGRATION test that
+  builds a schema-6 store, runs the build, and asserts the blocks come
+  back refreshed. AUTUMN
     MAINTENANCE SET (must be written into README + methodology):
     NESO Winter Outlook 2026/27 (Oct) -> update DISPATCH_DERATED_GW
     and its dagger; ECUK 2026 re-anchor; cooling-reconciliation gate

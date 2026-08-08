@@ -245,6 +245,47 @@ print("retro slices in data.json: worst hour", stx["worst_hour"],
       "| a/s/n GW", stx["ashp"]["added_GW"], stx["shallow"]["added_GW"],
       stx["network"]["added_GW"], " OK")
 
+# --- 10a3. schema 7: per-fuel block on every history entry ------------------
+h7 = new.get("history") or []
+assert new.get("history_schema") == 7, new.get("history_schema")
+assert new.get("anchor_epoch") == 1, new.get("anchor_epoch")
+assert h7 and all("fuels" in e for e in h7), "fuels missing from history"
+for e in h7[-3:]:
+    f = e["fuels"]
+    tin = sum(v["i"] for k, v in f.items() if k != "_u")
+    tu = sum(v["u"] for k, v in f.items() if k != "_u")
+    # per-fuel sums must reconcile with the entry's own stored totals:
+    # a windowed bar contradicting the windowed headline above it is the
+    # failure nobody spots for weeks (Irish handover, section 6)
+    assert abs(tin - e["purchased_GWh"]) <= 2.0, (e["week_ending"], tin,
+                                                  e["purchased_GWh"])
+    assert tu > tin, "useful must exceed input once cooling is counted"
+    # cooling is carried separately and excluded from any loss sum
+    assert "cool" in f and f["cool"]["u"] >= f["cool"]["i"]
+print("schema 7: per-fuel blocks on %d weeks, reconcile with stored totals"
+      "  OK" % len(h7))
+
+# --- 10a4. migration: an OLDER store must be REFRESHED, not left alone ------
+# Irish trap 1: a migration that uses setdefault on sub-blocks leaves them
+# stale, so they never gain the new field and the bars stay broken.
+import copy as _copy
+_old_store = _copy.deepcopy(new)
+for _e in _old_store["history"]:
+    _e.pop("fuels", None)
+_old_store["history_schema"] = 6
+_old_store["anchor_epoch"] = 0
+json.dump(_old_store, open(DATA, "w"), separators=(",", ":"))
+wire_retro(build)
+build.main()
+_mig = json.load(open(DATA))
+assert _mig["history_schema"] == 7 and _mig["anchor_epoch"] == 1
+_recomputable = [e for e in _mig["history"] if "fuels" in e]
+assert len(_recomputable) >= len(_mig["history"]) - 2, (
+    "migration left %d weeks without fuels" %
+    (len(_mig["history"]) - len(_recomputable)))
+print("migration: schema-6 store restated, %d/%d weeks gained per-fuel blocks"
+      "  OK" % (len(_recomputable), len(_mig["history"])))
+
 # --- 10b. history schema 2: decimal indig + one-time restatement -------------
 assert new["history_schema"] == 6
 h_vals = [e["indig_pct"] for e in new["history"]]

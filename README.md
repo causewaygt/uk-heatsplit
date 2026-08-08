@@ -190,6 +190,13 @@ These are constants and anchors that go stale on a known schedule:
 | September | **Cooling reconciliation gate** — decide whether the year-round fit replaces the ECUK-anchored cooling estimate | Diagnostic published since v5.2; switchover would restate summer figures |
 | Quarterly | **Ofgem cap history** | Bill layer |
 
+**Two version counters, not one.** `history_schema` tracks new *fields* on
+the weekly history — a bump adds them and restates stored weeks so the new
+fields appear. `anchor_epoch` tracks a changed *basis* — bump it whenever a
+constant changes what a past week would have computed, and every
+recomputable stored week is rewritten. A schema bump alone would leave the
+series half on one basis and half on another.
+
 ## Method in one paragraph
 
 Daily gas offtake to Britain's local distribution zones (LDZ — the network
@@ -320,5 +327,3 @@ capacity line from the NESO Winter Outlook, the calendar-year falcon curve
 with its cooling wing, and the coincidence premium.
 
 *A Causeway Energies public-interest tool — https://causewaygt.com*
-
-eod
