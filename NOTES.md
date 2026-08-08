@@ -610,6 +610,29 @@ carry on failure):
     ~2,000 words.
   REMAINING: cutover late August.
 
+## FIX - the anchor year was being clipped (8 Aug, found in the daily log)
+- SYMPTOM: the calibration ratio read 1.047, against 1.092 six days
+  earlier, with hdd_2024 falling 2137.4 -> 2047.7. A fixed calendar
+  year's degree-day total cannot move.
+- CAUSE: fetch_degree_days(days=940) is a ROLLING window. By 8 Aug 2026
+  it started 11 Jan 2024, so the ten coldest days of the reference year
+  had already dropped out (~11 HDD/day - the arithmetic matches
+  exactly). A truncated anchor year understates its HDD, which inflates
+  anchor_scaled and deflates the ratio: the model looked like it was
+  converging on ECUK when the denominator was simply eroding. By Jan
+  2027 only 210 days of 2024 would have remained and the published
+  |r-1| <= 0.10 gate would have been meaningless.
+- FIX: ANCHOR_YEAR constant (2024, moves to 2025 at the ECUK 2026
+  re-anchor); the fetch span is computed from it so the whole year is
+  always covered whatever today is; and a GUARD refuses to weather-
+  normalise at all if the anchor year is incomplete, printing why and
+  falling back to the unscaled anchor rather than drifting silently.
+  calibration now reports anchor_year, anchor_year_days and
+  anchor_year_complete; run_test asserts all three.
+- LESSON: a rolling window under a fixed reference period is a silent
+  drift, not a failure. Nothing threw; the number simply moved in a
+  direction that looked like good news.
+
 ## v7.1 - the electrification limit on the page (7 Aug)
 - The LinkedIn graphic's finding becomes a live panel block, sitting
   directly under the binding-hour bars: how far could Britain electrify

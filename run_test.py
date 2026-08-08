@@ -245,6 +245,17 @@ print("retro slices in data.json: worst hour", stx["worst_hour"],
       "| a/s/n GW", stx["ashp"]["added_GW"], stx["shallow"]["added_GW"],
       stx["network"]["added_GW"], " OK")
 
+# --- 10a2b. anchor year must be complete before weather normalisation ------
+cal_ = new.get("calibration") or {}
+assert cal_.get("anchor_year") == 2024, cal_.get("anchor_year")
+assert cal_.get("anchor_year_complete") is True, (
+    "anchor year truncated: %s days" % cal_.get("anchor_year_days"))
+assert cal_.get("anchor_year_days", 0) >= 366, cal_.get("anchor_year_days")
+# and the ratio must be computed on the full year, not a clipped one
+assert 0.85 <= cal_["ratio"] <= 1.15, cal_["ratio"]
+print("anchor year %d complete (%d days), ratio %.3f  OK"
+      % (cal_["anchor_year"], cal_["anchor_year_days"], cal_["ratio"]))
+
 # --- 10a3. schema 7: per-fuel block on every history entry ------------------
 h7 = new.get("history") or []
 assert new.get("history_schema") == 7, new.get("history_schema")

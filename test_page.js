@@ -63,7 +63,7 @@ setTimeout(() => {
   ok("indig delta in pp", /pp/.test(trends[1].querySelector(".tr-delta").textContent));
   ok("trendspan count", /\d+ wks/.test(get("trendspan").textContent));
   ok("trendnote visible", get("trendpara").style.display === "");
-  ok("version 7.0.0", /7\.0\.0/.test(get("siteversion").textContent) ||
+  ok("version 7.0.0", /7\.1\.0/.test(get("siteversion").textContent) ||
       /SITE_VERSION = '5\.0\.0'/.test(m[1]));
 
   // reconciliation diagnostic renders when present, hides when absent
@@ -165,7 +165,8 @@ setTimeout(() => {
         && /all of it|%/.test(get("rt_lim").innerHTML);
     })());
   ok("limit note carries the stiller scenarios",
-     /no wind at all/.test(get("rt_limnote").textContent)
+     /capped at 5 GW/.test(get("rt_limnote").textContent)
+     && /stillest hour/.test(get("rt_limnote").textContent)
      && /peak-capacity test/i.test(get("rt_limnote").textContent));
   ok("gas key collapses when one leg runs", (function(){
       const c = data.weekly_mix.components_GWh;
