@@ -80,6 +80,17 @@ setTimeout(() => {
           String(Math.round(cap.gapBn))));
     chk("point 05 is marked as the figure that argues against the case",
         p5.querySelector(".fig").classList.contains("warn"));
+    // "most" was wrong at 39%. Whatever the wording, it must not overclaim
+    // while the panel it quotes reads below half.
+    chk("point 05 does not claim 'most' below 50% coverage",
+        cap.cov >= 50 || !/\bmost\b/i.test(p5.querySelector(".claim").textContent),
+        p5.querySelector(".claim").textContent);
+    chk("point 05 explains why the gap does not close by waiting",
+        /does not close by waiting|does not get cheaper/i
+          .test(p5.querySelector(".qual").textContent));
+    chk("point 05 names the share that cannot learn",
+        p5.querySelector(".qual").textContent
+          .includes(String(Math.round(cap.adderShare))));
   }
 
   // --- the frontispiece is annual and must NOT follow the trend selector.

@@ -56,9 +56,10 @@ setTimeout(() => {
   // --- the published default. If this moves, the frontispiece and the
   // ticker are quoting a number the page no longer shows.
   const d0 = at();
-  chk("default is the published case (70/70/6%/30y, GBP 250 + 200)",
+  chk("default is the published case (70/70/6%/30y, GBP 250+200, 10y, 20%)",
       m.def.mix === 70 && m.def.capture === 70 && m.def.rate === 60 &&
-      m.def.tenor === 30 && m.def.dist === 250 && m.def.conn === 200,
+      m.def.tenor === 30 && m.def.dist === 250 && m.def.conn === 200 &&
+      m.def.years === 10 && m.def.noak === 20,
       JSON.stringify(m.def));
   chk("default coverage is below 100% - a stated gap, not self-financing",
       d0.cov < 100,
@@ -118,8 +119,13 @@ setTimeout(() => {
   chk("higher capture finances more", at({capture:100}).financeBn > d0.financeBn);
   chk("dearer money finances less", at({rate:120}).financeBn < d0.financeBn);
   chk("longer tenor finances more", at({tenor:40}).financeBn > d0.financeBn);
-  chk("build cost is independent of the finance levers",
-      Math.abs(at({rate:120, tenor:15, capture:30}).buildBn - d0.buildBn) < 0.01);
+  chk("capture and tenor move the finance, never the build",
+      Math.abs(at({capture:30, tenor:15}).buildBn - d0.buildBn) < 0.01);
+  // the discount rate DOES move the build now - capital is spent across the
+  // deployment period and discounted where it falls, so a dearer rate makes
+  // the build cheaper in present value as well as the finance smaller
+  chk("a dearer discount rate lowers the build's present value",
+      at({rate:120}).buildBn < d0.buildBn);
 
   // --- nothing goes non-finite anywhere on the ranges
   let bad = null;
@@ -174,6 +180,41 @@ setTimeout(() => {
               " | coverage %s%% | gap GBP %sbn",
               d1.financeBn.toFixed(1), d1.buildBn.toFixed(0),
               Math.round(d1.blend), Math.round(d1.cov), d1.gapBn.toFixed(1));
+  // --- over the build: the deployment period and the NOAK glide
+  chk("deployment period defaults to ten years", m.def.years === 10);
+  chk("cost improvement defaults on but modest",
+      m.def.noak > 0 && m.def.noak <= 25, "noak=" + m.def.noak);
+  chk("a longer build lowers both finance and build",
+      at({years:20}).financeBn < d0.financeBn &&
+      at({years:20}).buildBn < d0.buildBn);
+  // The two effects nearly cancel - that is why modelling the build period
+  // is worth doing for correctness rather than for the answer.
+  chk("build period barely moves coverage",
+      Math.abs(at({years:20}).cov - at({years:5}).cov) < 6,
+      "5y " + Math.round(at({years:5}).cov) + "% vs 20y " +
+      Math.round(at({years:20}).cov) + "%");
+  chk("cost improvement lowers the build", at({noak:40}).buildBn < at({noak:0}).buildBn);
+  chk("cost improvement does not touch the finance side",
+      Math.abs(at({noak:40}).financeBn - at({noak:0}).financeBn) < 0.01);
+  // The improvement must NOT reach trenching and connections. If it ever
+  // did, the panel would imply that excavation and labour get cheaper.
+  chk("improvement spares trench and connections",
+      (() => {
+        const a = at({mix:100, dist:0,   conn:0,   noak:0});
+        const b = at({mix:100, dist:0,   conn:0,   noak:40});
+        const c = at({mix:100, dist:600, conn:900, noak:0});
+        const e = at({mix:100, dist:600, conn:900, noak:40});
+        // the plant-only saving must be the same in both, so the adder-heavy
+        // case saves the same absolute amount, not the same proportion
+        return Math.abs((a.buildBn - b.buildBn) - (c.buildBn - e.buildBn)) < 0.3;
+      })(), "the glide is reaching the adders");
+  chk("the gap survives the most generous improvement",
+      at({noak:40}).gapBn > 15,
+      "GBP " + at({noak:40}).gapBn.toFixed(0) + "bn");
+  chk("panel reports the share that cannot learn",
+      d0.adderShare > 20 && d0.adderShare < 55,
+      Math.round(d0.adderShare) + "%");
+
   console.log(fail.length ? "\n" + fail.length + " FAILED" : "\nall passed");
   process.exit(fail.length ? 1 : 0);
 }, 500);
