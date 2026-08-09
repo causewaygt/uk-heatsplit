@@ -559,6 +559,13 @@ def _route_elec(store, route):
 
 ROUTES = ("ashp", "shallow", "network")
 
+# The coincidence premium is computed over the heating season only.
+# Oct-Mar deliberately matches the NESO Winter Outlook window that sets
+# the capacity line elsewhere on this page, so the two statistics answer
+# for the same months. (9 Aug 2026 - see the premium block for why.)
+WINTER_MONTHS = (10, 11, 12, 1, 2, 3)
+WINTER_LABEL = "October to March"
+
 
 def hourly_cooling_elec(temps, cooling):
     """Hourly cooling ELECTRICITY, GWh - the production convention
@@ -784,28 +791,73 @@ def slices(store, nd_daily=None):
     # ---- coincidence cost premium ----
     # Trailing-year window for all "annual" statements - a 13-month
     # store must never masquerade as a year (audit F1).
-    Y = slice(max(0, n - 8760), n)
-    mid_y = mid[Y]
-    mean_mid = sum(mid_y) / len(mid_y)
-    premium = {}
-    for r in ROUTES:
-        e = elec[r][Y]
-        hourly_cost = sum(v * m for v, m in zip(e, mid_y)) / 1000.0
-        flat_cost = sum(e) * mean_mid / 1000.0
-        premium[r] = {
-            "annual_GWh": round(sum(e), 0),
-            "window": "trailing 12 months",
-            "hourly_priced_Mgbp": round(hourly_cost, 1),
-            "flat_priced_Mgbp": round(flat_cost, 1),
-            "premium_pct": round(100 * (hourly_cost / flat_cost - 1), 2)
-            if flat_cost else None,
-        }
+    #
+    # WINTER BASIS (9 Aug 2026). Computed over the trailing year, this
+    # statistic was being diluted to nothing by summer hours in which
+    # almost no heat is drawn: it slid 1.42/0.90/0.93 -> 0.39/-0.05/-0.02
+    # -> 0.24/-0.19/-0.15 across three runs and went negative, and a
+    # negative premium is a contradiction on the page. It is now computed
+    # over WINTER_MONTHS only, which is where the coincidence it describes
+    # actually happens.
+    #
+    # The flat comparator uses the mean price of THE SAME HOURS, not the
+    # annual mean. That is deliberate and it narrows the statistic: it now
+    # measures timing WITHIN the heating season - whether a route draws in
+    # that season's dear hours - and excludes the winter-vs-summer price
+    # level, which is a seasonal effect rather than a coincidence. Pricing
+    # a winter-only draw against an annual mean would fold the two
+    # together and inflate the result. The trailing-year figure is kept
+    # below as a diagnostic so the change is auditable, not silent.
+    y0 = max(0, n - 8760)
+
+    def _premium_over(idx, window_label):
+        """Premium across the hour indices `idx`, priced against the flat
+        mean of those same hours. Returns None if the window is empty."""
+        if not idx:
+            return None
+        mean_p = sum(mid[i] for i in idx) / len(idx)
+        if not mean_p:
+            return None
+        block = {}
+        for r in ROUTES:
+            e = [elec[r][i] for i in idx]
+            hourly_cost = sum(elec[r][i] * mid[i] for i in idx) / 1000.0
+            flat_cost = sum(e) * mean_p / 1000.0
+            block[r] = {
+                "GWh": round(sum(e), 0),
+                "window": window_label,
+                "hours": len(idx),
+                "mean_price_gbp_mwh": round(mean_p, 1),
+                "hourly_priced_Mgbp": round(hourly_cost, 1),
+                "flat_priced_Mgbp": round(flat_cost, 1),
+                "premium_pct": round(100 * (hourly_cost / flat_cost - 1), 2)
+                if flat_cost else None,
+            }
+        return block
+
+    w_idx = [i for i in range(y0, n)
+             if (d0 + dt.timedelta(days=i // 24)).month in WINTER_MONTHS]
+    premium = _premium_over(w_idx, WINTER_LABEL) or {}
+    annual = _premium_over(list(range(y0, n)), "trailing 12 months") or {}
+    # carried, not shown: lets a reviewer see exactly what the winter
+    # restriction changed without re-running the engine on the old basis
+    premium["annual_diagnostic"] = {
+        r: annual[r]["premium_pct"] for r in ROUTES if r in annual}
+    premium["window"] = WINTER_LABEL
+    premium["hours"] = len(w_idx)
     premium["note"] = (
         "The coincidence premium: each route's replacement electricity "
-        "priced at the hour it is drawn (Elexon MID) vs the same annual "
-        "energy at the flat mean price. Cold-evening concentration makes "
-        "air-source dearest per unit; source temperature flattens the "
-        "draw. Wholesale basis - sits beside the spark gap.")
+        "priced at the hour it is drawn (Elexon MID) vs the same energy "
+        "at the flat mean price, over " + WINTER_LABEL + " only (" +
+        str(len(w_idx)) + " hours of the trailing year). Cold-evening "
+        "concentration makes air-source dearest per unit; source "
+        "temperature flattens the draw. The comparator is the mean price "
+        "of the same months, so this is timing within the heating season "
+        "- the winter-vs-summer price level is excluded as a seasonal "
+        "effect, not a coincidence. Computed over the full year the "
+        "figure is diluted by summer hours in which almost no heat is "
+        "drawn, and can go negative. Wholesale basis - sits beside the "
+        "spark gap.")
 
     return {
         "schema": 2,

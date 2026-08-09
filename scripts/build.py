@@ -523,18 +523,23 @@ ANCHOR_YEAR = 2024   # ECUK vintage the space-heat anchor is drawn from;
 #                      2137 -> 2048 in six days, ratio 1.092 -> 1.047,
 #                      purely because the window had rolled past 11 Jan).
 HISTORY_SCHEMA = 7   # 2: indig_pct at one decimal (restated Jul 2026)
-# 7: per-fuel in/useful block on every entry, so the energy bars can be
-#    re-totalled over a trend window (Irish sibling's fix, ported 7 Aug).
-# ANCHOR_EPOCH tracks a changed BASIS rather than new FIELDS: bump it
-# whenever a constant changes what a past week WOULD have computed, and
-# every recomputable stored week is restated. Schema adds fields; epoch
-# rewrites values. (Irish handover, trap 2.)
-ANCHOR_EPOCH = 1
                      # 3: per-week heat/cool split of purchased energy
                      #    (restated Aug 2026, same stored-CI mechanism)
                      # 4: what-if heat/cool split per week (Aug 2026)
                      # 5: bill and emissions heat/cool splits (Aug 2026)
                      # 6: what-if bill and emissions splits (Aug 2026)
+                     # 7: per-fuel in/useful block on every entry, so the
+                     #    energy bars can be re-totalled over a trend
+                     #    window (Irish sibling's fix, ported 7 Aug 2026)
+
+# ANCHOR_EPOCH tracks a changed BASIS rather than new FIELDS: bump it
+# whenever a constant changes what a past week WOULD have computed, and
+# every recomputable stored week is restated. Schema adds fields; epoch
+# rewrites values. (Irish handover, trap 2.)
+ANCHOR_EPOCH = 1     # 1: introduced 8 Aug 2026 with the anchor-year fix.
+                     #    No basis change has been made since, so this
+                     #    has not yet been bumped - the next entry goes
+                     #    here, NOT on the schema list above.
 
 
 def _fuel_block(r):
