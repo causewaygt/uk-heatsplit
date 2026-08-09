@@ -167,6 +167,10 @@
   .capscale{display:flex;justify-content:space-between;font-family:"IBM Plex Mono";
             font-size:11px;color:var(--muted);margin-top:5px}
   .caplevers{display:grid;grid-template-columns:1fr 1fr;gap:16px 26px;margin-top:22px}
+  .caplevers .leverhead{grid-column:1/-1;font-family:"IBM Plex Mono";font-size:11px;
+                        letter-spacing:.09em;text-transform:uppercase;
+                        color:var(--ash);border-top:1px solid var(--line);
+                        padding-top:14px;margin-top:2px}
   @media (max-width:640px){.caplevers{grid-template-columns:1fr}}
   .lever label{display:flex;justify-content:space-between;align-items:baseline;
                font-size:13px;color:var(--muted);gap:10px}
@@ -477,6 +481,23 @@
               <div class="hint">Heat interface, meter, in-building secondary.
                 About £40 for bulk supply to an anchor load, £900+ where every
                 dwelling is connected individually.</div>
+            </div>
+            <div class="leverhead">Over the build</div>
+            <div class="lever">
+              <label for="cap_years">Deployment period
+                <b id="cap_years_v">—</b></label>
+              <input type="range" id="cap_years" min="5" max="20" step="1">
+              <div class="hint">Savings accrue as the fleet is built; capital
+                is spent across the same period. The two effects nearly
+                cancel.</div>
+            </div>
+            <div class="lever">
+              <label for="cap_noak">Cost improvement by the last year
+                <b id="cap_noak_v">—</b></label>
+              <input type="range" id="cap_noak" min="0" max="40" step="5">
+              <div class="hint">First-of-a-kind to mature supply chain, on
+                plant and subsurface only. Trenching and connections are
+                excavation and labour, and do not learn.</div>
             </div>
           </div>
 
@@ -905,7 +926,8 @@ fetch('data.json').then(r=>r.json()).then(d=>{
     // standing UK planning heuristic puts development at a full 25%.
     devex: 0.20,
     // published case - the figures the frontispiece and ticker quote
-    def: {mix:70, capture:70, rate:60, tenor:30, dist:250, conn:200},
+    def: {mix:70, capture:70, rate:60, tenor:30, dist:250, conn:200,
+          years:10, noak:20},
     scale_bn: 90
   };
 
@@ -941,9 +963,8 @@ fetch('data.json').then(r=>r.json()).then(d=>{
     const pv = (a, r, n) => r ? a * (1 - Math.pow(1 + r, -n)) / r : a * n;
 
     function compute(){
-      const r = S.rate / 1000, n = S.tenor;
-      const financeBn = pv(savingBn * S.capture / 100, r, n);
-      const netShare  = S.mix / 100;
+      const r = S.rate / 1000, n = S.tenor, yrs = S.years;
+      const netShare = S.mix / 100;
       // heat-delivered weighting: the classes are already per annual MWh,
       // so the blend is a straight share weighting on delivered heat
       const net = CAPITAL.classes.filter(c => c.key !== 'gshp');
@@ -954,12 +975,36 @@ fetch('data.json').then(r=>r.json()).then(d=>{
       // network connection; its pipework is already inside its own class
       // anchor. Applying the adders to the whole strip would charge the
       // GSHP share for a network it is not on.
-      const netAll = netCe + S.dist + S.conn;
-      const blend = (netShare * netAll + (1 - netShare) * gshp.ce)
-                    * (1 + CAPITAL.devex);
-      const buildBn = blend * stripTWh * 1e6 / 1e9;
-      const hurdle  = financeBn * 1e9 / (stripTWh * 1e6);
-      return {financeBn, buildBn, blend, hurdle,
+      const plant  = netShare * netCe + (1 - netShare) * gshp.ce;
+      const adders = netShare * (S.dist + S.conn);
+      const blend  = (plant + adders) * (1 + CAPITAL.devex);
+
+      // ---- over the build ------------------------------------------------
+      // Savings accrue as the fleet is built, not on day one; capital is
+      // spent across the same period and discounted where it falls. The two
+      // effects very nearly cancel, which is the point of modelling them:
+      // it closes the objection rather than moving the answer.
+      const captured = savingBn * S.capture / 100;
+      let financeBn = 0;
+      for(let t = 1; t <= n; t++){
+        financeBn += (Math.min(t, yrs) / yrs) * captured / Math.pow(1 + r, t);
+      }
+      // Cost improvement is a FOAK-to-NOAK level shift reached by the end of
+      // the build, NOT a compounding annual rate: a rate compounded over a
+      // decade implies a fall no heat infrastructure has ever delivered.
+      // It applies to plant and subsurface only. Trench excavation and
+      // building connections are civils and labour and do not learn - which
+      // is why the gap does not close by waiting.
+      let buildBn = 0;
+      for(let t = 1; t <= yrs; t++){
+        const f = 1 - (S.noak / 100) * (yrs > 1 ? (t - 1) / (yrs - 1) : 0);
+        const yb = (plant * f + adders) * (1 + CAPITAL.devex);
+        buildBn += (yb * stripTWh * 1e6 / 1e9) / yrs
+                   / Math.pow(1 + r, t - 0.5);
+      }
+      const hurdle = financeBn * 1e9 / (stripTWh * 1e6);
+      return {financeBn, buildBn, blend, hurdle, plant, adders,
+              adderShare: 100 * adders / (plant + adders),
               cov: 100 * financeBn / buildBn,
               gapBn: buildBn - financeBn};
     }
@@ -1004,6 +1049,8 @@ fetch('data.json').then(r=>r.json()).then(d=>{
       document.getElementById('cap_tenor_v').textContent   = S.tenor + ' yr';
       document.getElementById('cap_dist_v').textContent    = '\u00a3' + S.dist;
       document.getElementById('cap_conn_v').textContent    = '\u00a3' + S.conn;
+      document.getElementById('cap_years_v').textContent   = S.years + ' yr';
+      document.getElementById('cap_noak_v').textContent    = pc(S.noak);
 
       let moved = false;
       Object.keys(CAPITAL.def).forEach(k => {
@@ -1026,7 +1073,15 @@ fetch('data.json').then(r=>r.json()).then(d=>{
         'heat delivered rather than capacity. Build cost excludes ' +
         'operations and assumes the fleet exists from day one; savings ' +
         'accrue as it is built. Finance is a simple annuity, not a ' +
-        'debt-sizing. Distribution and connections are charged to the ' +
+        'debt-sizing, and it runs from the first year of construction ' +
+        'rather than per tranche. The build is spread over ' + S.years +
+        ' years with savings ramping as the fleet completes; cost ' +
+        'improvement is a first-of-a-kind to mature-supply-chain level ' +
+        'shift reached by the last year\u2020, not a compounding annual ' +
+        'rate, and it touches plant and subsurface only \u2014 at these ' +
+        'settings ' + Math.round(c.adderShare) + '% of the build is trench ' +
+        'and connection, which is excavation and labour and does not learn. ' +
+        'Distribution and connections are charged to the ' +
         'network share only - an individual ground-source install has no ' +
         'main and no connection, and its pipework already sits inside its ' +
         'own unit capital. Development and permits are added at ' +
@@ -1074,7 +1129,8 @@ fetch('data.json').then(r=>r.json()).then(d=>{
       'advantage is operational and in the hundred-year life of the ' +
       'groundworks, not in cheaper pipe.';
 
-    ['mix','capture','rate','tenor','dist','conn'].forEach(k => {
+    ['mix','capture','rate','tenor','dist','conn','years','noak']
+      .forEach(k => {
       const el = document.getElementById('cap_' + k);
       el.value = CAPITAL.def[k];
       el.addEventListener('input', () => {
@@ -1224,13 +1280,18 @@ fetch('data.json').then(r=>r.json()).then(d=>{
       pts.splice(4, 0, {
         n:'05', fig: Math.round(cap.cov) + '', unit:'%', warn:true,
         href:'#capitalpanel',
-        claim:'The savings carry most of the capital, not all of it.',
+        claim:'Two fifths of the build pays for itself out of the energy ' +
+              'it saves.',
         qual:'\u00a3' + savBn.toFixed(1) + 'bn a year of avoided energy cost ' +
              'services about \u00a3' + Math.round(cap.financeBn) + 'bn of ' +
              'thirty-year finance, against a \u00a3' + Math.round(cap.buildBn) +
-             'bn build at European benchmark cost\u2020. The \u00a3' +
-             Math.round(cap.gapBn) + 'bn gap is the policy question \u2014 and ' +
-             'it narrows as the mix moves to networks.',
+             'bn build over ten years at European benchmark cost\u2020. The ' +
+             'remaining \u00a3' + Math.round(cap.gapBn) + 'bn is the policy ' +
+             'question. It narrows sharply if the fifth is built as networks ' +
+             'rather than one installation at a time \u2014 and it does not ' +
+             'close by waiting: ' + Math.round(cap.adderShare) + '% of the ' +
+             'build is trench and connection, which is excavation and ' +
+             'labour, and does not get cheaper.',
         ev:'the capital panel'});
     }
 
