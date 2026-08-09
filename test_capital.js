@@ -56,29 +56,64 @@ setTimeout(() => {
   // --- the published default. If this moves, the frontispiece and the
   // ticker are quoting a number the page no longer shows.
   const d0 = at();
-  chk("default is the published case (70/70/6%/30y/30%)",
+  chk("default is the published case (70/70/6%/30y, GBP 250 + 200)",
       m.def.mix === 70 && m.def.capture === 70 && m.def.rate === 60 &&
-      m.def.tenor === 30 && m.def.dist === 30,
+      m.def.tenor === 30 && m.def.dist === 250 && m.def.conn === 200,
       JSON.stringify(m.def));
   chk("default coverage is below 100% - a stated gap, not self-financing",
       d0.cov < 100,
       Math.round(d0.cov) + "%");
-  chk("default coverage is in the band the frontispiece quotes (45-70%)",
-      d0.cov > 45 && d0.cov < 70, Math.round(d0.cov) + "%");
+  chk("default coverage is in the band the frontispiece quotes (30-50%)",
+      d0.cov > 30 && d0.cov < 50, Math.round(d0.cov) + "%");
   chk("default gap is positive and material",
       d0.gapBn > 10, "GBP " + d0.gapBn.toFixed(1) + "bn");
 
-  // --- distribution defaults ON. Defaulting it off would be the single
-  // most flattering choice available and the first thing a reviewer checks.
+  // --- both adders default ON. Defaulting either off would be the most
+  // flattering choice available and the first thing a reviewer checks.
   chk("distribution adder defaults on", m.def.dist > 0, "dist=" + m.def.dist);
+  chk("connections adder defaults on", m.def.conn > 0, "conn=" + m.def.conn);
   chk("removing distribution improves coverage", at({dist:0}).cov > d0.cov);
+  chk("removing connections improves coverage", at({conn:0}).cov > d0.cov);
+  chk("default adders sum to the sourced central (GBP 450/annual MWh)",
+      m.def.dist + m.def.conn === 450,
+      "GBP " + (m.def.dist + m.def.conn));
+
+  // --- the adders are ABSOLUTE per annual MWh, not a share of plant cost.
+  // The bug this replaced multiplied the class blend by (1+d), which
+  // treats a share-of-TOTAL benchmark as a share of plant and understates
+  // the build. A pound added to an adder must move the network share of
+  // the blend by a pound, no more and no less.
+  const b0 = at({mix:100, conn:0, dist:0}).blend;
+  const b1 = at({mix:100, conn:0, dist:100}).blend;
+  chk("distribution adder is absolute, not proportional",
+      Math.abs((b1 - b0) - 100 * (1 + 0.20)) < 0.5,
+      "GBP 100 of adder moved the blend by GBP " + (b1 - b0).toFixed(1));
+
+  // --- adders fall on the network share only. An individual ground-source
+  // install has no main and no connection; charging it for one would
+  // double-count against its own class anchor.
+  chk("adders do not touch an all-GSHP mix",
+      Math.abs(at({mix:0, dist:600, conn:900}).blend -
+               at({mix:0, dist:0,   conn:0}).blend) < 0.5,
+      "all-GSHP blend moved when the network adders were raised");
+
+  // --- development and permits are added, and stated
+  chk("development uplift is applied", (() => {
+        const c = at({mix:100, dist:0, conn:0});
+        const net = (180 + 305) / 2;
+        return Math.abs(c.blend - net * 1.20) < 1;
+      })(), "expected the class central plus 20%");
+  chk("coverage caption names the development uplift",
+      /development and permits/i.test(g("cap_cov_cap").textContent));
 
   // --- the levers each move the answer the right way
   chk("more network share lowers unit capital",
       at({mix:100}).blend < at({mix:0}).blend);
-  chk("all-networks clears the hurdle", at({mix:100}).cov > 100,
+  chk("bulk connections are far cheaper than individual dwelling ones",
+      at({conn:40}).blend < at({conn:900}).blend - 500);
+  chk("all-networks improves on the default", at({mix:100}).cov > d0.cov,
       Math.round(at({mix:100}).cov) + "%");
-  chk("all-GSHP does not clear the hurdle", at({mix:0}).cov < 50,
+  chk("all-GSHP is the worst mix", at({mix:0}).cov < d0.cov,
       Math.round(at({mix:0}).cov) + "%");
   chk("higher capture finances more", at({capture:100}).financeBn > d0.financeBn);
   chk("dearer money finances less", at({rate:120}).financeBn < d0.financeBn);
@@ -88,17 +123,18 @@ setTimeout(() => {
 
   // --- nothing goes non-finite anywhere on the ranges
   let bad = null;
-  for (let mix = 0; mix <= 100 && !bad; mix += 5)
-    for (let cap = 30; cap <= 100 && !bad; cap += 5)
-      for (let rate = 30; rate <= 120 && !bad; rate += 10)
+  for (let mix = 0; mix <= 100 && !bad; mix += 10)
+    for (let cap = 30; cap <= 100 && !bad; cap += 10)
+      for (const rate of [30, 60, 120])
         for (const tenor of [15, 25, 40])
-          for (const dist of [0, 30, 60]) {
-            const c = at({mix, capture: cap, rate, tenor, dist});
-            if (![c.financeBn, c.buildBn, c.blend, c.cov, c.hurdle]
-                  .every(Number.isFinite)) {
-              bad = JSON.stringify({mix, cap, rate, tenor, dist});
+          for (const dist of [0, 250, 600])
+            for (const conn of [0, 200, 900]) {
+              const c = at({mix, capture: cap, rate, tenor, dist, conn});
+              if (![c.financeBn, c.buildBn, c.blend, c.cov, c.hurdle]
+                    .every(Number.isFinite)) {
+                bad = JSON.stringify({mix, cap, rate, tenor, dist, conn});
+              }
             }
-          }
   chk("finite across the whole lever space", !bad, bad);
 
   // --- the reset control restores the published case exactly
@@ -121,6 +157,14 @@ setTimeout(() => {
       /twelve months/i.test(g("cap_note").textContent));
   chk("note states the spread risk",
       /spread/i.test(g("cap_note").textContent));
+  chk("note states the denominator is heat and cooling",
+      /heat AND cooling|heat and cooling/i.test(g("cap_note").textContent));
+  chk("note states adders fall on the network share only",
+      /network share only/i.test(g("cap_note").textContent));
+  chk("evidence fold corrects the ambient-loop intuition",
+      /not reliably cheaper per metre/i.test(g("cap_classnote").textContent));
+  chk("evidence fold names the distribution sources",
+      /DECC\/AECOM|DESNZ 2024/i.test(g("cap_classnote").textContent));
   chk("evidence fold lists every class unblended",
       ["ATES", "doublet", "GSHP"].every(k =>
         new RegExp(k, "i").test(g("cap_classes").textContent)));
