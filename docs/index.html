@@ -71,6 +71,40 @@
   .whatifrow{border:1px solid var(--geo);border-radius:6px;padding:14px 18px;margin-top:18px;
              background:linear-gradient(180deg,rgba(58,170,53,.07),rgba(58,170,53,.02))}
   .whatifrow .wtitle{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.06em;color:var(--geo);margin-bottom:8px}
+  /* ---- capital panel (the only panel on this site with user inputs) ---- */
+  .capital{border:1px dashed var(--geo);border-radius:6px;padding:18px;margin-top:8px;
+           background:linear-gradient(180deg,rgba(58,170,53,.05),transparent)}
+  .capital .kind{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.07em;
+                 color:var(--geo);text-transform:uppercase}
+  .capital .kindsub{font-size:13px;color:var(--muted);margin-top:4px;max-width:62ch}
+  .capbars{margin-top:20px}
+  .capbar{position:relative;height:34px;background:var(--surface);
+          border:1px solid var(--line);border-radius:3px;overflow:hidden}
+  .capbar .fill{position:absolute;inset:0 auto 0 0;background:var(--geo);opacity:.55;
+                transition:width .18s ease}
+  .capbar .short{position:absolute;inset:0 0 0 auto;background:
+     repeating-linear-gradient(45deg,rgba(228,87,46,.5) 0 5px,transparent 5px 10px);
+                 border-left:1px solid var(--ember);transition:width .18s ease}
+  .capbar .lab{position:absolute;left:10px;top:50%;transform:translateY(-50%);
+               font-family:"IBM Plex Mono";font-size:12px;color:var(--paper)}
+  .capbar .rlab{position:absolute;right:10px;top:50%;transform:translateY(-50%);
+                font-family:"IBM Plex Mono";font-size:12px;color:var(--muted)}
+  .capscale{display:flex;justify-content:space-between;font-family:"IBM Plex Mono";
+            font-size:11px;color:var(--muted);margin-top:5px}
+  .caplevers{display:grid;grid-template-columns:1fr 1fr;gap:16px 26px;margin-top:22px}
+  @media (max-width:640px){.caplevers{grid-template-columns:1fr}}
+  .lever label{display:flex;justify-content:space-between;align-items:baseline;
+               font-size:13px;color:var(--muted);gap:10px}
+  .lever label b{font-family:"IBM Plex Mono";font-size:14px;color:var(--paper);font-weight:500}
+  .lever label b.moved{color:var(--elec)}
+  .lever input[type=range]{width:100%;margin:7px 0 0;accent-color:var(--geo);height:20px}
+  .lever .hint{font-size:11.5px;color:var(--ash);margin-top:2px}
+  .capreset{margin-top:16px;font-family:"IBM Plex Mono";font-size:12px;
+            background:none;border:1px solid var(--line);color:var(--muted);
+            border-radius:4px;padding:6px 12px;cursor:pointer}
+  .capreset:hover,.capreset:focus-visible{border-color:var(--geo);color:var(--geo)}
+  .capreset[hidden]{display:none}
+
   .whatifrow .statrow{margin-top:0}
   .whatifrow .fig{color:var(--geo)}
   .fig{font-family:"IBM Plex Mono";font-weight:500}
@@ -285,6 +319,77 @@
         <h2 style="margin-top:26px;font-size:16px">The same fleets, calibrated — share of each country's own buildings heat</h2>
         <div id="emptysharesplot" style="width:100%;height:240px;margin-top:10px"></div>
         <p class="costnote" id="emptybarnote"></p>
+      </div>
+      <div id="capitalpanel" style="display:none">
+        <h2 style="margin-top:30px">Does the saving pay for the build?</h2>
+        <div class="capital">
+          <div class="kind">Calculator — not a live estimate</div>
+          <p class="kindsub">Every other figure on this page is computed from
+            public feeds. This one is a model: the saving is live, the finance
+            and build-cost assumptions are yours to move. Defaults are the case
+            Causeway publishes; move a lever and it turns amber.</p>
+
+          <div class="statrow" style="grid-template-columns:repeat(3,1fr);margin-top:20px">
+            <div class="stat"><div class="fig" id="cap_fin">—</div>
+              <div class="cap" id="cap_fin_cap">of finance the saving services</div></div>
+            <div class="stat"><div class="fig" id="cap_cov">—</div>
+              <div class="cap" id="cap_cov_cap">of the build cost covered</div></div>
+            <div class="stat"><div class="fig" id="cap_gap">—</div>
+              <div class="cap" id="cap_gap_cap">the gap</div></div>
+          </div>
+
+          <div class="capbars">
+            <div class="capbar" id="cap_bar">
+              <div class="fill" id="cap_fill" style="width:0%"></div>
+              <div class="short" id="cap_short" style="width:0%"></div>
+              <span class="lab" id="cap_barlab"></span>
+              <span class="rlab" id="cap_barrlab"></span>
+            </div>
+            <div class="capscale"><span>£0</span><span id="cap_scale">—</span></div>
+          </div>
+
+          <div class="caplevers" id="cap_levers">
+            <div class="lever">
+              <label for="cap_mix">Share delivered by networks, ATES and doublets
+                <b id="cap_mix_v">—</b></label>
+              <input type="range" id="cap_mix" min="0" max="100" step="5">
+              <div class="hint">The rest is individual ground-source. Weighted on
+                heat delivered, not capacity.</div>
+            </div>
+            <div class="lever">
+              <label for="cap_capture">Saving captured by the investor
+                <b id="cap_capture_v">—</b></label>
+              <input type="range" id="cap_capture" min="30" max="100" step="5">
+              <div class="hint">The rest stays with the customer — that is the
+                offer that wins the connection.</div>
+            </div>
+            <div class="lever">
+              <label for="cap_rate">Cost of capital <b id="cap_rate_v">—</b></label>
+              <input type="range" id="cap_rate" min="30" max="120" step="5">
+              <div class="hint">Real, on a regulated-infrastructure basis.</div>
+            </div>
+            <div class="lever">
+              <label for="cap_tenor">Tenor <b id="cap_tenor_v">—</b></label>
+              <input type="range" id="cap_tenor" min="15" max="40" step="5">
+              <div class="hint">Asset lives run longer; the finance rarely does.</div>
+            </div>
+            <div class="lever">
+              <label for="cap_dist">Distribution added to build cost
+                <b id="cap_dist_v">—</b></label>
+              <input type="range" id="cap_dist" min="0" max="60" step="5">
+              <div class="hint">No subsurface benchmark includes it. Typically
+                30–50% of a heat-network scheme.</div>
+            </div>
+          </div>
+
+          <button class="capreset" id="cap_reset" hidden>Reset to published case</button>
+        </div>
+        <p class="costnote" id="cap_note"></p>
+        <details class="fold" id="fold_cap"><summary><b>EVIDENCE —
+          unit capital by class, and where these numbers come from</b></summary>
+          <div class="foldbody"><div id="cap_classes"></div>
+            <p class="geosub" id="cap_classnote" style="margin-top:12px"></p></div>
+        </details>
       </div>
       <p class="geosub" style="margin-top:16px">Geothermal heat is steady,
         local, combustion-free — and the same boreholes and aquifers that heat in
@@ -649,6 +754,197 @@ fetch('data.json').then(r=>r.json()).then(d=>{
     };
     window.drawEnergyBars(null);
   }
+
+  // ---- capital panel: does the saving pay for the build? -----------------
+  // The ONLY panel on this site driven by user inputs. The saving is live;
+  // everything else is a stated assumption with a published default.
+  //
+  // Unit capital is held per class in GBP per annual MWh delivered, NOT per
+  // kW. Weighting per-kW figures by capacity over-weights individual GSHP
+  // by 3-4x, because equivalent full-load hours run ~1,800 h for a domestic
+  // ground-source system against 5,400-6,000 h for a baseload doublet.
+  // Sources: Arup/DESNZ 2025 (DESNZ-ARP-REP-0003) and the European
+  // comparator review, real 2025 GBP. Every one carries a dagger.
+  const CAPITAL = {
+    classes: [
+      {key:'ates',   name:'ATES, above 2 MW',        lo:100,  ce:180,  hi:260,
+       eflh:'2,000-2,500 h',
+       note:'Hardest datapoint here - 133 systems in NL, BE and DK converge ' +
+            'to about GBP 255/kW above 2 MW.'},
+      {key:'doublet',name:'Intermediate doublet',     lo:290,  ce:305,  hi:320,
+       eflh:'5,400-6,000 h',
+       note:'Thinnest evidence - genuine sub-2 km European doublets are ' +
+            'scarce, so this leans on Paris Dogger and Dutch analogues. ' +
+            'Subsidy models understate outturn.'},
+      {key:'gshp',   name:'Individual GSHP, vertical',lo:700,  ce:1300, hi:1670,
+       eflh:'1,800 h',
+       note:'Arup medium construction GBP 2,308/kW, corroborated by UK ' +
+            'market quotes of GBP 1,750-3,000/kW. Load factor, not ' +
+            'technology, is what puts it here.'}
+    ],
+    // published case - the figures the frontispiece and ticker quote
+    def: {mix:70, capture:70, rate:60, tenor:30, dist:30},
+    scale_bn: 90
+  };
+
+  (function(){
+    const box = document.getElementById('capitalpanel');
+    if(!box || !Array.isArray(d.history)) return;
+
+    // --- the one live input: trailing 12 months of saving, GBP bn/yr.
+    // Pinned to 12m regardless of the trend selector: an August week saves
+    // almost nothing, and a capital figure driven off one warm week would
+    // swing with the weather rather than the case.
+    const wks = d.history.filter(e => e && e.week_ending &&
+                  e.whatif && typeof e.bill_Mgbp === 'number')
+                  .sort((a,b) => a.week_ending < b.week_ending ? -1 : 1)
+                  .slice(-52);
+    if(wks.length < 26){ return; }                 // too short to annualise
+    const billM   = wks.reduce((a,e) => a + e.bill_Mgbp, 0);
+    const whatifM = wks.reduce((a,e) => a + e.whatif.bill_Mgbp, 0);
+    const savingBn = (billM - whatifM) / 1000;
+    const weeks = wks.length;
+
+    // delivered heat and cool in the 20% strip, annual TWh - the denominator
+    // the class capital figures are quoted against
+    const stripTWh = wks.reduce((a,e) =>
+        a + ((e.heat_GWh || 0) + (e.cooling_GWh || 0)
+             - (e.whatif.heat_GWh || 0) - (e.whatif.cooling_GWh || 0)), 0) / 1000
+      || (d.geothermal && d.geothermal.hardware
+          ? 0.20 * d.geothermal.hardware.useful_heat_annual_TWh : 0);
+    if(!(savingBn > 0) || !(stripTWh > 0)) return;
+
+    const S = Object.assign({}, CAPITAL.def);
+    const gbp = n => '\u00a3' + n.toFixed(n < 10 ? 1 : 0) + 'bn';
+    const pv = (a, r, n) => r ? a * (1 - Math.pow(1 + r, -n)) / r : a * n;
+
+    function compute(){
+      const r = S.rate / 1000, n = S.tenor;
+      const financeBn = pv(savingBn * S.capture / 100, r, n);
+      const netShare  = S.mix / 100;
+      // heat-delivered weighting: the classes are already per annual MWh,
+      // so the blend is a straight share weighting on delivered heat
+      const net = CAPITAL.classes.filter(c => c.key !== 'gshp');
+      const netCe = net.reduce((a,c) => a + c.ce, 0) / net.length;
+      const gshp  = CAPITAL.classes.find(c => c.key === 'gshp');
+      const blend = (netShare * netCe + (1 - netShare) * gshp.ce)
+                    * (1 + S.dist / 100);
+      const buildBn = blend * stripTWh * 1e6 / 1e9;
+      const hurdle  = financeBn * 1e9 / (stripTWh * 1e6);
+      return {financeBn, buildBn, blend, hurdle,
+              cov: 100 * financeBn / buildBn,
+              gapBn: buildBn - financeBn};
+    }
+
+    function render(){
+      const c = compute();
+      const pc = n => Math.round(n) + '%';
+      document.getElementById('cap_fin').textContent = gbp(c.financeBn);
+      document.getElementById('cap_cov').innerHTML = Math.round(c.cov) +
+        '<small> %</small>';
+      document.getElementById('cap_gap').textContent =
+        c.gapBn > 0 ? gbp(c.gapBn) : gbp(0);
+      document.getElementById('cap_fin_cap').textContent =
+        'of infrastructure finance serviced by \u00a3' + savingBn.toFixed(1) +
+        'bn a year of avoided energy cost, at ' + (S.rate / 10).toFixed(1) +
+        '% over ' + S.tenor + ' years';
+      document.getElementById('cap_cov_cap').textContent =
+        'of a \u00a3' + Math.round(c.buildBn) + 'bn build \u2014 \u00a3' +
+        Math.round(c.blend) + ' per annual MWh delivered\u2020';
+      document.getElementById('cap_gap_cap').textContent = c.gapBn > 0
+        ? 'left to find from grant, regulated return or a longer tenor'
+        : 'no gap at these assumptions \u2014 the saving covers the build';
+
+      // scale follows the larger of the published scale and this build, so
+      // the axis label never contradicts the bar
+      const sc = Math.max(CAPITAL.scale_bn,
+                          10 * Math.ceil(c.buildBn / 10));
+      const fw = Math.max(0, Math.min(100, 100 * c.financeBn / sc));
+      const sw = Math.max(0, Math.min(100 - fw, 100 * Math.max(0, c.gapBn) / sc));
+      document.getElementById('cap_fill').style.width  = fw + '%';
+      document.getElementById('cap_short').style.width = sw + '%';
+      document.getElementById('cap_barlab').textContent =
+        'financed ' + gbp(c.financeBn);
+      document.getElementById('cap_barrlab').textContent = c.gapBn > 0
+        ? 'gap ' + gbp(c.gapBn) : '';
+      document.getElementById('cap_scale').textContent = '\u00a3' + sc + 'bn';
+
+      document.getElementById('cap_mix_v').textContent     = pc(S.mix);
+      document.getElementById('cap_capture_v').textContent = pc(S.capture);
+      document.getElementById('cap_rate_v').textContent    = (S.rate/10).toFixed(1) + '%';
+      document.getElementById('cap_tenor_v').textContent   = S.tenor + ' yr';
+      document.getElementById('cap_dist_v').textContent    = pc(S.dist);
+
+      let moved = false;
+      Object.keys(CAPITAL.def).forEach(k => {
+        const b = document.getElementById('cap_' + k + '_v');
+        const m = S[k] !== CAPITAL.def[k];
+        if(m) moved = true;
+        if(b) b.classList.toggle('moved', m);
+      });
+      document.getElementById('cap_reset').hidden = !moved;
+
+      document.getElementById('cap_note').textContent =
+        'The saving is live: ' + weeks + ' complete weeks of the trailing ' +
+        'year, pinned to twelve months whatever the trend selector shows, ' +
+        'because a single August week saves almost nothing. It is the ' +
+        'difference between what Britain paid for heat and cooling and what ' +
+        'the 20% what-if would have paid, so it is already net of the ' +
+        'replacement electricity - but it is a price differential, not a ' +
+        'physical quantity, and it narrows if the gas-electricity spread ' +
+        'narrows. Unit capital is per annual MWh delivered\u2020, blended on ' +
+        'heat delivered rather than capacity. Build cost excludes ' +
+        'operations and assumes the fleet exists from day one; savings ' +
+        'accrue as it is built. Finance is a simple annuity, not a ' +
+        'debt-sizing.';
+    }
+
+    // evidence fold: the classes, unblended, so the blend can be checked
+    document.getElementById('cap_classes').innerHTML =
+      '<table style="width:100%;border-collapse:collapse;font-size:13.5px">' +
+      '<tr style="color:var(--muted);text-align:left">' +
+      '<th style="padding:5px 8px 5px 0">Class</th>' +
+      '<th style="padding:5px 8px">\u00a3 per annual MWh\u2020</th>' +
+      '<th style="padding:5px 8px">Full-load hours</th></tr>' +
+      CAPITAL.classes.map(c =>
+        '<tr style="border-top:1px solid var(--line)">' +
+        '<td style="padding:7px 8px 7px 0">' + c.name +
+        '<div style="color:var(--ash);font-size:12px;max-width:44ch">' +
+        c.note + '</div></td>' +
+        '<td style="padding:7px 8px;font-family:\'IBM Plex Mono\'">' +
+        c.lo + '\u2013' + c.hi + '</td>' +
+        '<td style="padding:7px 8px;font-family:\'IBM Plex Mono\';color:var(--muted)">' +
+        c.eflh + '</td></tr>').join('') + '</table>';
+    document.getElementById('cap_classnote').textContent =
+      'Real 2025 GBP, from the Arup/DESNZ 2025 UK review ' +
+      '(DESNZ-ARP-REP-0003) and a European comparator study. None of these ' +
+      'includes distribution, which is why it is a separate lever. The ' +
+      'classes do not converge: at the published case the networks clear ' +
+      'the hurdle comfortably and individual ground-source does not, which ' +
+      'is the substantive finding rather than the blended number. The ' +
+      'network share is split evenly between ATES and doublets\u2020 - a ' +
+      'placeholder until a deployment mix is assumed, and it moves the ' +
+      'blend by about \u00a360 per annual MWh either way.';
+
+    ['mix','capture','rate','tenor','dist'].forEach(k => {
+      const el = document.getElementById('cap_' + k);
+      el.value = CAPITAL.def[k];
+      el.addEventListener('input', () => {
+        S[k] = +el.value; render();
+      });
+    });
+    document.getElementById('cap_reset').addEventListener('click', () => {
+      Object.keys(CAPITAL.def).forEach(k => {
+        S[k] = CAPITAL.def[k];
+        document.getElementById('cap_' + k).value = CAPITAL.def[k];
+      });
+      render();
+    });
+
+    box.style.display = 'block';
+    render();
+    window.capitalModel = {compute, S, def: CAPITAL.def, savingBn, stripTWh};
+  })();
 
   if(d.peak_week){
     document.getElementById('peakctx').textContent =
