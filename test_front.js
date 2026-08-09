@@ -125,6 +125,38 @@ setTimeout(() => {
   chk("only one trend control on the page",
       doc.querySelectorAll("#trendctl").length === 1);
 
+  // --- the floating back-to nav
+  const nav = g("backnav");
+  const navb = nav ? [...nav.querySelectorAll("button")] : [];
+  chk("back-to nav exists with two buttons", navb.length === 2,
+      navb.length + " buttons");
+  chk("nav has an accessible name", !!(nav && nav.getAttribute("aria-label")));
+  chk("both nav targets resolve",
+      navb.every(b => !!g(b.dataset.to)),
+      navb.map(b => b.dataset.to).join(", "));
+  chk("nav points at the case and the starting point",
+      navb.map(b => b.dataset.to).join(",") === "front,startline");
+  // Scroll moves the viewport, not the keyboard. Without tabindex the
+  // targets cannot take focus and a keyboard user is left in the footer.
+  chk("both targets can take focus",
+      navb.every(b => g(b.dataset.to).getAttribute("tabindex") === "-1"));
+  chk("nav is hidden until the reader scrolls past the case",
+      !nav.classList.contains("show"));
+  if (typeof w.backnavTick === "function") {
+    g("front").getBoundingClientRect = () => ({bottom: -40, top: -300});
+    w.backnavTick();
+    chk("nav appears once the case has scrolled away",
+        nav.classList.contains("show"));
+    g("front").getBoundingClientRect = () => ({bottom: 300, top: 20});
+    w.backnavTick();
+    chk("nav hides again at the top", !nav.classList.contains("show"));
+  }
+  const jumped = [];
+  w.Element.prototype.scrollIntoView = function(){ jumped.push(this.id); };
+  navb.forEach(b => b.dispatchEvent(new w.MouseEvent("click", {bubbles: true})));
+  chk("each button scrolls to its own target",
+      jumped.join(",") === "front,startline", jumped.join(","));
+
   console.log(fail.length ? "\n" + fail.length + " FAILED" : "\nall passed");
   process.exit(fail.length ? 1 : 0);
 }, 600);
