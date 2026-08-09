@@ -26,6 +26,39 @@
   .wordmark{font-family:Lato;font-weight:900;font-size:22px;color:var(--geo);letter-spacing:.04em}
   .wordmark em{font-style:normal;color:var(--paper);font-weight:500;margin-left:7px}
   .brand{font-family:Lato;font-weight:900;letter-spacing:.03em;font-size:clamp(34px,6vw,52px);line-height:1.05}
+  /* the only italic on the page. "Shift" is the argument; everything else
+     here measures the thing that has not shifted yet. */
+  .brand i{font-style:italic;color:var(--geo);font-weight:900}
+  .standfirst{font-size:clamp(17px,2.3vw,21px);line-height:1.35;color:var(--paper);
+              padding:14px 0 2px;max-width:none}
+  /* ---- frontispiece: the case in six figures ------------------------- */
+  .front{margin-top:30px;border-top:1px solid var(--geo);
+         border-bottom:1px solid var(--line)}
+  .frontlead{font-family:"IBM Plex Mono";font-size:11.5px;letter-spacing:.09em;
+             text-transform:uppercase;color:var(--geo);padding:14px 0 2px}
+  .frontsub{font-size:14px;color:var(--muted);padding-bottom:20px;max-width:64ch}
+  .points{display:grid;grid-template-columns:1fr 1fr;gap:0}
+  @media (max-width:720px){.points{grid-template-columns:1fr}}
+  .pt{padding:22px 26px 24px 0;border-top:1px solid var(--line)}
+  @media (min-width:721px){
+    .points>.pt:nth-child(odd){padding-right:34px}
+    .points>.pt:nth-child(even){padding-left:26px;border-left:1px solid var(--line)}
+  }
+  /* numerals earn their place: the six are an argument in order, and a
+     reader dropping in halfway needs to know where they are in it */
+  .pt .n{font-family:"IBM Plex Mono";font-size:11px;color:var(--ash);letter-spacing:.12em}
+  .pt .fig{font-family:"IBM Plex Mono";font-size:clamp(27px,4.4vw,40px);
+           font-weight:500;line-height:1.05;margin-top:6px;color:var(--geo)}
+  .pt .fig small{font-size:.42em;color:var(--paper);letter-spacing:.02em;margin-left:5px}
+  .pt .fig.warn{color:var(--ember)}
+  .pt .claim{font-weight:700;font-size:17px;line-height:1.3;margin-top:10px}
+  .pt .qual{font-size:13.5px;line-height:1.45;color:var(--muted);margin-top:7px}
+  .pt .ev{display:inline-block;margin-top:11px;font-family:"IBM Plex Mono";
+          font-size:11.5px;color:var(--muted);text-decoration:none;
+          border-bottom:1px solid var(--line);padding-bottom:2px}
+  .pt .ev:hover,.pt .ev:focus-visible{color:var(--geo);border-color:var(--geo)}
+  .frontfoot{font-size:12.5px;color:var(--ash);padding:18px 0 22px;max-width:78ch}
+  #front[hidden]{display:none}
   .tickbox{text-align:right}
   .ticker{font-family:"IBM Plex Mono";font-size:15px;line-height:1.55;
           border:1px solid var(--geo);border-radius:6px;padding:12px 16px;
@@ -189,17 +222,39 @@
            onerror="this.style.display='none';this.nextElementSibling.style.display='inline'">
       <span class="wordmark" style="display:none">CAUSEWAY<em>ENERGIES</em></span>
     </a>
-    <div class="brand">UK HEAT SPLIT</div>
+    <div class="brand">UK Heat <i>Shift</i></div>
   </div>
   <div class="tickbox">
     <div class="ticker" id="ticker"></div>
     <div class="stamp" id="stamp">loading…</div>
   </div>
-</div></header>
+</div>
+<div class="wrap"><p class="standfirst">The strategic case for GW-scale
+  geothermal heating and cooling in the UK</p></div>
+</header>
 
 <div class="wrap">
+  <section class="front" id="front" hidden>
+    <div class="frontlead">The case in six figures</div>
+    <p class="frontsub">Every number here is computed from the live estimate
+      below and restates with it. Daggers mark figures resting on Causeway
+      judgement rather than a published source.</p>
+    <div class="points" id="points"></div>
+    <p class="frontfoot" id="frontfoot"></p>
+  </section>
+
   <div class="hero">
-    <h1>How Britain <span class="ember">heated</span> and <span class="cool">cooled</span> itself this week.</h1>
+    <h1 id="startline">The starting point — how Britain
+      <span class="ember">heated</span> and <span class="cool">cooled</span>
+      itself <span id="startwin">in the last week</span>.</h1>
+    <div class="trendctl" id="trendctl" style="justify-content:flex-start;margin-top:14px" hidden>
+      <span>TREND — LIVE WEEKS</span>
+      <button data-win="2" aria-pressed="true">1w</button>
+      <button data-win="5">4w</button>
+      <button data-win="13">12w</button>
+      <button data-win="53">12m</button>
+      <span id="trendspan"></span>
+    </div>
     <p class="sub">A weekly estimate of the energy behind Britain's building heat and
       cooling, by source — and how much can be saved when geothermal is adopted. Gas space heating
       is estimated live from grid data; other sources are official annual figures
@@ -217,14 +272,6 @@
       <div class="stat"><div class="fig" id="st_carbon">—</div>
         <div class="cap" id="st_carbon_cap">heating &amp; cooling emissions this week</div>
         <div class="trend" data-trend="emissions_kt" data-good="down" hidden></div></div>
-    </div>
-    <div class="trendctl" id="trendctl" hidden>
-      <span>TREND — LIVE WEEKS</span>
-      <button data-win="2" aria-pressed="true">1w</button>
-      <button data-win="5">4w</button>
-      <button data-win="13">12w</button>
-      <button data-win="53">12m</button>
-      <span id="trendspan"></span>
     </div>
     <div class="whatifrow">
       <div class="wtitle" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">WHAT IF
@@ -245,7 +292,7 @@
     <div class="context" id="peakctx" style="margin-top:14px"></div>
   </div>
   <div class="hero">
-    <div class="barlabel">ENERGY IN — fuel &amp; electricity purchased<span id="barwin"></span></div>
+    <div class="barlabel" id="balancesection">ENERGY IN — fuel &amp; electricity purchased<span id="barwin"></span></div>
     <div class="barrow">
       <div class="btot" id="tot_in">—</div>
       <div class="mixbar" id="mixbar" aria-label="This week's heat and cooling mix — energy in"></div>
@@ -296,7 +343,7 @@
     <div id="rt_cop" style="width:100%;height:260px;margin-top:8px"></div>
     <p class="costnote" id="rt_note"></p>
   </section>
-  <section>
+  <section id="geosection">
     <div class="geo">
       <h2>Geothermal &amp; ground source — now and next</h2>
       <div class="geofig" id="geofig">—<small> GWh of heat from geothermal this week (estimate)</small></div>
@@ -411,7 +458,7 @@
         cooling forecast exists to cite.</p>
     </div>
   </section>
-  <section>
+  <section id="coolsection">
     <h2>Cooling: demand vs delivery</h2>
     <div class="barlabel">TIER 1 &amp; 2 — WHAT THE EQUIPPED FLEET DELIVERS</div>
     <div class="billline" id="coolobsline"></div>
@@ -435,7 +482,7 @@
     <p class="costnote" id="utesnote"></p>
     <p class="costnote" id="deficitnote"></p>
   </section>
-  <section>
+  <section id="costsection">
     <h2>What heat costs</h2>
     <div class="billline" id="billline"></div>
     <details class="fold" id="fold_cost"><summary>EVIDENCE —
@@ -998,6 +1045,123 @@ fetch('data.json').then(r=>r.json()).then(d=>{
     box.style.display = 'block';
     render();
     window.capitalModel = {compute, S, def: CAPITAL.def, savingBn, stripTWh};
+  })();
+
+  // ---- frontispiece: the case in six figures ----------------------------
+  // Runs after the capital panel so point 05 reads that panel's published
+  // default through capitalModel rather than carrying its own copy of the
+  // arithmetic. One derivation, two places on the page - they cannot drift.
+  (function(){
+    const box = document.getElementById('front');
+    if(!box || !Array.isArray(d.history)) return;
+    const hist = d.history.filter(e => e && e.week_ending && e.whatif)
+                   .sort((a,b) => a.week_ending < b.week_ending ? -1 : 1);
+    if(hist.length < 26) return;
+
+    // Pinned to twelve months whatever the toggle below is set to. In an
+    // August week Britain draws almost no heat; an annual case cannot be
+    // read off one of them.
+    const Y = hist.slice(-52);
+    const nf = (n, dp) => n.toLocaleString('en-GB',
+      {minimumFractionDigits: dp || 0, maximumFractionDigits: dp || 0});
+    const sum = f => Y.reduce((a, e) => a + f(e), 0);
+    const purTWh = sum(e => e.purchased_GWh) / 1000;
+    const billBn = sum(e => e.bill_Mgbp) / 1000;
+    const emMt   = sum(e => e.emissions_kt) / 1000;
+    const savBn  = sum(e => e.bill_Mgbp - e.whatif.bill_Mgbp) / 1000;
+
+    const lim = d.whatif_routes && d.whatif_routes.system
+              && d.whatif_routes.system.limits;
+    const cd  = d.comfort_deficit;
+    const hw  = d.geothermal && d.geothermal.hardware;
+    const sh  = hw && hw.share_of_national_heat;
+    if(!lim || !cd || !sh) return;
+    const cty = n => sh.countries.find(c => new RegExp(n).test(c.name)) || {};
+    const uk = cty('United Kingdom'), se = cty('Sweden'), nl = cty('Netherlands');
+    const comb = Math.round(100 * d.weekly_mix.combustion_share);
+    const cap = window.capitalModel ? window.capitalModel.compute() : null;
+
+    const pts = [
+      {n:'01', fig: nf(purTWh, 0), unit:'TWh', href:'#balancesection',
+       claim:'Heat is the largest thing Britain buys, and it is still fire.',
+       qual:'\u00a3' + nf(billBn,1) + 'bn and ' + nf(emMt,1) + ' Mt of ' +
+            'CO\u2082e over the last twelve months. ' + comb + '% of the ' +
+            'energy going in is combustion.',
+       ev:'the energy balance'},
+
+      {n:'02', fig:'\u00a3' + d.spark.gshp_heat_gbp_mwh.toFixed(2), unit:'/MWh',
+       href:'#costsection',
+       claim:'Geothermal heat is already the cheaper commodity.',
+       qual:'Against \u00a3' + d.spark.gas_boiler_heat_gbp_mwh.toFixed(2) +
+            '/MWh for gas-boiler heat at the latest wholesale prices \u2014 a ' +
+            'gap of \u00a3' + d.spark.gap_gbp_mwh.toFixed(2) + '. Commodity ' +
+            'only: excludes network, policy and supply costs.',
+       ev:'the daily spark gap'},
+
+      {n:'03', fig: nf(lim.routes.network.share_pct, 0), unit:'%',
+       href:'#routes',
+       claim:'Only geothermal networks fit inside the grid Britain already has.',
+       qual:'Of all building heat, electrified through networks without ' +
+            'exceeding today\u2019s winter capacity \u2014 against ' +
+            nf(lim.routes.shallow.share_pct,0) + '% ground source and ' +
+            nf(lim.routes.ashp.share_pct,0) + '% air source. ' +
+            lim.ratio_vs_air + '\u00d7 the heat for the same capacity. A ' +
+            'peak-capacity test, not an energy test; one winter is one sample.',
+       ev:'the electrification limit'},
+
+      {n:'04', fig:'1/' + Math.round(cd.elec_if_air_GWh / cd.elec_if_ground_GWh),
+       unit:'of the electricity', href:'#coolsection',
+       claim:'The same asset does cooling \u2014 and cooling is the part that grows.',
+       qual:'Meeting the central comfort deficit by ground draws ' +
+            cd.elec_if_ground_GWh + ' GWh against ' + cd.elec_if_air_GWh +
+            ' GWh air-source\u2020. Heat rejected in summer returns in winter ' +
+            'at ' + Math.round(100 * cd.utes.round_trip) + '% round trip. ' +
+            'Fewer than 5% of UK homes have air conditioning today.',
+       ev:'the comfort deficit'},
+
+      {n:'06', fig: uk.share_pct.toFixed(1), unit:'%', href:'#emptybar',
+       claim:'Britain is the outlier, not the pioneer.',
+       qual:'Geothermal serves ' + uk.share_pct + '% of UK buildings heat, ' +
+            'against ' + nl.share_pct + '% in the Netherlands and ' +
+            se.share_pct + '% in Sweden \u2014 whose existing fleet already ' +
+            'serves about the share this site\u2019s 20% what-if proposes. ' +
+            hw.per_person_W + ' installed thermal watts per person here, ' +
+            hw.sweden_per_person_W + ' there.',
+       ev:'installed hardware, four countries'}
+    ];
+
+    // 05 only exists if the capital panel initialised; if its payload were
+    // missing, a hard-coded figure here would quietly contradict the panel
+    if(cap){
+      pts.splice(4, 0, {
+        n:'05', fig: Math.round(cap.cov) + '', unit:'%', warn:true,
+        href:'#capitalpanel',
+        claim:'The savings carry most of the capital, not all of it.',
+        qual:'\u00a3' + savBn.toFixed(1) + 'bn a year of avoided energy cost ' +
+             'services about \u00a3' + Math.round(cap.financeBn) + 'bn of ' +
+             'thirty-year finance, against a \u00a3' + Math.round(cap.buildBn) +
+             'bn build at European benchmark cost\u2020. The \u00a3' +
+             Math.round(cap.gapBn) + 'bn gap is the policy question \u2014 and ' +
+             'it narrows as the mix moves to networks.',
+        ev:'the capital panel'});
+    }
+
+    document.getElementById('points').innerHTML = pts.map(p =>
+      '<div class="pt">' +
+        '<div class="n">' + p.n + '</div>' +
+        '<div class="fig' + (p.warn ? ' warn' : '') + '">' + p.fig +
+          '<small>' + p.unit + '</small></div>' +
+        '<div class="claim">' + p.claim + '</div>' +
+        '<div class="qual">' + p.qual + '</div>' +
+        '<a class="ev" href="' + p.href + '">\u2193 ' + p.ev + '</a>' +
+      '</div>').join('');
+
+    document.getElementById('frontfoot').textContent =
+      'Twelve months to ' + Y[Y.length-1].week_ending + ', ' + Y.length +
+      ' complete weeks of live gas data. The frontispiece is pinned to twelve ' +
+      'months whatever window is selected below: in an August week Britain ' +
+      'draws almost no heat, and an annual case cannot be read off one of them.';
+    box.hidden = false;
   })();
 
   if(d.peak_week){
@@ -1696,12 +1860,22 @@ fetch('data.json').then(r=>r.json()).then(d=>{
                    rows[rows.length-1].week_ending;
       });
     }
+    // The heading names the window the reader is looking at. Window values
+    // are weeks+1 - the trend needs a prior point to measure change from.
+    const START_WIN = {2:'in the last week', 5:'in the last 4 weeks',
+                       13:'in the last 12 weeks', 53:'in the last 12 months'};
+    function setStartWin(w){
+      const el = document.getElementById('startwin');
+      if(el) el.textContent = START_WIN[w] || 'in the last week';
+    }
     let win = 2;
+    setStartWin(win);
     ctl.querySelectorAll('button').forEach(b => {
       b.addEventListener('click', () => {
         win = +b.dataset.win;
         ctl.querySelectorAll('button').forEach(x =>
           x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+        setStartWin(win);
         draw(win);
       });
     });
