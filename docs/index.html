@@ -374,11 +374,20 @@
               <div class="hint">Asset lives run longer; the finance rarely does.</div>
             </div>
             <div class="lever">
-              <label for="cap_dist">Distribution added to build cost
+              <label for="cap_dist">Distribution network
                 <b id="cap_dist_v">—</b></label>
-              <input type="range" id="cap_dist" min="0" max="60" step="5">
-              <div class="hint">No subsurface benchmark includes it. Typically
-                30–50% of a heat-network scheme.</div>
+              <input type="range" id="cap_dist" min="0" max="600" step="25">
+              <div class="hint">Buried mains and branch pipe. No subsurface
+                benchmark includes it — Arup, PBL, EBN and ATES all stop
+                before the pipe. Rises steeply as heat density falls.</div>
+            </div>
+            <div class="lever">
+              <label for="cap_conn">Building connections
+                <b id="cap_conn_v">—</b></label>
+              <input type="range" id="cap_conn" min="0" max="900" step="25">
+              <div class="hint">Heat interface, meter, in-building secondary.
+                About £40 for bulk supply to an anchor load, £900+ where every
+                dwelling is connected individually.</div>
             </div>
           </div>
 
@@ -782,8 +791,27 @@ fetch('data.json').then(r=>r.json()).then(d=>{
             'market quotes of GBP 1,750-3,000/kW. Load factor, not ' +
             'technology, is what puts it here.'}
     ],
+    // Distribution and connections are ABSOLUTE adders in GBP per annual
+    // MWh, not a percentage. A percentage of scheme cost is circular - it
+    // is a share of a total that includes the thing being added - and the
+    // benchmark quotes share-of-TOTAL, which is 1/(1-d) on plant, not
+    // (1+d). The absolute form is this model's native unit and the two
+    // routes agree: GBP 560 plant + GBP 450 adder is the same answer as
+    // the corrected percentage. UK-sourced (DECC/AECOM 2015 at 2013/14
+    // prices, RICS BCIS x1.5 to 2025), so NO further UK premium applies -
+    // the 1.2x premium in the literature is for importing Scandinavian
+    // cost functions, which these are not.
+    adders: {
+      dist: {lo:120, ce:250, hi:450},   // buried mains + branch/service
+      conn: {lo:40,  ce:200, hi:900}    // bulk 40 -> individual domestic 900+
+    },
+    // Development, permits and other soft cost. Held as a constant rather
+    // than a lever: every class anchor excludes it (PBL's exclusion list is
+    // distribution, connections, back-up, DEVEX and permits), and the long-
+    // standing UK planning heuristic puts development at a full 25%.
+    devex: 0.20,
     // published case - the figures the frontispiece and ticker quote
-    def: {mix:70, capture:70, rate:60, tenor:30, dist:30},
+    def: {mix:70, capture:70, rate:60, tenor:30, dist:250, conn:200},
     scale_bn: 90
   };
 
@@ -827,8 +855,14 @@ fetch('data.json').then(r=>r.json()).then(d=>{
       const net = CAPITAL.classes.filter(c => c.key !== 'gshp');
       const netCe = net.reduce((a,c) => a + c.ce, 0) / net.length;
       const gshp  = CAPITAL.classes.find(c => c.key === 'gshp');
-      const blend = (netShare * netCe + (1 - netShare) * gshp.ce)
-                    * (1 + S.dist / 100);
+      // Distribution and connections fall on the NETWORK share only. An
+      // individual ground-source install has no distribution main and no
+      // network connection; its pipework is already inside its own class
+      // anchor. Applying the adders to the whole strip would charge the
+      // GSHP share for a network it is not on.
+      const netAll = netCe + S.dist + S.conn;
+      const blend = (netShare * netAll + (1 - netShare) * gshp.ce)
+                    * (1 + CAPITAL.devex);
       const buildBn = blend * stripTWh * 1e6 / 1e9;
       const hurdle  = financeBn * 1e9 / (stripTWh * 1e6);
       return {financeBn, buildBn, blend, hurdle,
@@ -850,7 +884,8 @@ fetch('data.json').then(r=>r.json()).then(d=>{
         '% over ' + S.tenor + ' years';
       document.getElementById('cap_cov_cap').textContent =
         'of a \u00a3' + Math.round(c.buildBn) + 'bn build \u2014 \u00a3' +
-        Math.round(c.blend) + ' per annual MWh delivered\u2020';
+        Math.round(c.blend) + ' per annual MWh delivered\u2020, including ' +
+        Math.round(100 * CAPITAL.devex) + '% development and permits';
       document.getElementById('cap_gap_cap').textContent = c.gapBn > 0
         ? 'left to find from grant, regulated return or a longer tenor'
         : 'no gap at these assumptions \u2014 the saving covers the build';
@@ -873,7 +908,8 @@ fetch('data.json').then(r=>r.json()).then(d=>{
       document.getElementById('cap_capture_v').textContent = pc(S.capture);
       document.getElementById('cap_rate_v').textContent    = (S.rate/10).toFixed(1) + '%';
       document.getElementById('cap_tenor_v').textContent   = S.tenor + ' yr';
-      document.getElementById('cap_dist_v').textContent    = pc(S.dist);
+      document.getElementById('cap_dist_v').textContent    = '\u00a3' + S.dist;
+      document.getElementById('cap_conn_v').textContent    = '\u00a3' + S.conn;
 
       let moved = false;
       Object.keys(CAPITAL.def).forEach(k => {
@@ -896,7 +932,14 @@ fetch('data.json').then(r=>r.json()).then(d=>{
         'heat delivered rather than capacity. Build cost excludes ' +
         'operations and assumes the fleet exists from day one; savings ' +
         'accrue as it is built. Finance is a simple annuity, not a ' +
-        'debt-sizing.';
+        'debt-sizing. Distribution and connections are charged to the ' +
+        'network share only - an individual ground-source install has no ' +
+        'main and no connection, and its pipework already sits inside its ' +
+        'own unit capital. Development and permits are added at ' +
+        Math.round(100 * CAPITAL.devex) + '%\u2020 on everything, because ' +
+        'every published class anchor excludes them. The denominator is ' +
+        'heat AND cooling delivered: one bidirectional network carries ' +
+        'both, so its pipe is not charged to heat alone.';
     }
 
     // evidence fold: the classes, unblended, so the blend can be checked
@@ -924,9 +967,20 @@ fetch('data.json').then(r=>r.json()).then(d=>{
       'is the substantive finding rather than the blended number. The ' +
       'network share is split evenly between ATES and doublets\u2020 - a ' +
       'placeholder until a deployment mix is assumed, and it moves the ' +
-      'blend by about \u00a360 per annual MWh either way.';
+      'blend by about \u00a360 per annual MWh either way. Distribution ' +
+      'and connections come from UK outturn (DECC/AECOM 2015, seven ' +
+      'schemes at 2013/14 prices, RICS BCIS \u00d71.5 to 2025) and the ' +
+      'DESNZ 2024 heat network pipeline, where the distribution share ' +
+      'runs from 10% for a dense scheme taking waste heat to 82% for a ' +
+      'small extension serving dispersed housing. Linear heat density, ' +
+      'not technology, is what moves it. Note that an ambient loop is ' +
+      'not reliably cheaper per metre than conventional district heating: ' +
+      'the small flow-return difference forces larger diameters, and ' +
+      'trench excavation dominates the cost either way. The ambient ' +
+      'advantage is operational and in the hundred-year life of the ' +
+      'groundworks, not in cheaper pipe.';
 
-    ['mix','capture','rate','tenor','dist'].forEach(k => {
+    ['mix','capture','rate','tenor','dist','conn'].forEach(k => {
       const el = document.getElementById('cap_' + k);
       el.value = CAPITAL.def[k];
       el.addEventListener('input', () => {
