@@ -98,8 +98,10 @@ setTimeout(() => {
   chk("point 06 carries the closing line",
       /diffusion challenge, not an innovation deficit/i
         .test(p6.querySelector(".qual").textContent));
-  chk("the closing line is set apart from the qualification",
-      !!p6.querySelector(".qual .close"));
+  chk("the closing line runs on inside the paragraph, not set apart",
+      !p6.querySelector(".qual .close") &&
+      /there\. All the technology is proven/.test(
+        p6.querySelector(".qual").textContent));
 
   // --- the frontispiece is annual and must NOT follow the trend selector.
   // In an August week the saving is near zero; a strategic case that
@@ -125,6 +127,25 @@ setTimeout(() => {
       Math.abs(num(pts[0].querySelector(".fig").textContent) - purTWh) < 1.5,
       "front " + pts[0].querySelector(".fig").textContent +
       " vs " + purTWh.toFixed(1) + " TWh");
+
+  // --- point 01's combustion share must be annual, like everything beside
+  // it. This week's share is materially different (76% in August against
+  // 92% over the year) and mixing the two inside one point is a trap.
+  const COMB = ['gas_space','gas_dhw','oil','bio_other','solid','heat_networks'];
+  let cIn = 0, tIn = 0;
+  yr.filter(e => e.fuels).forEach(e => {
+    for (const k in e.fuels) {
+      if (k === '_u') continue;
+      tIn += e.fuels[k].i;
+      if (COMB.indexOf(k) >= 0) cIn += e.fuels[k].i;
+    }
+  });
+  const annualComb = Math.round(100 * cIn / tIn);
+  chk("point 01 combustion share is annual, not this week's",
+      pts[0].querySelector(".qual").textContent
+        .includes(annualComb + "% of the energy"),
+      "expected " + annualComb + "%, weekly is " +
+      Math.round(100 * data.weekly_mix.combustion_share) + "%");
 
   // --- the starting-point heading names the window, and the toggle sits
   // under the heading rather than under the figures it now labels
