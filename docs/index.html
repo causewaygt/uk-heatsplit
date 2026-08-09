@@ -29,14 +29,18 @@
   /* the only italic on the page. "Shift" is the argument; everything else
      here measures the thing that has not shifted yet. */
   .brand i{font-style:italic;color:var(--geo);font-weight:900}
-  .standfirst{font-size:clamp(17px,2.3vw,21px);line-height:1.35;color:var(--paper);
-              padding:14px 0 2px;max-width:none}
+  /* same size as the "The starting point" h1 below - the two headings the
+     reader meets first should sit at the same rank; weight is what
+     separates the title from the claim it makes */
+  .standfirst{font-size:clamp(26px,5vw,40px);line-height:1.12;color:var(--paper);
+              font-weight:400;padding:16px 0 2px;max-width:none}
   /* ---- frontispiece: the case in six figures ------------------------- */
   .front{margin-top:30px;border-top:1px solid var(--geo);
          border-bottom:1px solid var(--line)}
-  .frontlead{font-family:"IBM Plex Mono";font-size:11.5px;letter-spacing:.09em;
-             text-transform:uppercase;color:var(--geo);padding:14px 0 2px}
-  .frontsub{font-size:14px;color:var(--muted);padding-bottom:20px;max-width:64ch}
+  .frontlead{font-family:"IBM Plex Mono";font-size:clamp(24px,4.4vw,34.5px);
+             letter-spacing:.02em;line-height:1.1;
+             text-transform:uppercase;color:var(--geo);padding:22px 0 6px}
+  .frontsub{font-size:14.5px;color:var(--muted);padding-bottom:22px;max-width:64ch}
   .points{display:grid;grid-template-columns:1fr 1fr;gap:0}
   @media (max-width:720px){.points{grid-template-columns:1fr}}
   .pt{padding:22px 26px 24px 0;border-top:1px solid var(--line)}
@@ -59,6 +63,31 @@
   .pt .ev:hover,.pt .ev:focus-visible{color:var(--geo);border-color:var(--geo)}
   .frontfoot{font-size:12.5px;color:var(--ash);padding:18px 0 22px;max-width:78ch}
   #front[hidden]{display:none}
+  /* ---- back-to nav: only appears once you have scrolled past the case --- */
+  .backnav{position:fixed;right:18px;bottom:18px;z-index:40;display:flex;gap:8px;
+           background:rgba(16,20,24,.92);border:1px solid var(--line);
+           border-radius:8px;padding:7px;backdrop-filter:blur(6px);
+           opacity:0;visibility:hidden;transform:translateY(8px);
+           transition:opacity .18s ease,transform .18s ease,visibility .18s}
+  .backnav.show{opacity:1;visibility:visible;transform:none}
+  .backnav button{font-family:"IBM Plex Mono";font-size:12px;letter-spacing:.03em;
+                  background:none;color:var(--muted);border:1px solid var(--line);
+                  border-radius:5px;padding:7px 12px;cursor:pointer;white-space:nowrap}
+  .backnav button:hover{color:var(--geo);border-color:var(--geo)}
+  .backnav button:focus-visible{outline:2px solid var(--geo);outline-offset:2px;
+                                color:var(--geo)}
+  .backnav button b{color:var(--geo);font-weight:500;margin-right:5px}
+  @media (max-width:560px){
+    .backnav{left:14px;right:14px;bottom:14px;justify-content:center}
+    .backnav button{flex:1;padding:9px 8px;font-size:11.5px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .backnav{transition:none;transform:none}
+  }
+  /* scroll targets take focus without drawing a permanent outline */
+  #front:focus,#startline:focus{outline:none}
+  #front:focus-visible,#startline:focus-visible{outline:2px solid var(--geo);
+                                                outline-offset:6px}
   .tickbox{text-align:right}
   .ticker{font-family:"IBM Plex Mono";font-size:15px;line-height:1.55;
           border:1px solid var(--geo);border-radius:6px;padding:12px 16px;
@@ -234,7 +263,7 @@
 </header>
 
 <div class="wrap">
-  <section class="front" id="front" hidden>
+  <section class="front" id="front" tabindex="-1" hidden>
     <div class="frontlead">The case in six figures</div>
     <p class="frontsub">Every number here is computed from the live estimate
       below and restates with it. Daggers mark figures resting on Causeway
@@ -244,7 +273,7 @@
   </section>
 
   <div class="hero">
-    <h1 id="startline">The starting point — how Britain
+    <h1 id="startline" tabindex="-1">The starting point — how Britain
       <span class="ember">heated</span> and <span class="cool">cooled</span>
       itself <span id="startwin">in the last week</span>.</h1>
     <div class="trendctl" id="trendctl" style="justify-content:flex-start;margin-top:14px" hidden>
@@ -605,6 +634,11 @@
   the Open Government Licence v3.0 (DESNZ ECUK 2025) · A Causeway Energies
   public-interest tool.
 </div></footer>
+
+<nav class="backnav" id="backnav" aria-label="Back to top sections">
+  <button type="button" data-to="front"><b>&uarr;</b>The case</button>
+  <button type="button" data-to="startline"><b>&uarr;</b>The starting point</button>
+</nav>
 
 <script>
 // SITE_VERSION x.y.z - bump on every commit that changes the page:
@@ -1045,6 +1079,47 @@ fetch('data.json').then(r=>r.json()).then(d=>{
     box.style.display = 'block';
     render();
     window.capitalModel = {compute, S, def: CAPITAL.def, savingBn, stripTWh};
+  })();
+
+  // ---- back-to nav ------------------------------------------------------
+  // Appears only once the reader has scrolled past the case, because at the
+  // top of the page there is nothing to go back to. Scrolling alone moves
+  // the viewport but not the keyboard, so each jump also moves focus to the
+  // target - otherwise tabbing from the button carries on from the footer.
+  (function(){
+    const nav = document.getElementById('backnav');
+    if(!nav) return;
+    const front = document.getElementById('front');
+    const reduce = window.matchMedia &&
+                   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    nav.addEventListener('click', ev => {
+      const b = ev.target.closest('button');
+      if(!b) return;
+      const t = document.getElementById(b.dataset.to);
+      if(!t) return;
+      t.scrollIntoView({behavior: reduce ? 'auto' : 'smooth', block: 'start'});
+      // focus after the scroll settles; preventScroll stops the browser
+      // yanking the page a second time
+      setTimeout(() => t.focus({preventScroll: true}), reduce ? 0 : 420);
+    });
+
+    // show once the case has left the top of the viewport
+    function tick(){
+      const past = front && !front.hidden
+        ? front.getBoundingClientRect().bottom < 0
+        : window.scrollY > 600;
+      nav.classList.toggle('show', past);
+    }
+    let queued = false;
+    window.addEventListener('scroll', () => {
+      if(queued) return;
+      queued = true;
+      window.requestAnimationFrame(() => { queued = false; tick(); });
+    }, {passive: true});
+    window.addEventListener('resize', tick, {passive: true});
+    window.backnavTick = tick;
+    tick();
   })();
 
   // ---- frontispiece: the case in six figures ----------------------------
