@@ -57,8 +57,6 @@
   .pt .fig.warn{color:var(--ember)}
   .pt .claim{font-weight:700;font-size:17px;line-height:1.3;margin-top:10px}
   .pt .qual{font-size:13.5px;line-height:1.45;color:var(--muted);margin-top:7px}
-  .pt .qual .close{display:block;margin-top:9px;color:var(--paper);
-                   font-size:14.5px;line-height:1.4}
   .pt .ev{display:inline-block;margin-top:11px;font-family:"IBM Plex Mono";
           font-size:11.5px;color:var(--muted);text-decoration:none;
           border-bottom:1px solid var(--line);padding-bottom:2px}
@@ -1224,7 +1222,23 @@ fetch('data.json').then(r=>r.json()).then(d=>{
     if(!lim || !cd || !sh) return;
     const cty = n => sh.countries.find(c => new RegExp(n).test(c.name)) || {};
     const uk = cty('United Kingdom'), se = cty('Sweden'), nl = cty('Netherlands');
-    const comb = Math.round(100 * d.weekly_mix.combustion_share);
+    // Annual combustion share, to match the annual TWh, bill and emissions
+    // beside it. weekly_mix.combustion_share is this week's, and in August
+    // with almost no gas space heating that is a materially different
+    // number - 76% against 92% over the year.
+    const COMB = ['gas_space','gas_dhw','oil','bio_other','solid',
+                  'heat_networks'];
+    let cIn = 0, tIn = 0;
+    Y.forEach(e => {
+      for(const k in e.fuels){
+        if(k === '_u') continue;
+        const inp = k === 'cool' ? e.fuels[k].i : e.fuels[k].i;
+        tIn += inp;
+        if(COMB.indexOf(k) >= 0) cIn += inp;
+      }
+    });
+    const comb = tIn ? Math.round(100 * cIn / tIn)
+                     : Math.round(100 * d.weekly_mix.combustion_share);
     const cap = window.capitalModel ? window.capitalModel.compute() : null;
 
     const pts = [
@@ -1232,7 +1246,7 @@ fetch('data.json').then(r=>r.json()).then(d=>{
        claim:'Heat is the largest thing Britain buys, and it is still fire.',
        qual:'\u00a3' + nf(billBn,1) + 'bn and ' + nf(emMt,1) + ' Mt of ' +
             'CO\u2082e over the last twelve months. ' + comb + '% of the ' +
-            'energy going in is combustion.',
+            'energy going in over that year is combustion.',
        ev:'the energy balance'},
 
       {n:'02', fig:'\u00a3' + d.spark.gshp_heat_gbp_mwh.toFixed(2), unit:'/MWh',
@@ -1272,10 +1286,9 @@ fetch('data.json').then(r=>r.json()).then(d=>{
             se.share_pct + '% in Sweden \u2014 whose existing fleet already ' +
             'serves about the share this site\u2019s 20% what-if proposes. ' +
             hw.per_person_W + ' installed thermal watts per person here, ' +
-            hw.sweden_per_person_W + ' there.' +
-            '<span class="close">All the technology is proven: geothermal ' +
-            'scaling is a diffusion challenge, not an innovation deficit.' +
-            '</span>',
+            hw.sweden_per_person_W + ' there. All the technology is proven: ' +
+            'geothermal scaling is a diffusion challenge, not an innovation ' +
+            'deficit.',
        ev:'installed hardware, four countries'}
     ];
 
