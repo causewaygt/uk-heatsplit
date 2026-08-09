@@ -1616,10 +1616,14 @@ fetch('data.json').then(r=>r.json()).then(d=>{
         'how far you get, not which route gets furthest. ' + L.note;
     }
     const pr = WR.coincidence_premium;
+    const pw = pr.window || 'the heating season';
     document.getElementById('rt_prem').innerHTML =
       ['ashp','shallow','network'].map(r => stat(
-        '+' + pr[r].premium_pct + '<small> %</small>',
-        RN[r] + ' coincidence premium \u2014 \u00a3' +
+        // sign comes from the value: a hard-coded '+' printed "+-0.19 %"
+        // once the trailing-year premium went negative (9 Aug 2026)
+        (pr[r].premium_pct >= 0 ? '+' : '') + pr[r].premium_pct +
+        '<small> %</small>',
+        RN[r] + ' coincidence premium, ' + pw + ' \u2014 \u00a3' +
         pr[r].hourly_priced_Mgbp + 'm hourly-priced vs \u00a3' +
         pr[r].flat_priced_Mgbp + 'm flat', RC[r])).join('');
 
