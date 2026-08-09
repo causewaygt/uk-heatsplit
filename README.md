@@ -323,7 +323,7 @@ schemas 3–6, restated by the same stored-CI mechanism) → **v7.0 the
 hourly engine and the electricity grid impacts panel**: a 13-month hourly
 retrospective (ERA5, Elexon, NESO), three replacement routes calibrated to
 published SPFs, the coldest hour and the binding hour, a weather-breathing
-capacity line from the NESO Winter Outlook, the calendar-year falcon curve
-with its cooling wing, and the coincidence premium.
+capacity line from the NESO Winter Outlook, and the calendar-year falcon
+curve with its cooling wing.
 
 *A Causeway Energies public-interest tool — https://causewaygt.com*

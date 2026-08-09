@@ -1,5 +1,11 @@
 """test_premium.py - the coincidence premium, winter basis.
 
+NOTE: the premium panel was withdrawn from the site on 9 Aug 2026. The
+statistic is still computed and logged every run, so these assertions
+still guard it - if it is ever restored to the page it will be on the
+winter basis, correct, and tested. Delete this file only if the
+computation itself is removed from retro.py.
+
 Runs retro.slices() on a synthetic year built so that the OLD trailing-year
 premium goes negative while the within-winter coincidence is genuinely
 positive - the exact situation that forced the basis change on 9 Aug 2026.
@@ -62,7 +68,7 @@ def main():
         print("FAIL: slices() raised %r" % (exc,))
         return 1
 
-    pr = sl["coincidence_premium"]
+    pr = sl["coincidence_premium_diagnostic"]
     fails = []
 
     def chk(name, cond, detail=""):
