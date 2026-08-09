@@ -93,6 +93,14 @@ setTimeout(() => {
           .includes(String(Math.round(cap.adderShare))));
   }
 
+  // --- point 06 closes the case
+  const p6 = pts.find(p => p.querySelector(".n").textContent === "06");
+  chk("point 06 carries the closing line",
+      /diffusion challenge, not an innovation deficit/i
+        .test(p6.querySelector(".qual").textContent));
+  chk("the closing line is set apart from the qualification",
+      !!p6.querySelector(".qual .close"));
+
   // --- the frontispiece is annual and must NOT follow the trend selector.
   // In an August week the saving is near zero; a strategic case that
   // restated to it would be worse than useless.
