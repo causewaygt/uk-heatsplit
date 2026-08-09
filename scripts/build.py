@@ -1875,10 +1875,14 @@ def main():
                   ab["headroom_GW"], "GW |",
                   {r: sv_["routes"][r]["dispatch_req_GW"]
                    for r in ("ashp", "shallow", "network")})
-        print("retro premium:",
-              {r: out["whatif_routes"]["coincidence_premium"][r]
-                  ["premium_pct"] for r in ("ashp", "shallow",
-                                            "network")}, "%")
+        # log-only since 9 Aug 2026: the panel was withdrawn, the
+        # statistic was not - it still runs every day and prints here
+        _prem = out["whatif_routes"].get("coincidence_premium_diagnostic")
+        if _prem:
+            print("retro premium (diagnostic, not published):",
+                  {r: _prem[r]["premium_pct"] for r in ("ashp", "shallow",
+                                                        "network")}, "%",
+                  "|", _prem.get("window"))
     except Exception:
         traceback.print_exc()
         if prev.get("whatif_routes"):

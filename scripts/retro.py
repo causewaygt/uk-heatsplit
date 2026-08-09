@@ -872,7 +872,12 @@ def slices(store, nd_daily=None):
         "monthly_calendar": monthly_calendar,
         "stress": stress,
         "stress_summer": stress_summer,
-        "coincidence_premium": premium,
+        # Withdrawn from the page 9 Aug 2026 - hard to read at a glance and
+        # not carrying weight in the argument. Still computed and logged
+        # every run so the question stays answered and the panel can be
+        # restored without redoing the work; the front end no longer reads
+        # this key, and the methodology no longer documents it.
+        "coincidence_premium_diagnostic": premium,
     }
 
 
