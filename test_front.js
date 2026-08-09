@@ -50,11 +50,12 @@ setTimeout(() => {
   // --- the six points
   chk("panel is shown", g("front").hidden === false);
   chk("six points render", pts.length === 6, pts.length + " rendered");
-  chk("numbered 01 to 06 in order",
-      pts.map(p => p.querySelector(".n").textContent).join(",") ===
-      "01,02,03,04,05,06");
-  chk("every point has a figure, a claim and a qualification",
-      pts.every(p => p.querySelector(".fig").textContent.trim() &&
+  chk("the numbered points run 01 to 05 in order",
+      pts.map(p => { const n = p.querySelector(".n"); return n ? n.textContent : "-"; })
+         .join(",").startsWith("01,02,03,04,05"));
+  chk("every uncovered point has a figure, a claim and a qualification",
+      pts.filter(p => !p.classList.contains("undercon"))
+         .every(p => p.querySelector(".fig").textContent.trim() &&
                      p.querySelector(".claim").textContent.trim() &&
                      p.querySelector(".qual").textContent.trim()));
 
@@ -64,55 +65,54 @@ setTimeout(() => {
                   .filter(h => !h || !doc.querySelector(h));
   chk("no dead evidence anchors", dead.length === 0, dead.join(", "));
 
-  // --- point 05 must equal the capital panel, not a copy of it
-  const cap = w.capitalModel && w.capitalModel.compute();
-  chk("capital panel initialised", !!cap);
-  if (cap) {
-    const p5 = pts.find(p => p.querySelector(".n").textContent === "05");
-    chk("point 05 coverage equals the panel's published default",
-        num(p5.querySelector(".fig").textContent) === Math.round(cap.cov),
-        "front " + p5.querySelector(".fig").textContent +
-        " vs panel " + Math.round(cap.cov) + "%");
-    chk("point 05 quotes the panel's build and gap",
-        p5.querySelector(".qual").textContent.includes(
-          String(Math.round(cap.buildBn))) &&
-        p5.querySelector(".qual").textContent.includes(
-          String(Math.round(cap.gapBn))));
-    chk("point 05 is marked as the figure that argues against the case",
-        p5.querySelector(".fig").classList.contains("warn"));
-    // "most" was wrong at 39%. Whatever the wording, it must not overclaim
-    // while the panel it quotes reads below half.
-    chk("point 05 does not claim 'most' below 50% coverage",
-        cap.cov >= 50 || !/\bmost\b/i.test(p5.querySelector(".claim").textContent),
-        p5.querySelector(".claim").textContent);
-    chk("point 05 explains why the gap does not close by waiting",
-        /does not close by waiting|does not get cheaper/i
-          .test(p5.querySelector(".qual").textContent));
-    chk("point 05 names the share that cannot learn",
-        p5.querySelector(".qual").textContent
-          .includes(String(Math.round(cap.adderShare))));
+  // --- the value point and its panel are HELD behind VFM.hold. Both are
+  // covered or neither is: a summary claiming a number the panel no longer
+  // shows is the exact failure these tests exist to catch.
+  const held = w.capitalModel === undefined;
+  const p6 = pts[pts.length - 1];
+  const panelHeld = !!g("capitalpanel").querySelector(".undercon");
+  chk("panel and frontispiece point are held together",
+      held === panelHeld && p6.classList.contains("undercon") === panelHeld,
+      "model " + (held ? "off" : "on") + ", panel " +
+      (panelHeld ? "covered" : "live"));
+  if (panelHeld) {
+    chk("the cover says it is under construction",
+        /under construction/i.test(p6.textContent) &&
+        /under construction/i.test(g("capitalpanel").textContent));
+    chk("the cover says why it is held",
+        /counterfactual/i.test(g("capitalpanel").textContent));
+    chk("no live levers are left on the page",
+        w.document.querySelectorAll("#cap_levers input").length === 0);
+    chk("no orphan figure is left in the covered panel",
+        !/benefit-cost ratio|coverage/i.test(
+          g("capitalpanel").querySelector(".undercon").textContent));
+    chk("the held point still links to the panel",
+        p6.querySelector(".ev").getAttribute("href") === "#capitalpanel");
+  } else {
+    chk("point 06 ratio equals the panel's appraisal view",
+        p6.querySelector(".fig").textContent.trim()
+          .startsWith(cap.appraisal.bcr.toFixed(2)));
   }
-
   // --- point 06 closes the case
-  const p6 = pts.find(p => p.querySelector(".n").textContent === "06");
-  chk("point 06 carries the closing line",
+  const pOut = pts.find(p => p.querySelector(".n").textContent === "05");
+  chk("the outlier point carries the closing line",
       /diffusion challenge, not an innovation deficit/i
-        .test(p6.querySelector(".qual").textContent));
+        .test(pOut.querySelector(".qual").textContent));
   chk("the closing line runs on inside the paragraph, not set apart",
-      !p6.querySelector(".qual .close") &&
+      !pOut.querySelector(".qual .close") &&
       /there\. All the technology is proven/.test(
-        p6.querySelector(".qual").textContent));
+        pOut.querySelector(".qual").textContent));
 
   // --- the frontispiece is annual and must NOT follow the trend selector.
   // In an August week the saving is near zero; a strategic case that
   // restated to it would be worse than useless.
-  const before = pts.map(p => p.querySelector(".fig").textContent);
+  const before = pts.map(p => { const f = p.querySelector(".fig"); return f ? f.textContent : "held"; });
   const ctl = g("trendctl");
   const btn = w2 => [...ctl.querySelectorAll("button")]
                       .find(b => b.dataset.win === w2);
   btn("2").dispatchEvent(new w.MouseEvent("click", {bubbles: true}));
   const after = [...doc.querySelectorAll(".pt")]
-                  .map(p => p.querySelector(".fig").textContent);
+                  .map(p => { const f = p.querySelector(".fig"); return f ? f.textContent : "held"; });
   chk("points do not move with the trend selector",
       JSON.stringify(before) === JSON.stringify(after));
   chk("footnote says the case is pinned to twelve months",

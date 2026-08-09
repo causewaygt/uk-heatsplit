@@ -36,8 +36,20 @@ setTimeout(() => {
   console.log("capital panel");
 
   const m = w.capitalModel;
-  chk("panel initialised against the live payload", !!m);
-  if (!m) { console.log("\n1 FAILED"); process.exit(1); }
+  // The panel is held behind VFM.hold while its counterfactual is settled.
+  // Held is a valid state, not a failure - but it must be held CLEANLY:
+  // cover shown, no model, no orphan levers. When the flag comes off, every
+  // assertion below runs again unchanged.
+  if (!m) {
+    const panel = g("capitalpanel");
+    chk("held: the cover is shown", !!panel.querySelector(".undercon"));
+    chk("held: no levers left behind",
+        w.document.querySelectorAll("#cap_levers input").length === 0);
+    chk("held: the cover explains why", /counterfactual/i.test(panel.textContent));
+    console.log(fail.length ? "\n" + fail.length + " FAILED"
+                            : "\npanel held - cover checks passed, model checks skipped");
+    process.exit(fail.length ? 1 : 0);
+  }
   chk("panel is visible", g("capitalpanel").style.display === "block");
 
   // --- the live input
