@@ -565,6 +565,11 @@ fetch('data.json').then(r=>r.json()).then(d=>{
     const seen = {};
     function renderBar(el, def, comp, wasted, legendId, scaleOverride){
       legendId = legendId || 'mixlegend';
+      // Replace, never append. drawEnergyBars is called once at setup and
+      // again on every trend-window change, so an appending bar stacks a
+      // fresh set of segments on top of the last one and reads as banding.
+      // The legends are already cleared by the caller; the bars were not.
+      while(el.firstChild) el.removeChild(el.firstChild);
       const scale = scaleOverride || Math.max(totalIn, totalOut) || 1;
       // When only one gas leg is running - as in summer, when space
       // heating is off - the split label is noise: just say "Gas".
