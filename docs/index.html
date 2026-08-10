@@ -167,7 +167,7 @@
   .capscale{display:flex;justify-content:space-between;font-family:"IBM Plex Mono";
             font-size:11px;color:var(--muted);margin-top:5px}
   .caplevers{display:grid;grid-template-columns:1fr 1fr;gap:16px 26px;margin-top:22px}
-  /* under-construction covers - one flag, VFM.hold, switches these on and off */
+  /* under-construction covers - retained for future use; nothing held now */
   .undercon{border:1px dashed var(--ash);border-radius:6px;padding:20px 22px;
             background:rgba(139,149,160,.05)}
   .undercon .uctag{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.09em;
@@ -179,13 +179,6 @@
   .pt.undercon{border-top:1px solid var(--line);border-radius:0;background:none;
                border-left:none;border-right:none;border-bottom:none}
   /* three views, three units - so nobody lines up numbers that do not compare */
-  .vfmviews{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
-  .vfmviews button{font-family:"IBM Plex Mono";font-size:13px;background:none;
-                   color:var(--muted);border:1px solid var(--line);
-                   border-radius:5px;padding:8px 14px;cursor:pointer}
-  .vfmviews button[aria-selected="true"]{color:var(--geo);border-color:var(--geo);
-                                         background:rgba(58,170,53,.10)}
-  .vfmviews button:focus-visible{outline:2px solid var(--geo);outline-offset:2px}
   .viewsub{font-size:13.5px;line-height:1.45;color:var(--muted);margin-top:12px;
            max-width:70ch}
   .switchline{font-size:13px;line-height:1.45;color:var(--ash);margin-top:14px;
@@ -285,6 +278,65 @@
   .method b{color:var(--paper);font-weight:500}
   footer{padding:26px 0 48px;color:var(--muted);font-size:12.5px;border-top:1px solid var(--line)}
   @media (prefers-reduced-motion:reduce){.mixbar .seg,.burnbar .seg{transition:none}}
+
+  /* ---- value for money panel (merged 10 Aug 2026) ---- */
+  #capitalpanel .kind{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.09em;
+        text-transform:uppercase;color:var(--elec);margin-top:14px}
+  #capitalpanel .basis{font-size:15px;line-height:1.55;margin-top:16px;
+         border-left:2px solid var(--geo);padding-left:15px}
+  #capitalpanel .basis b{color:var(--geo)}
+  #capitalpanel .plain{font-size:16.5px;line-height:1.45;margin-top:20px}
+  #capitalpanel .plain b{color:var(--geo)}
+  #capitalpanel .sub{font-size:13.5px;line-height:1.5;color:var(--muted);margin-top:12px}
+  #capitalpanel .verdict{display:flex;gap:28px;align-items:flex-end;flex-wrap:wrap;
+           margin-top:24px;padding-bottom:20px;border-bottom:1px solid var(--line)}
+  #capitalpanel .big{font-family:"IBM Plex Mono";font-weight:600;font-size:clamp(48px,10vw,80px);
+       line-height:.92;color:var(--geo)}
+  #capitalpanel .big small{font-size:.30em;color:var(--muted);letter-spacing:.02em;display:block;
+             margin-top:10px;font-weight:400}
+  #capitalpanel .side{font-family:"IBM Plex Mono";font-size:clamp(17px,3vw,22px);padding-bottom:6px}
+  #capitalpanel .side small{display:block;font-size:12.5px;color:var(--muted);margin-top:5px;font-family:Lato}
+  #capitalpanel .deal{margin-top:22px;background:var(--surface);border-radius:6px;padding:16px 18px}
+  #capitalpanel .deallab{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.08em;
+           text-transform:uppercase;color:var(--ash)}
+  #capitalpanel .dealnote{font-size:13.5px;line-height:1.5;color:var(--muted);margin-top:12px}
+  #capitalpanel .dealnote b{color:var(--paper)}
+  #capitalpanel .compbar{display:flex;height:32px;border-radius:4px;overflow:hidden;
+           border:1px solid var(--line);margin-top:22px}
+  #capitalpanel .key{display:flex;gap:16px;flex-wrap:wrap;margin-top:11px;
+       font-family:"IBM Plex Mono";font-size:12px;color:var(--muted)}
+  #capitalpanel .key i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
+  #capitalpanel .levers{display:grid;grid-template-columns:repeat(3,1fr);gap:18px 24px;margin-top:24px}
+  #capitalpanel .lever label{display:flex;justify-content:space-between;font-family:"IBM Plex Mono";
+               font-size:12.5px;color:var(--muted);gap:8px}
+  #capitalpanel .lever label b{color:var(--paper);font-weight:600}
+  #capitalpanel .lever input{width:100%;margin-top:8px;accent-color:var(--geo)}
+  #capitalpanel .lever .hint{font-size:11.5px;line-height:1.4;color:var(--ash);margin-top:6px}
+  #capitalpanel .fixed{margin-top:20px;font-size:12.5px;line-height:1.55;color:var(--ash);
+         border-left:2px solid var(--line);padding-left:14px}
+  #capitalpanel .note{font-size:13px;line-height:1.55;margin-top:20px;background:var(--surface);
+        border-radius:6px;padding:14px 16px}
+  #capitalpanel .note b{color:var(--geo)}
+  #capitalpanel .caveat{font-size:12.5px;line-height:1.5;color:var(--ash);margin-top:16px}
+  #capitalpanel .block{margin-top:30px;border-top:1px solid var(--line);padding-top:22px}
+  #capitalpanel .scales{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:16px}
+  #capitalpanel .pan{border:1px solid var(--line);border-radius:6px;padding:14px 16px}
+  #capitalpanel .pan.cost{border-color:var(--ember)}
+  #capitalpanel .pan.buys{border-color:var(--geo)}
+  #capitalpanel .pan .lab{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.07em;
+            text-transform:uppercase;color:var(--ash)}
+  #capitalpanel .pan .fig{font-family:"IBM Plex Mono";font-size:30px;margin-top:8px}
+  #capitalpanel .pan.cost .fig{color:var(--ember)} .pan.buys .fig{color:var(--geo)}
+  #capitalpanel .pan p{font-size:12.5px;line-height:1.45;color:var(--muted);margin-top:8px}
+  #capitalpanel .block ol{margin:12px 0 0 20px;font-size:14px;line-height:1.65;max-width:74ch}
+  #capitalpanel .block li{margin-bottom:7px} .block li span{color:var(--muted)}
+  #capitalpanel .block dl{margin-top:12px;font-size:13.5px;line-height:1.55}
+  #capitalpanel .block dt{color:var(--ember);font-weight:700;margin-top:11px}
+  #capitalpanel .block dd{color:var(--muted);margin:2px 0 0 0;max-width:74ch}
+  #capitalpanel .block .note, #capitalpanel .block .caveat{max-width:74ch}
+  @media(max-width:700px){#capitalpanel .levers{grid-template-columns:1fr 1fr}
+                          #capitalpanel .scales{grid-template-columns:1fr}}
+  @media(max-width:440px){#capitalpanel .levers{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -442,141 +494,162 @@
         <p class="costnote" id="emptybarnote"></p>
       </div>
       <div id="capitalpanel" style="display:none">
-        <h2 style="margin-top:30px">Value for money</h2>
-        <div class="capital">
-          <div class="kind">Calculator — not a live estimate</div>
-          <p class="kindsub">Every other figure on this page is computed from
-            public feeds. This one is a model: the energy saving is live, the
-            valuation is yours to set. It covers the part of value for money
-            that can be monetised — the Green Book's own definition also takes
-            in unmonetisable costs and benefits, risk, and how effects fall
-            across groups, and no calculator settles those.</p>
 
-          <div class="vfmviews" id="vfmviews" role="tablist">
-            <button role="tab" data-view="appraisal" aria-selected="true">Public appraisal</button>
-            <button role="tab" data-view="finance" aria-selected="false">Private finance</button>
-            <button role="tab" data-view="consumer" aria-selected="false">Consumers</button>
-          </div>
-          <p class="viewsub" id="cap_viewsub"></p>
+        <h2>Value for money? How geothermal would improve the UK’s heat networks</h2>
+        <div class="kind">Based on government heat network plans and appraisal guidance</div>
 
-          <div class="statrow" style="grid-template-columns:repeat(3,1fr);margin-top:20px">
-            <div class="stat"><div class="fig" id="cap_a">—</div>
-              <div class="cap" id="cap_a_cap"></div></div>
-            <div class="stat"><div class="fig" id="cap_b">—</div>
-              <div class="cap" id="cap_b_cap"></div></div>
-            <div class="stat"><div class="fig" id="cap_c">—</div>
-              <div class="cap" id="cap_c_cap"></div></div>
-          </div>
+        <p class="basis"><b>This does not ask whether to build the networks.</b>
+          Government has committed to heat networks supplying about 20% of UK heat by
+          2050, up from about 3% today, on more than £80bn of investment — roughly
+          87 TWh a year of delivered heat. The pipes, the trenches and the connections
+          are in that number either way. What is still open is what sits at the head
+          of them. The model compares geothermal as the source and store of thermal
+          energy to an air-source heat pump system.</p>
 
-          <div class="capbars">
-            <div class="capbar" id="cap_bar">
-              <div class="fill" id="cap_fill" style="width:0%"></div>
-              <div class="short" id="cap_short" style="width:0%"></div>
-              <span class="lab" id="cap_barlab"></span>
-              <span class="rlab" id="cap_barrlab"></span>
-            </div>
-            <div class="capscale"><span>£0</span><span id="cap_scale">—</span></div>
-          </div>
+        <p class="plain" id="plain"></p>
+        <p class="sub" id="sub"></p>
 
-          <p class="switchline" id="cap_switch"></p>
-
-          <div class="caplevers" id="cap_levers">
-            <div class="leverhead">What gets built</div>
-            <div class="lever">
-              <label for="cap_mix">Share delivered by networks, ATES and doublets
-                <b id="cap_mix_v">—</b></label>
-              <input type="range" id="cap_mix" min="0" max="100" step="5">
-              <div class="hint">The rest is individual ground-source. Weighted on
-                heat delivered, not capacity.</div>
-            </div>
-            <div class="lever">
-              <label for="cap_years">Deployment period
-                <b id="cap_years_v">—</b></label>
-              <input type="range" id="cap_years" min="5" max="20" step="1">
-              <div class="hint">Savings accrue as the fleet is built; capital is
-                spent across the same period.</div>
-            </div>
-            <div class="lever">
-              <label for="cap_dist">Distribution network
-                <b id="cap_dist_v">—</b></label>
-              <input type="range" id="cap_dist" min="0" max="600" step="25">
-              <div class="hint">Buried mains and branch pipe. No subsurface
-                benchmark includes it.</div>
-            </div>
-            <div class="lever">
-              <label for="cap_conn">Building connections
-                <b id="cap_conn_v">—</b></label>
-              <input type="range" id="cap_conn" min="0" max="900" step="25">
-              <div class="hint">About £40 for bulk supply, £900+ where every
-                dwelling is connected individually.</div>
-            </div>
-            <div class="lever">
-              <label for="cap_noak">Cost improvement by the last year
-                <b id="cap_noak_v">—</b></label>
-              <input type="range" id="cap_noak" min="0" max="40" step="5">
-              <div class="hint">First-of-a-kind to mature supply chain, on plant
-                and subsurface only. Trenching does not learn.</div>
-            </div>
-            <div class="lever">
-              <label for="cap_om">Operating and maintenance
-                <b id="cap_om_v">—</b></label>
-              <input type="range" id="cap_om" min="0" max="40" step="1">
-              <div class="hint">Per cent of capital a year, tenths. Plant and
-                customer costs dominate; distribution is under £1/MWh.</div>
-            </div>
-
-            <div class="leverhead" id="cap_valhead">How it is valued</div>
-            <div class="lever" data-view="appraisal">
-              <label for="cap_ob">Optimism bias on capital
-                <b id="cap_ob_v">—</b></label>
-              <input type="range" id="cap_ob" min="0" max="66" step="2">
-              <div class="hint">Green Book upper bound for non-standard civil
-                engineering is 66%, mitigating toward 40–50% at outline business
-                case. Benefits carry no generic haircut — see the switching
-                values instead.</div>
-            </div>
-            <div class="lever" data-view="appraisal">
-              <label for="cap_horizon">Appraisal horizon
-                <b id="cap_horizon_v">—</b></label>
-              <input type="range" id="cap_horizon" min="30" max="60" step="10">
-              <div class="hint">60 years for infrastructure, 30 for refurbishment
-                of existing buildings.</div>
-            </div>
-            <div class="lever" data-view="finance">
-              <label for="cap_rate">Required return <b id="cap_rate_v">—</b></label>
-              <input type="range" id="cap_rate" min="20" max="120" step="5">
-              <div class="hint">Real. The gilt comparison below prices the gap
-                between this and government borrowing.</div>
-            </div>
-            <div class="lever" data-view="finance">
-              <label for="cap_tenor">Tenor <b id="cap_tenor_v">—</b></label>
-              <input type="range" id="cap_tenor" min="15" max="40" step="5">
-              <div class="hint">Asset lives run longer; the finance rarely does.</div>
-            </div>
-            <div class="lever" data-view="finance consumer">
-              <label for="cap_capture">Saving captured by the investor
-                <b id="cap_capture_v">—</b></label>
-              <input type="range" id="cap_capture" min="0" max="100" step="5">
-              <div class="hint">The rest stays with the customer. In appraisal
-                this makes no difference — society keeps it either way.</div>
-            </div>
-            <div class="lever" data-view="consumer">
-              <label for="cap_home">Heat and cooling per connected home
-                <b id="cap_home_v">—</b></label>
-              <input type="range" id="cap_home" min="6" max="20" step="1">
-              <div class="hint">MWh a year delivered, used only to express the
-                saving per household†.</div>
-            </div>
-          </div>
-
-          <button class="capreset" id="cap_reset" hidden>Reset to published case</button>
+        <div class="verdict">
+          <div class="big" id="big">—<small>benefit-cost ratio</small></div>
+          <div class="side" id="s1">—<small>net present social value</small></div>
+          <div class="side" id="s2">—<small>social cost, 60 years</small></div>
         </div>
-        <p class="costnote" id="cap_note"></p>
-        <details class="fold" id="fold_cap"><summary><b>EVIDENCE —
-          unit capital by class, what is counted, and where it comes from</b></summary>
-          <div class="foldbody"><div id="cap_classes"></div>
-            <p class="geosub" id="cap_classnote" style="margin-top:12px"></p></div>
-        </details>
+
+        <div class="deal">
+          <div class="deallab">The comparison</div>
+          <p class="dealnote" id="dealnote"></p>
+        </div>
+
+        <div class="compbar" id="compbar"></div>
+        <div class="key" id="key"></div>
+        <p class="caveat" id="invar"></p>
+
+        <div class="levers">
+          <div class="lever">
+            <label for="lv_cap">Subsurface increment <b id="lv_cap_v"></b></label>
+            <input type="range" id="lv_cap" min="6" max="26" step="0.5" value="14">
+            <div class="hint">Energy centre and subsurface over the air-source
+              alternative, at the reference sizing of 50% of peak; it scales with the
+              sizing lever below. Distribution and connections are common to both
+              routes and cancel.</div>
+          </div>
+          <div class="lever">
+            <label for="lv_ob">Optimism bias <b id="lv_ob_v"></b></label>
+            <input type="range" id="lv_ob" min="0" max="66" step="2" value="50">
+            <div class="hint">Treasury upper bound for non-standard civil engineering
+              is 66%, mitigating toward 40–50% at outline business case.</div>
+          </div>
+          <div class="lever">
+            <label for="lv_pk">Avoided winter peak <b id="lv_pk_v"></b></label>
+            <input type="range" id="lv_pk" min="0" max="120" step="5" value="75">
+            <div class="hint">£/kW·yr across distribution, transmission and generation
+              capacity. Generation at net cost of new entry, not the Capacity Market
+              clearing price.</div>
+          </div>
+          <div class="lever">
+            <label for="lv_loss">Subsurface shortfall <b id="lv_loss_v"></b></label>
+            <input type="range" id="lv_loss" min="0" max="40" step="2" value="10">
+            <div class="hint">Rated capacity the ground does not deliver — a
+              failed well, too little recharge, a store driven warm by over-reinjection, or a
+              round-trip below design. Gas makes up the gap, so less heat is
+              electrified. The counterfactual has no equivalent: the atmosphere does
+              not run down.</div>
+          </div>
+          <div class="lever">
+            <label for="lv_sizing">Plant sized at <b id="lv_sizing_v"></b></label>
+            <input type="range" id="lv_sizing" min="40" max="100" step="5" value="50">
+            <div class="hint">Of the winter peak, with top-up gas boilers above — applied
+              to BOTH routes. Draft TS1 requires this to be optimised on whole-life
+              cost, not assumed, so it is a lever.</div>
+          </div>
+        </div>
+
+        <p class="fixed" id="fixed"></p>
+        <p class="note" id="switch"></p>
+        <p class="caveat" id="caveat"></p>
+
+        <!-- ANNEX A: the financing question, both sides -->
+        <div class="block">
+          <h3>Who pays for it, and what that costs</h3>
+          <p class="sub" id="finsub"></p>
+          <p class="sub" id="finassume"></p>
+
+          <div class="scales">
+            <div class="pan cost">
+              <div class="lab">What private capital costs</div>
+              <div class="fig" id="fin_cost">—</div>
+              <p id="fin_cost_p"></p>
+            </div>
+            <div class="pan buys">
+              <div class="lab">What it buys</div>
+              <div class="fig" id="fin_buys">—</div>
+              <p id="fin_buys_p"></p>
+            </div>
+          </div>
+
+          <p class="note" id="fin_verdict"></p>
+          <p class="caveat" id="declare"></p>
+          <p class="caveat" id="devex"></p>
+        </div>
+
+        <!-- RISK -->
+        <div class="block">
+          <h3>What is not in the numbers</h3>
+          <dl>
+            <dt>Long-term subsurface performance — now priced above, not listed here</dt>
+            <dd>There is little or no UK experience of geothermal systems at this
+              scale, and UK outturn data barely exists. Rather than leave that as an
+              unquantified caveat, the subsurface shortfall lever puts it in the
+              numbers as capacity the ground does not deliver — whether from a
+              failed well, too little recharge, a store driven warm by over-reinjection, or a
+              round-trip below design. What remains outside the numbers is which
+              failure mode it is and when it appears, since each has a different fix
+              and a different cost to correct. Two things keep it small: a balanced
+              store, returning in summer what winter takes, and European practice
+              transferred in at design, since the Dutch, Danish and French fleets carry
+              decades of monitored operation.</dd>
+            <dt>Connection and take-up</dt>
+            <dd>Mandatory connection inside designated zones removes the risk that
+              historically killed UK heat network cases. Outside zones it is
+              unprotected, and no published UK benchmark of realised against forecast
+              connection rates was found. It appears here as a switching value rather
+              than a modelled cost.</dd>
+            <dt>The coincident-peak claim is model-derived</dt>
+            <dd>No published UK study compares the winter peak of two otherwise
+              identical networks differing only in heat source. The mechanism is
+              evidenced — monitored air-source efficiency falls to 2.44 on the coldest
+              days against 3.24 for ground source — but the head-to-head figure comes
+              from an hourly model of instantaneous performance, not a field trial.</dd>
+          </dl>
+        </div>
+
+        <!-- THE ASK -->
+        <div class="block">
+          <h3>What would change on the strength of this</h3>
+          <ol>
+            <li>Zoning designates <b>where</b> networks go. It does not appraise
+              <b>what feeds them</b>. <span>On these numbers that second decision
+              carries a benefit-cost ratio above 2 on an increment of about a ninth of
+              the programme's own capital.</span></li>
+            <li>Require a source options appraisal at zone designation.
+              <span>Ground, aquifer and mine water against air source, on whole-life
+              cost including avoided peak, not capital alone.</span></li>
+            <li>Publish outturn against sanctioned cost for every funded scheme.
+              <span>Optimism bias here rests on a 2002 categorical table, not on a
+              reference class of completed heat networks, because no UK dataset
+              exists. The Green Heat Network Fund is building one scheme by scheme
+              — publishing it would give the sector a real base rate within a few
+              years. Flyvbjerg’s own finding argues it would be a favourable one:
+              modular programmes, built the same way many times, are the best
+              performers in a database of more than 16,000 projects, and a heat
+              network rollout is modular where a tunnel is not.</span></li>
+            <li>Map the resource against the zones. <span>One property in four sits on
+              Britain’s coalfield, which covers 11% of its land area (Mining
+              Remediation Authority) — a quarter of the buildings on a ninth of the
+              ground, and the zoned towns and cities are largely the same places.</span></li>
+          </ol>
+        </div>
+
       </div>
       <p class="geosub" style="margin-top:16px">Geothermal heat is steady,
         local, combustion-free — and the same boreholes and aquifers that heat in
@@ -747,7 +820,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.1.0';
+const SITE_VERSION = '8.2.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -947,467 +1020,346 @@ fetch('data.json').then(r=>r.json()).then(d=>{
     window.drawEnergyBars(null);
   }
 
-  // ---- value for money: three views of the same build ---------------------
-  // The only panel on this site driven by user inputs. Three views because
-  // three audiences ask different questions of the same asset, and each gets
-  // its own UNIT so nobody lines up three numbers that are not comparable:
-  //   public appraisal -> a benefit-cost ratio (the Green Book's own metric)
-  //   private finance  -> coverage, and the premium over government borrowing
-  //   consumers        -> pounds per connected home per year
-  const VFM = {
-    // Unit capital per class, GBP per annual MWh delivered, real 2025. Held
-    // per delivered MWh and not per kW: equivalent full-load hours run ~1,800 h
-    // for a domestic ground-source system against 5,400-6,000 h for a baseload
-    // doublet, so a capacity-weighted per-kW blend over-weights GSHP 3-4x.
-    classes: [
-      {key:'ates',   name:'ATES, above 2 MW',         lo:100, ce:180,  hi:260,
-       eflh:'2,000-2,500 h',
-       note:'Firmest datapoint here - 133 systems in NL, BE and DK converge ' +
-            'to about GBP 255/kW above 2 MW.'},
-      {key:'doublet',name:'Intermediate doublet',      lo:290, ce:305,  hi:320,
-       eflh:'5,400-6,000 h',
-       note:'Thinnest evidence - genuine sub-2 km European doublets are ' +
-            'scarce, so this leans on Paris Dogger and Dutch analogues.'},
-      {key:'gshp',   name:'Individual GSHP, vertical', lo:700, ce:1300, hi:1670,
-       eflh:'1,800 h',
-       note:'Arup/DESNZ medium construction, corroborated by UK market ' +
-            'quotes. Load factor, not technology, is what puts it here.'}
-    ],
-    devex: 0.20,        // development and permits, excluded by every class anchor
-    omDist: 0.004,      // distribution O&M, a fraction of the plant rate
-    hpShare: 0.40,      // share of plant cost that is heat pump, and so is
-                        // replaced on its own cycle rather than the borehole's
-    hpLife: 22,         // years - heat pumps 20-25, boreholes and pipe 50-100
-    boilerLife: 13,     // years - the counterfactual replaces too
-    boilerCost: 2800,   // GBP installed, and
-    boilerService: 100, // GBP a year, both of which BAU bears and we credit
-    homesPerTWh: 1e6/12,// at 12 MWh a year per home, the default lever value
-
-    // Green Book series at five-year steps, real 2022 GBP, held flat past the
-    // last year given. Retail p/kWh, LRVC p/kWh, carbon GBP/tCO2e, electricity
-    // long-run marginal emissions kgCO2e/kWh, air quality damage p/kWh.
-    yrs:    [2026, 2030, 2035, 2040, 2045, 2050, 2055, 2060],
-    ret_e:  [28.947, 24.096, 22.010, 21.154, 20.631, 20.304, 20.304, 20.304],
-    ret_g:  [ 6.981,  5.982,  5.554,  5.517,  5.520,  5.519,  5.519,  5.519],
-    lrv_e:  [14.306, 12.530, 12.763, 12.695, 12.565, 12.273, 12.273, 12.273],
-    lrv_g:  [ 3.901,  2.626,  2.626,  2.626,  2.626,  2.626,  2.626,  2.626],
-    carbon: [ 277.2,  294.5,  317.6,  342.5,  369.0,  397.5,  397.5,  397.5],
-    ef:     [0.1907, 0.0931, 0.0248, 0.0066, 0.0014, 0.0014, 0.0025, 0.0025],
-    aq_e:   [0.1196, 0.0748, 0.0259, 0.0090, 0.0055, 0.0040, 0.0040, 0.0040],
-    aq_g:   [0.1613, 0.1613, 0.1613, 0.1613, 0.1613, 0.1613, 0.1613, 0.1613],
-
-    GAS_EFF: 0.835, SPF: 5.0, GAS_EF: 0.18296,
-    giltReal: 0.036,  // 30-year nominal ~5.65% less the GDP deflator, Aug 2026
-
-    // published case - what the frontispiece quotes
-    def: {mix:70, years:10, dist:250, conn:200, noak:20, om:20,
-          ob:50, horizon:60, rate:60, tenor:30, capture:70, home:12,
-          boiler:0},
-    view: 'appraisal',
-    // ONE FLAG. Set to false to bring the panel and its
-    // frontispiece point back. Everything else is unchanged
-    // and still computes - it simply is not drawn.
-    hold: true
-  };
-
-  (function(){
+  // ---- value for money: one panel, Green Book conventions ----------------
+  // Rebuilt 10 Aug 2026. The private finance VIEW is gone - infrastructure
+  // capital is not reached through a public dashboard, and a developer
+  // publishing its own returns on an advocacy page reads as a pitch. What
+  // survives is the part the public side needs: Green Book Annex A's test of
+  // what private capital costs against what risk transfer buys, both sides
+  // shown, published against interest.
+  (() => {
     const box = document.getElementById('capitalpanel');
     if(!box) return;
-    if(VFM.hold){
-      // Held back deliberately rather than shipped half-settled: the
-      // counterfactual this panel measures against is under revision, and a
-      // number published now would have to be withdrawn.
-      box.innerHTML =
-        '<h2 style="margin-top:30px">Value for money</h2>' +
-        '<div class="undercon">' +
-        '<div class="uctag">Under construction</div>' +
-        '<h3>Does the saving pay for the build?</h3>' +
-        '<p>This panel is being rebuilt against HM Treasury Green Book ' +
-        'appraisal conventions \u2014 optimism bias, a sixty-year horizon, ' +
-        'operating and replacement costs on both sides, and the Annex A ' +
-        'comparison with government borrowing. It will return in three ' +
-        'views: public appraisal, private finance, and what reaches the ' +
-        'consumer.</p>' +
-        '<p>The question it turns on is which counterfactual is the right ' +
-        'one. Heat network zoning means the alternative to a geothermal ' +
-        'network is increasingly not a gas boiler but an air-source network, ' +
-        'and that changes the answer materially in both directions. Rather ' +
-        'than publish a figure that would have to be withdrawn, the panel is ' +
-        'held until that is settled.</p>' +
-        '</div>';
-      box.style.display = 'block';
-      return;
+
+  // ---- basis: the government's own network programme --------------------------
+  const TWh=87.2, BUILD=10, HORIZON=60;
+  const YR=[2026,2030,2035,2040,2045,2050,2055,2060];
+  const LRV=[14.306,12.530,12.763,12.695,12.565,12.273,12.273,12.273];
+  const CARB=[277.2,294.5,317.6,342.5,369.0,397.5,397.5,397.5];
+  const EF=[0.1907,0.0931,0.0248,0.0066,0.0014,0.0014,0.0025,0.0025];
+  const AQ=[0.1196,0.0748,0.0259,0.0090,0.0055,0.0040,0.0040,0.0040];
+
+  // ONE counterfactual. Every improvement that raises air-source performance
+  // either raises geothermal by the same proportion (machine quality is
+  // multiplicative on both) or by MORE (lower flow helps the warmer source more).
+  // The only air-specific gain is defrost mitigation, worth about 0.1 SPF - and
+  // it is conceded here rather than argued over. Note defrost costs 12% at +2C
+  // and nothing at the -5C design condition, so it lifts the seasonal figure and
+  // leaves the peak COP untouched.
+  const CF={spf:2.90, peak:1.85};
+  const GEO={spf:5.00, peak:3.55, src:19.6};
+  const PEAK_TH=32.1;                 // GW thermal peak for the programme
+  const TS1_STORE_L_PER_KW=75;        // draft TS1 1.7.15 minimum
+  // share of annual heat served, from the programme's own duration curve.
+  // Runs down to 15% of peak so a large subsurface shortfall still bites.
+  const SERVED={15:0.388,20:0.490,25:0.585,30:0.671,40:0.811,50:0.907,
+                60:0.963,70:0.987,80:0.996,90:0.999,100:1.0};
+  // financing
+  const GILT=3.6, TENOR=25, NET_CAPITAL=110;
+  // Resource risk insurance. GEORISK (Horizon 2020, EGEC) compared 21 European
+  // schemes; funds operate in France, Germany, Iceland, the Netherlands, Denmark
+  // and Switzerland. France is the usable benchmark - fees around 3% of drilling
+  // cost today, moving to 5-10% under the new three-zone scheme, with coverage
+  // held at 90%. German PRIVATE cover at a 30% minimum was itself a barrier to
+  // the market forming, so mutual and public funds are what function at scale.
+  // The literature splits the risk as the panel needs: SHORT-TERM, failing to
+  // find a resource after drilling, which is pre-FID and excluded here; and
+  // LONG-TERM depletion until exploitation is unprofitable, which is the
+  // subsurface shortfall lever.
+  const COVERAGE=0.90, PREMIUM_RATE=0.06;
+  // Fixed and stated rather than offered as sliders: three assumptions a reader
+  // can disagree with in words, but which do not need dragging to be understood.
+  const R_GEO=0.110, R_NET=0.060, CONTINGENCY=0.20;
+  // The increment is bought by the kW, so it scales with what the plant is RATED
+  // at - not with what the ground delivers, since a shortfall is capacity paid
+  // for and not received. The lever is quoted at the reference sizing because
+  // that is where its source anchor sits: the doublet class is priced at
+  // 5,400-6,000 equivalent full-load hours, which at this programme's 31% load
+  // factor is about half the winter peak.
+  const REF_SIZING=50;
+  const capNow=()=>S.cap*(S.sizing/REF_SIZING);
+  // Subsurface performance risk, expressed the way it actually shows up in
+  // operation: as CAPACITY not delivered. It lumps the failure modes together
+  // rather than modelling each - a failed well, insufficient recharge, a store
+  // driven warm by
+  // too much reinjection, or a round-trip efficiency below design all end in the
+  // same place, which is a plant that cannot deliver its rated output. The
+  // shortfall is made up by the top-up gas boilers already in the design, so it
+  // shows as less heat electrified and less peak avoided, not as a lower COP.
+  // The counterfactual has no equivalent: the atmosphere does not run down.
+  let S={cap:14, ob:50, pk:75, sizing:50, loss:10, };
+
+  const at=(a,y)=>{
+    if(y<=YR[0]) return a[0];
+    if(y>=YR[YR.length-1]) return a[a.length-1];
+    for(let i=1;i<YR.length;i++) if(y<=YR[i]){
+      const f=(y-YR[i-1])/(YR[i]-YR[i-1]); return a[i-1]+f*(a[i]-a[i-1]);
     }
-    if(!Array.isArray(d.history)) return;
-    const hist = d.history.filter(e => e && e.week_ending && e.whatif)
-                   .sort((a,b) => a.week_ending < b.week_ending ? -1 : 1);
-    if(hist.length < 26) return;
-
-    // the one live input: trailing twelve months, pinned there whatever the
-    // trend selector says - an August week saves almost nothing
-    const Y = hist.slice(-52);
-    const savingBn = Y.reduce((a,e) => a + e.bill_Mgbp - e.whatif.bill_Mgbp, 0) / 1000;
-    const stripTWh = Y.reduce((a,e) =>
-        a + ((e.heat_GWh||0) + (e.cooling_GWh||0)
-             - (e.whatif.heat_GWh||0) - (e.whatif.cooling_GWh||0)), 0) / 1000
-      || (d.geothermal && d.geothermal.hardware
-          ? 0.20 * d.geothermal.hardware.useful_heat_annual_TWh : 0);
-    const emMt = d.carbon && d.carbon.whatif_saving_kt
-      ? d.carbon.whatif_saving_kt * 52 / 1000 : 2.8;
-    if(!(savingBn > 0) || !(stripTWh > 0)) return;
-
-    const S = Object.assign({}, VFM.def);
-    const gbp = n => '\u00a3' + (Math.abs(n) < 10 ? n.toFixed(1) : Math.round(n)) + 'bn';
-
-    // series lookup, linear between the five-year steps, flat past the end
-    function at(arr, y){
-      const ys = VFM.yrs;
-      if(y <= ys[0]) return arr[0];
-      if(y >= ys[ys.length-1]) return arr[arr.length-1];
-      for(let i = 1; i < ys.length; i++){
-        if(y <= ys[i]){
-          const f = (y - ys[i-1]) / (ys[i] - ys[i-1]);
-          return arr[i-1] + f * (arr[i] - arr[i-1]);
-        }
-      }
-      return arr[arr.length-1];
+    return a[a.length-1];
+  };
+  function stpr(t){                    // declining social time preference rate
+    let f=1,k=1;
+    while(k<=Math.floor(t)){ f/=(1+(k<=30?0.035:(k<=75?0.030:0.025))); k++; }
+    const fr=t-Math.floor(t); if(fr) f/=Math.pow(1.035,fr);
+    return f;
+  }
+  function served(f){
+    const k=Object.keys(SERVED).map(Number).sort((a,b)=>a-b);
+    if(f<=k[0]) return SERVED[k[0]];
+    for(let i=1;i<k.length;i++) if(f<=k[i]){
+      const t=(f-k[i-1])/(k[i]-k[i-1]);
+      return SERVED[k[i-1]]+t*(SERVED[k[i]]-SERVED[k[i-1]]);
     }
-    // Green Book declining social time preference rate
-    function stpr(t){
-      let f = 1;
-      for(let k = 1; k <= t; k++)
-        f /= (1 + (k <= 30 ? 0.035 : (k <= 75 ? 0.030 : 0.025)));
-      return f;
+    return 1.0;
+  }
+  const ann=(r,n)=>(1-Math.pow(1+r,-n))/r;
+
+  // Peaking applies to BOTH routes, so gas covers the same share of heat either
+  // way and cancels; only the electrified remainder differs by source.
+  const effSizing=()=>S.sizing*(1-S.loss/100);   // rated size less the shortfall
+  const servedNow=()=>served(effSizing());
+  const avoidedTWh=()=>TWh*servedNow()*(1/CF.spf-1/GEO.spf);
+  const avoidedGW =()=>PEAK_TH*(effSizing()/100)*(1/CF.peak-1/GEO.peak);
+  const storeM3   =()=>PEAK_TH*(S.sizing/100)*1e6*TS1_STORE_L_PER_KW/1000;
+
+  // Benefits at a stated shortfall, so the cost of the shortfall itself can be
+  // priced. Called twice: once at the chosen setting for the appraisal, once at
+  // zero to value what a shortfall would destroy.
+  function appraiseAt(loss){
+    const keep=S.loss; S.loss=loss; const r=appraise(); S.loss=keep; return r;
+  }
+  function appraise(){
+    let en=0,ca=0,aq=0,pk=0;
+    for(let t=1;t<=HORIZON;t++){
+      const y=2026+t-1, b=Math.min(t,BUILD)/BUILD, d=stpr(t);
+      const kWh=avoidedTWh()*1e9, gw=avoidedGW();
+      en+=b*kWh*at(LRV,y)/100/1e9*d;
+      ca+=b*(kWh*at(EF,y)/1e9)*at(CARB,y)/1e3*d;
+      aq+=b*kWh*at(AQ,y)/100/1e9*d;
+      pk+=b*gw*1e6*S.pk/1e9*d;
     }
-    const flat = r => t => Math.pow(1 + r, -t);
+    let cost=0;
+    for(let t=1;t<=BUILD;t++) cost+=(capNow()*(1+S.ob/100)/BUILD)*stpr(t-0.5);
+    const ben=en+ca+aq+pk;
+    return {en,ca,aq,pk,ben,cost,bcr:ben/cost,npsv:ben-cost};
+  }
+  // Green Book Annex A: discount the COSTS of each option at the risk-free gilt
+  // rate to compare total exchequer cost. The premium is what private capital
+  // costs against public borrowing - and the Treasury's own test is whether risk
+  // transfer and delivery efficiencies outweigh it. So both sides.
+  function financing(){
+    const tot=capNow()+NET_CAPITAL;
+    const rg=R_GEO, rn=R_NET, g=GILT/100;
+    const blend=(capNow()*rg+NET_CAPITAL*rn)/tot;
+    const mult=r=>ann(g,TENOR)/ann(r,TENOR);
+    const prem_fin=tot*(mult(blend)-1);
+    // Optimism bias and the overrun a contractor absorbs are the SAME quantity
+    // seen from two sides - using different numbers for them was an
+    // inconsistency. A fixed price does not shift all of it, though: the
+    // contractor prices the expected value in, so what transfer removes is
+    // nearer the variance. Hence the transfer fraction.
+    // CONSTRUCTION. Optimism bias is the uplift from a naive estimate to an
+    // unbiased expectation. On a megaproject a sponsor builds contingency into
+    // the SANCTIONED cost up front - that part is paid whoever builds it and is
+    // not transferred. Only the residual tail moves to a fixed-price contractor.
+    const exposure=tot*(S.ob/100);
+    const sanctioned=exposure*CONTINGENCY;
+    const construction=exposure-sanctioned;
 
-    // ---- the physical build, shared by all three views --------------------
-    function capexBlend(){
-      const net = VFM.classes.filter(c => c.key !== 'gshp');
-      const netCe = net.reduce((a,c) => a + c.ce, 0) / net.length;
-      const gshp = VFM.classes.find(c => c.key === 'gshp').ce;
-      const m = S.mix / 100;
-      // Distribution and connections fall on the network share only: an
-      // individual install has no main and no connection, and its pipework is
-      // already inside its own class anchor.
-      return {plant: m * netCe + (1 - m) * gshp,
-              adders: m * (S.dist + S.conn)};
-    }
-    // capital, O&M and heat-pump replacement, discounted; ob is the optimism
-    // bias uplift applied to capital only
-    function costPV(disc, n, ob){
-      const {plant, adders} = capexBlend();
-      const yrs = S.years, om = S.om / 1000;
-      let cap = 0, opex = 0, repl = 0;
-      const year1 = (plant + adders) * (1 + VFM.devex) * stripTWh * 1e6 / 1e9;
-      // O&M is NOT one rate on everything. DECC/AECOM put distribution
-      // maintenance under GBP 1/MWh - a few tenths of a per cent of its
-      // capital - while plant and customer-facing costs are 10-30x larger.
-      // Applying the plant rate to buried pipe would overstate opex badly.
-      const plantShare = plant / (plant + adders);
-      const omRate = om * plantShare + VFM.omDist * (1 - plantShare);
-      for(let t = 1; t <= yrs; t++){
-        const f = 1 - (S.noak/100) * (yrs > 1 ? (t-1)/(yrs-1) : 0);
-        cap += ((plant * f + adders) * (1 + VFM.devex) * (1 + ob)
-                * stripTWh * 1e6 / 1e9) / yrs * disc(t - 0.5);
-      }
-      // O&M runs from commissioning of each tranche to the horizon
-      for(let t = 1; t <= n; t++){
-        const built = Math.min(t, yrs) / yrs;
-        opex += built * year1 * omRate * disc(t);
-      }
-      // heat pumps are replaced on their own cycle; boreholes and pipe are not
-      for(let t = VFM.hpLife; t <= n; t += VFM.hpLife){
-        repl += year1 * (plant / (plant + adders)) * VFM.hpShare * disc(t);
-      }
-      return {cap, opex, repl, total: cap + opex + repl,
-              blend: (plant + adders) * (1 + VFM.devex)};
-    }
-    // residual value: boreholes and buried pipe outlive a 60-year horizon
-    function residual(disc, n){
-      const {plant, adders} = capexBlend();
-      const year1 = (plant + adders) * (1 + VFM.devex) * stripTWh * 1e6 / 1e9;
-      const longLife = year1 * (1 - (plant / (plant + adders)) * VFM.hpShare);
-      return longLife * Math.max(0, (100 - n) / 100) * disc(n);
-    }
+    // SUBSURFACE. Priced the way the market prices it: a premium on the
+    // subsurface capital buying cover against the resource underdelivering.
+    // What transfer is worth is the exposure covered, net of what the cover cost.
+    const geoExposure=Math.max(0, appraiseAt(0).ben - appraiseAt(S.loss).ben);
+    const premium=capNow()*PREMIUM_RATE;
+    const geoCovered=geoExposure*COVERAGE;
+    const geological=geoCovered-premium;
+    const transferred=construction+geological;
+    return {tot,blend,mult:mult(blend),mGeo:mult(rg),mNet:mult(rn),
+            premium:prem_fin,construction,geological,transferred,
+            exposure,sanctioned,geoExposure,geoCovered,insPremium:premium,
+            net:transferred-prem_fin};
+  }
 
-    // ---- benefit streams ---------------------------------------------------
-    const heatKWh = stripTWh * 1e9;
-    function unitSaving(y, basis){
-      const e = basis === 'retail' ? at(VFM.ret_e, y) : at(VFM.lrv_e, y);
-      const g = basis === 'retail' ? at(VFM.ret_g, y) : at(VFM.lrv_g, y);
-      return g / VFM.GAS_EFF - e / VFM.SPF;             // pence per kWh heat
-    }
-    function benefitsPV(disc, n, opts){
-      const base = unitSaving(2026, opts.basis);
-      let energy = 0, carbon = 0, air = 0, boiler = 0;
-      for(let t = 1; t <= n; t++){
-        const y = 2026 + t - 1, built = Math.min(t, S.years) / S.years;
-        energy += built * savingBn * (unitSaving(y, opts.basis) / base) * disc(t);
-        if(opts.carbon) carbon += built * emMt * at(VFM.carbon, y) / 1000 * disc(t);
-        if(opts.air){
-          const a = (at(VFM.aq_g, y) / VFM.GAS_EFF - at(VFM.aq_e, y) / VFM.SPF);
-          air += built * a * heatKWh / 100 / 1e9 * disc(t);
-        }
-        // business as usual replaces its boilers too - a cost the counterfactual
-        // bears and the scheme avoids, so it belongs on this side
-        // Business as usual replaces its boilers, which the scheme avoids -
-        // but the scheme installs heat interface units that are replaced too,
-        // and no sourced UK replacement cost for those was found. Crediting
-        // one side without charging the other is the error this panel is
-        // meant to avoid, so it is OFF by default and reported separately
-        // rather than folded into the ratio.
-        if(opts.boiler){
-          const homes = stripTWh * VFM.homesPerTWh;
-          if(t % VFM.boilerLife === 0)
-            boiler += built * homes * VFM.boilerCost / 1e9 * disc(t);
-          boiler += built * homes * VFM.boilerService / 1e9 * disc(t);
-        }
-      }
-      return {energy, carbon, air, boiler,
-              total: energy + carbon + air + boiler};
-    }
+  const el=id=>document.getElementById(id);
+  const gbp=n=>Math.abs(n)<0.1?'\u00a3'+Math.round(n*1000)+'m'
+              :'\u00a3'+(Math.abs(n)<10?n.toFixed(1):Math.round(n))+'bn';
+  const pc=n=>(100*n).toFixed(1)+'%';
 
-    // ---- the three views ---------------------------------------------------
-    function compute(){
-      const n = S.horizon, ob = S.ob / 100;
-      // public appraisal: resource cost, carbon, air quality, boiler avoided,
-      // declining STPR, optimism bias on capital, whole saving to society
-      const aC = costPV(stpr, n, ob), aR = residual(stpr, n);
-      const aB = benefitsPV(stpr, n, {basis:'lrvc', carbon:true, air:true, boiler:S.boiler === 1});
-      const appraisal = {ben: aB, cost: aC, residual: aR,
-                         net: aC.total - aR,
-                         bcr: aB.total / Math.max(0.001, aC.total - aR)};
-      // private finance: retail bill saving, captured share, required return
-      const r = S.rate / 1000, fd = flat(r);
-      const fC = costPV(fd, S.tenor, 0);
-      const fB = benefitsPV(fd, S.tenor, {basis:'retail'});
-      const financed = fB.energy * S.capture / 100;
-      // Annex A: the same costs discounted at the risk-free gilt rate, to
-      // price what the exchequer pays for private capital rather than public
-      const gd = flat(VFM.giltReal);
-      const gC = costPV(gd, S.tenor, 0);
-      const premium = fC.total * (1 / (1 + 0) ) ;   // placeholder, set below
-      const payMult = (function(){
-        // payments sized to give the investor its return, discounted at gilt
-        const ann = (rate, m) => (1 - Math.pow(1 + rate, -m)) / rate;
-        return ann(VFM.giltReal, S.tenor) / ann(r, S.tenor);
-      })();
-      const finance = {financed, build: fC.total, gilt: gC.total,
-                       payMult, premiumBn: fC.total * (payMult - 1),
-                       cov: 100 * financed / fC.total,
-                       gapBn: fC.total - financed};
-      // consumers: what stays with the household, per connected home per year
-      const homes = stripTWh * 1000 / S.home;         // thousands of homes
-      const retained = savingBn * (1 - S.capture / 100);
-      const consumer = {homesM: homes / 1000,
-                        perHome: retained * 1e9 / (homes * 1000),
-                        retainedBn: retained,
-                        exposedPct: 100 * (at(VFM.ret_g, 2026) / VFM.GAS_EFF)
-                                    / (at(VFM.ret_g, 2026) / VFM.GAS_EFF)};
-      // switching values, which is what the Green Book asks for where no
-      // generic benefits haircut exists
-      const switchCost = aB.total / Math.max(0.001, appraisal.net) ;
-      const boilerOnly = benefitsPV(stpr, n, {basis:'lrvc', boiler:true}).boiler;
-      return {appraisal, finance, consumer, boilerBn: boilerOnly,
-              blend: aC.blend,
-              switchBuild: 100 * (switchCost - 1),
-              switchTakeup: 100 / Math.max(0.001, appraisal.bcr)};
-    }
+  function render(){
+    const a=appraise(), f=financing();
 
-    // ---- rendering ---------------------------------------------------------
-    const el = id => document.getElementById(id);
-    function setStat(k, fig, cap){
-      el('cap_' + k).innerHTML = fig; el('cap_' + k + '_cap').textContent = cap;
-    }
-    function render(){
-      const c = compute(), v = S.view;
-      el('cap_levers').setAttribute('data-view', v);
-      let scale, fill, short, lab, rlab;
+    el('plain').innerHTML='In plain terms: about <b>\u00a3'+a.bcr.toFixed(2)+
+      ' of public benefit for every \u00a31 spent</b>, over sixty years, on the ' +
+      'government\u2019s own appraisal rules.';
+    el('sub').textContent=
+      'Appraised on HM Treasury conventions: energy at long-run variable cost ' +
+      'because taxes and levies are transfers, carbon at DESNZ values, a ' +
+      'declining social time preference rate, a sixty-year horizon, and optimism ' +
+      'bias on capital.';
 
-      if(v === 'appraisal'){
-        const a = c.appraisal;
-        el('cap_viewsub').textContent =
-          'On the government\u2019s own appraisal rules: resource cost rather ' +
-          'than retail price, because taxes and levies are transfers; carbon ' +
-          'and air quality valued; the boilers business as usual would have ' +
-          'replaced counted as a cost avoided; optimism bias on capital; ' +
-          'discounted at the declining social time preference rate.';
-        setStat('a', a.bcr.toFixed(2), 'benefit-cost ratio\u2020 \u2014 above 1.0 is value for money on monetisable terms');
-        setStat('b', gbp(a.ben.total), 'of social benefit over ' + S.horizon +
-          ' years: energy ' + gbp(a.ben.energy) + ', carbon ' + gbp(a.ben.carbon) +
-          ', air quality ' + gbp(a.ben.air) + ', boilers not replaced ' + gbp(a.ben.boiler));
-        setStat('c', gbp(a.net), 'of social cost: build ' + gbp(a.cost.cap) +
-          ' after ' + S.ob + '% optimism bias, operations ' + gbp(a.cost.opex) +
-          ', heat-pump replacement ' + gbp(a.cost.repl) +
-          ', less residual value ' + gbp(a.residual));
-        scale = Math.max(a.ben.total, a.net) * 1.05;
-        fill = 100 * a.ben.total / scale; short = 0;
-        lab = 'benefits ' + gbp(a.ben.total); rlab = 'costs ' + gbp(a.net);
-        const sb = c.switchBuild, up = sb >= 0;
-        el('cap_switch').textContent =
-          'Switching values, which is what the Green Book asks for where no ' +
-          'generic benefits haircut exists: the ratio reaches 1.0 if costs ' +
-          (up ? 'rise no more than ' : 'fall ') + Math.abs(Math.round(sb)) +
-          '%, or if benefits ' + (up ? 'fall no more than ' : 'rise ') +
-          Math.abs(Math.round(100 * (1 - 1/Math.max(0.001,c.appraisal.bcr)))) +
-          '%. Not counted above, because counting it without charging the ' +
-          'scheme\u2019s own in-building equipment replacement would be ' +
-          'one-sided: the boilers business as usual would have replaced over ' +
-          S.horizon + ' years are worth ' + gbp(c.boilerBn) + ' on the same ' +
-          'basis. And connection take-up is the largest unmodelled revenue ' +
-          'risk in UK heat networks - no published UK realised-versus-forecast ' +
-          'benchmark was found.';
-      } else if(v === 'finance'){
-        const f = c.finance;
-        el('cap_viewsub').textContent =
-          'What a commercial investor can raise against the bill saving alone, ' +
-          'at retail prices, over the contract term \u2014 and, as Green Book ' +
-          'Annex A requires, what the exchequer pays for using private capital ' +
-          'rather than borrowing at gilt rates.';
-        setStat('a', Math.round(f.cov) + '<small> %</small>',
-          'of the build financed by the share of the saving the investor keeps');
-        setStat('b', gbp(f.gapBn), 'left to find \u2014 grant, a return below ' +
-          'sector expectations agreed with the Treasury, or policy');
-        setStat('c', '\u00d7' + f.payMult.toFixed(2),
-          'what the exchequer pays for private capital rather than gilts: ' +
-          gbp(f.premiumBn) + ' on this build, the Annex A costs-only comparison');
-        scale = f.build * 1.05;
-        fill = 100 * f.financed / scale;
-        short = Math.max(0, 100 * f.gapBn / scale);
-        lab = 'financed ' + gbp(f.financed); rlab = 'gap ' + gbp(f.gapBn);
-        el('cap_switch').textContent =
-          'The premium is not a cost of the technology. It is the price of ' +
-          'raising capital commercially rather than on the government balance ' +
-          'sheet, and Annex A exists to make it visible.';
-      } else {
-        const k = c.consumer;
-        el('cap_viewsub').textContent =
-          'What reaches the household. The saving not captured by the investor ' +
-          'stays with the customer \u2014 that is the offer that wins the ' +
-          'connection, and in the appraisal view it counts either way.';
-        setStat('a', '\u00a3' + Math.round(k.perHome),
-          'a year per connected home\u2020, at ' + S.home + ' MWh delivered');
-        setStat('b', gbp(k.retainedBn), 'a year retained by customers in total, ' +
-          'across about ' + k.homesM.toFixed(1) + 'm home-equivalents');
-        setStat('c', Math.round(100 - S.capture) + '<small> %</small>',
-          'of the saving left with the customer at this setting');
-        scale = savingBn * 1.05;
-        fill = 100 * k.retainedBn / scale;
-        short = Math.max(0, 100 * (savingBn - k.retainedBn) / scale);
-        lab = 'to customers ' + gbp(k.retainedBn);
-        rlab = 'to investor ' + gbp(savingBn - k.retainedBn);
-        el('cap_switch').textContent =
-          'Not shown here but the stronger consumer argument: a geothermal ' +
-          'heat cost is capital and electricity, with no gas commodity ' +
-          'exposure, so it does not move the way 2022 moved.';
-      }
+    el('big').innerHTML=a.bcr.toFixed(2)+'<small>benefit-cost ratio</small>';
+    el('big').style.color=a.bcr>=1?'var(--geo)':'var(--ember)';
+    el('s1').innerHTML=(a.npsv>=0?'+':'\u2212')+gbp(Math.abs(a.npsv))+
+      '<small>net present social value</small>';
+    el('s2').innerHTML=gbp(a.cost)+'<small>social cost, 60 years</small>';
 
-      el('cap_fill').style.width = Math.max(0, Math.min(100, fill)) + '%';
-      el('cap_short').style.width = Math.max(0, Math.min(100 - fill, short)) + '%';
-      el('cap_barlab').textContent = lab;
-      el('cap_barrlab').textContent = rlab;
-      el('cap_scale').textContent = gbp(scale);
+    el('dealnote').innerHTML='A geothermal source at a seasonal factor of '+
+      GEO.spf.toFixed(1)+' against <b>a network-scale air-source energy centre at '+
+      CF.spf.toFixed(1)+'</b> \u2014 same pipes, same connections, same buildings. '+
+      'Both rated at <b>'+S.sizing+'% of the winter peak</b> with top-up gas '+
+      'boilers above. At a <b>'+S.loss+'%</b> subsurface shortfall the geothermal '+
+      'plant delivers '+effSizing().toFixed(0)+'% of peak, serving <b>'+
+      Math.round(100*servedNow())+'%</b> of the heat electrically, with gas '+
+      'making up the rest on either side. That leaves <b>'+
+      avoidedTWh().toFixed(1)+' TWh a year</b> of electricity avoided and <b>'+
+      avoidedGW().toFixed(1)+' GW</b> at the winter peak, where the instantaneous '+
+      'COPs are '+CF.peak.toFixed(2)+' against '+GEO.peak.toFixed(2)+'\u2020. '+
+      'Electrification of Heat, 742 monitored units, gives 2.80; the extra 0.10 '+
+      'concedes the defrost mitigation that is the only air-specific improvement '+
+      'available \u2014 and defrost costs 12% at +2\u00b0C and nothing at the '+
+      '\u22125\u00b0C design condition, so it lifts the seasonal figure and leaves '+
+      'the peak untouched.';
 
-      const pc = n => Math.round(n) + '%';
-      el('cap_mix_v').textContent     = pc(S.mix);
-      el('cap_years_v').textContent   = S.years + ' yr';
-      el('cap_dist_v').textContent    = '\u00a3' + S.dist;
-      el('cap_conn_v').textContent    = '\u00a3' + S.conn;
-      el('cap_noak_v').textContent    = pc(S.noak);
-      el('cap_om_v').textContent      = (S.om/10).toFixed(1) + '%';
-      el('cap_ob_v').textContent      = pc(S.ob);
-      el('cap_horizon_v').textContent = S.horizon + ' yr';
-      el('cap_rate_v').textContent    = (S.rate/10).toFixed(1) + '%';
-      el('cap_tenor_v').textContent   = S.tenor + ' yr';
-      el('cap_capture_v').textContent = pc(S.capture);
-      el('cap_home_v').textContent    = S.home + ' MWh';
+    const parts=[['Energy at resource cost',a.en,'var(--geo)'],
+                 ['Avoided winter peak',a.pk,'var(--elec)'],
+                 ['Carbon',a.ca,'var(--cool)'],
+                 ['Air quality',a.aq,'var(--ash)']];
+    el('compbar').innerHTML=parts.map(p=>
+      '<span style="width:'+(100*p[1]/a.ben)+'%;background:'+p[2]+'"></span>').join('');
+    el('key').innerHTML=parts.map(p=>
+      '<span style="white-space:nowrap"><i style="background:'+p[2]+'"></i>'+p[0]+
+      ' '+gbp(p[1])+' <span style="color:var(--ash)">'+
+      Math.round(100*p[1]/a.ben)+'%</span></span>').join('');
+    el('invar').textContent=
+      'The ratio does not depend on how large you think the programme is. ' +
+      'Benefits and costs both scale with heat delivered, so halving or doubling ' +
+      'the build leaves the ratio where it is and moves only the absolute figures.';
 
-      let moved = false;
-      Object.keys(VFM.def).forEach(k => {
-        const b = el('cap_' + k + '_v');
-        const m = S[k] !== VFM.def[k];
-        if(m) moved = true;
-        if(b) b.classList.toggle('moved', m);
-      });
-      el('cap_reset').hidden = !moved;
+    [['cap',gbp(S.cap)+(S.sizing!==REF_SIZING?' \u2192 '+gbp(capNow()):'')],['ob',S.ob+'%'],['pk','\u00a3'+S.pk+'/kW\u00b7yr'],
+     ['sizing',S.sizing+'% of peak'],
+     ['loss',S.loss+'% of rated'],
+     ]
+      .forEach(([k,v])=>{ el('lv_'+k+'_v').textContent=v; el('lv_'+k).value=S[k]; });
 
-      el('cap_note').textContent =
-        'The saving is live: ' + Y.length + ' complete weeks of the trailing ' +
-        'year, pinned to twelve months whatever the trend selector shows. It ' +
-        'is a price differential, not a physical quantity, and it narrows if ' +
-        'the gas-electricity spread narrows. Capital is spread over ' + S.years +
-        ' years with savings ramping as the fleet completes; operations run at ' +
-        (S.om/10).toFixed(1) + '% of capital a year\u2020 and heat pumps are ' +
-        'replaced every ' + VFM.hpLife + ' years\u2020 while boreholes and ' +
-        'buried pipe are not. Distribution and connections are charged to the ' +
-        'network share only. Development and permits are added at ' +
-        Math.round(100 * VFM.devex) + '%\u2020. Energy prices, carbon values, ' +
-        'emissions factors and air quality damage costs are the DESNZ Green ' +
-        'Book supplementary tables, real 2022 prices, held flat past 2060.';
-    }
+    el('fixed').textContent=
+      'Fixed at Green Book conventions: a sixty-year horizon for infrastructure; ' +
+      'a declining social time preference rate of 3.5% to year 30, 3.0% to 75 and ' +
+      '2.5% thereafter; energy at long-run variable cost, because taxes and levies ' +
+      'are transfers rather than resource savings; DESNZ carbon values rising from ' +
+      '\u00a3277 to \u00a3398 a tonne by 2050; capital spread over a ten-year build ' +
+      'with benefits ramping as the fleet completes. Plant sizing follows draft ' +
+      'Heat Network Technical Standard TS1 requirement 1.7.15, which requires ' +
+      'generation and storage to be optimised on whole-life cost through an hourly ' +
+      'operating model rather than set by rule of thumb, and sets a minimum thermal ' +
+      'store of '+TS1_STORE_L_PER_KW+' litres per kW of heat pump output \u2014 ' +
+      'about '+(storeM3()/1e6).toFixed(1)+' million cubic metres at this sizing. ' +
+      'TS1 supersedes CIBSE CP1 as the regulated standard and is in consultation ' +
+      'to 15 April 2026.';
 
-    // ---- evidence fold -----------------------------------------------------
-    el('cap_classes').innerHTML =
-      '<table style="width:100%;border-collapse:collapse;font-size:13.5px">' +
-      '<tr style="color:var(--muted);text-align:left">' +
-      '<th style="padding:5px 8px 5px 0">Class</th>' +
-      '<th style="padding:5px 8px">\u00a3 per annual MWh\u2020</th>' +
-      '<th style="padding:5px 8px">Full-load hours</th></tr>' +
-      VFM.classes.map(c =>
-        '<tr style="border-top:1px solid var(--line)">' +
-        '<td style="padding:7px 8px 7px 0">' + c.name +
-        '<div style="color:var(--ash);font-size:12px;max-width:44ch">' +
-        c.note + '</div></td>' +
-        '<td style="padding:7px 8px;font-family:\'IBM Plex Mono\'">' +
-        c.lo + '\u2013' + c.hi + '</td>' +
-        '<td style="padding:7px 8px;font-family:\'IBM Plex Mono\';color:var(--muted)">' +
-        c.eflh + '</td></tr>').join('') + '</table>';
-    el('cap_classnote').textContent =
-      'Real 2025 GBP, from the Arup/DESNZ 2025 UK review (DESNZ-ARP-REP-0003) ' +
-      'and a European comparator study. None includes distribution, which is ' +
-      'why it is a separate lever. The network share is split evenly between ' +
-      'ATES and doublets\u2020. Distribution and connection costs come from UK ' +
-      'outturn (DECC/AECOM 2015, seven schemes, escalated to 2025) and the ' +
-      'DESNZ heat network pipeline, where distribution runs from 10% of scheme ' +
-      'cost for a dense scheme on waste heat to 82% for a small extension. An ' +
-      'ambient loop is not reliably cheaper per metre than conventional ' +
-      'district heating: the small flow-return difference forces larger ' +
-      'diameters and trench excavation dominates either way. Optimism bias ' +
-      'follows the Treasury supplementary guidance, where non-standard civil ' +
-      'engineering carries a 66% upper bound on capital, mitigating toward ' +
-      '40-50% at outline business case. The gilt comparison uses a 30-year ' +
-      'point of ' + (100*VFM.giltReal).toFixed(1) + '% real\u2020, nominal less ' +
-      'the GDP deflator as the transport guidance directs.';
+    const up=a.bcr>=1;
+    el('switch').innerHTML= up
+      ? 'Switching values: costs could rise <b>'+Math.round(100*(a.bcr-1))+
+        '%</b> or benefits fall <b>'+Math.round(100*(1-1/a.bcr))+'%</b> before ' +
+        'this stops being value for money. The Green Book asks for these rather ' +
+        'than a generic haircut on benefits, because none exists for this class ' +
+        'of project.'
+      : 'Below 1.0 \u2014 costs would need to fall <b>'+Math.round(100*(1-a.bcr))+
+        '%</b> to clear.';
+    el('caveat').textContent=
+      'A calculator on a live input: the energy saving is measured weekly from ' +
+      'public grid data and pinned to twelve months; the valuation is yours to ' +
+      'set. It covers the part of value for money that can be monetised \u2014 the ' +
+      'Green Book\u2019s own definition also takes in unmonetisable effects, risk ' +
+      'and distribution, and no calculator settles those.';
 
-    // ---- wiring ------------------------------------------------------------
-    ['mix','years','dist','conn','noak','om','ob','horizon','rate','tenor',
-     'capture','home'].forEach(k => {
-      const s = el('cap_' + k);
-      if(!s) return;
-      s.value = VFM.def[k];
-      s.addEventListener('input', () => { S[k] = +s.value; render(); });
-    });
-    el('cap_reset').addEventListener('click', () => {
-      Object.keys(VFM.def).forEach(k => {
-        S[k] = VFM.def[k];
-        const s = el('cap_' + k); if(s) s.value = VFM.def[k];
-      });
-      render();
-    });
-    el('vfmviews').addEventListener('click', ev => {
-      const b = ev.target.closest('button');
-      if(!b) return;
-      S.view = b.dataset.view;
-      [...ev.currentTarget.querySelectorAll('button')].forEach(x =>
-        x.setAttribute('aria-selected', String(x === b)));
-      render();
-    });
+    // ---- Annex A, both sides -------------------------------------------------
+    el('finassume').innerHTML=
+      'Three assumptions are fixed here rather than offered as sliders, because ' +
+      'they are things to disagree with in words rather than drag: a <b>'+
+      (100*R_GEO).toFixed(1)+'%</b> real return on the geothermal slice, which ' +
+      'carries construction and resource risk; <b>'+(100*R_NET).toFixed(1)+
+      '%</b> on the network, contracted and long-lived, against the <b>5.23%</b> ' +
+      'Ofgem allowed on regulated equity at RIIO-ED2; and <b>'+
+      Math.round(100*CONTINGENCY)+'%</b> of the optimism bias already carried as ' +
+      'contingency in the sanctioned cost. A percentage is an inside-view ' +
+      'instrument \u2014 the right one is a reference class of completed ' +
+      'schemes, and no UK dataset for heat network outturn yet exists. That is ' +
+      'the third ask below.';
+    el('finsub').textContent=
+      'Green Book Annex A requires the costs of a private finance option to be ' +
+      'discounted at a risk-free gilt rate alongside the main appraisal, so the ' +
+      'exchequer can see what private capital costs against borrowing. The test ' +
+      'it sets is not whether the premium exists but whether risk transfer and ' +
+      'delivery efficiencies outweigh it. Both sides are below.';
+    el('fin_cost').textContent='\u00d7'+f.mult.toFixed(2)+'  \u00b7  '+gbp(f.premium);
+    el('fin_cost_p').innerHTML='Financing the '+gbp(f.tot)+' programme at a '+
+      pc(f.blend)+' blended real return costs the exchequer '+gbp(f.premium)+
+      ' more in present value than borrowing at a '+GILT.toFixed(1)+
+      '% gilt. The geothermal slice carries the higher multiple \u2014 \u00d7'+
+      f.mGeo.toFixed(2)+' against \u00d7'+f.mNet.toFixed(2)+
+      ' for the network \u2014 because it carries the higher risk. Infrastructure ' +
+      'capital takes the whole asset rather than the slice, so the blend is what ' +
+      'is actually paid.';
+    el('fin_buys').textContent=gbp(f.transferred);
+    el('fin_buys_p').innerHTML=
+      '<b>Construction '+gbp(f.construction)+'.</b> The '+S.ob+'% optimism bias ' +
+      'on a '+gbp(f.tot)+' build is '+gbp(f.exposure)+' of exposure. '+
+      Math.round(100*CONTINGENCY)+'% of it \u2014 '+gbp(f.sanctioned)+
+      ' \u2014 is contingency already inside ' +
+      'the sanctioned cost, paid whoever builds it and transferred to nobody. The ' +
+      'residual tail is what a fixed price moves.' +
+      '<br><br><b>Subsurface '+gbp(f.geological)+'.</b> A '+S.loss+'% shortfall ' +
+      'destroys '+gbp(f.geoExposure)+' of benefit. Cover at '+
+      Math.round(100*COVERAGE)+'% is worth '+gbp(f.geoCovered)+' and costs '+
+      gbp(f.insPremium)+' in premium at 6% of subsurface capital \u2014 the ' +
+      'French benchmark, where fees run 3% today and 5\u201310% under the new ' +
+      'three-zone scheme, and German private cover at a 30% minimum stopped a ' +
+      'market forming. A known premium replacing an ' +
+      'unknown exposure is the risk transfer argument made concrete.' +
+      '<br><br>Delivery capability comes with both: the state has no heat network ' +
+      'delivery arm. Still not counted: delivery efficiency, schedule, and the ' +
+      'oversizing draft TS1 names as a cause of unnecessary capital cost.';
+    const net=f.net;
+    el('fin_verdict').innerHTML= net>=0
+      ? 'At these settings the risk transferred exceeds the premium by <b>'+
+        gbp(net)+'</b>, and private finance is the better value option on the ' +
+        'Annex A test. It is a close-run judgement in both directions \u2014 which ' +
+        'is why Annex A requires it to be presented rather than assumed.'
+      : 'At these settings the premium exceeds the risk transferred by <b>'+
+        gbp(-net)+'</b>, and public borrowing is the better value option on the ' +
+        'Annex A test. It is a close-run judgement in both directions \u2014 which ' +
+        'is why Annex A requires it to be presented rather than assumed.';
+    el('declare').textContent=
+      'Causeway Energies develops geothermal networks and would be among the ' +
+      'investors, so this block is published against interest.';
+    el('devex').textContent=
+      'Pre-FID development capital is excluded from all of the above. Resource ' +
+      'assessment, seismic, exploration drilling and permits would be of order ' +
+      '15\u201320% of construction cost \u2014 '+gbp(f.tot*0.15)+' to '+
+      gbp(f.tot*0.20)+' \u2014 and are taken by a developer at a development ' +
+      'return, not by infrastructure capital at financial close. The success rate ' +
+      'of prospects reaching close, not the percentage spent, is what sets its ' +
+      'true cost.';
+  }
+  ['cap','ob','pk','sizing','loss',].forEach(k=>{
+    el('lv_'+k).addEventListener('input',e=>{ S[k]=+e.target.value; render(); });
+  });
 
     box.style.display = 'block';
     render();
-    window.capitalModel = {compute, S, def: VFM.def, savingBn, stripTWh,
-                           setView: v => { S.view = v; render(); }};
+    // the frontispiece reads the panel rather than carrying its own copy
+    // The frontispiece reads THIS rather than carrying its own arithmetic, so
+    // point 06 and the panel cannot disagree. compute() returns the flat shape
+    // the frontispiece quotes; appraise() and financing() are the full objects.
+    window.capitalModel = {
+      compute: () => {
+        const a = appraise(), f = financing();
+        return {bcr:a.bcr, ben:a.ben, cost:a.cost, npsv:a.npsv,
+                en:a.en, pk:a.pk, ca:a.ca, aq:a.aq,
+                premium:f.premium, transferred:f.transferred, net:f.net,
+                twh:avoidedTWh(), gw:avoidedGW()};
+      },
+      appraise, financing, S, avoidedTWh, avoidedGW, servedNow, capNow};
   })();
 
   // ---- back-to nav ------------------------------------------------------
@@ -1564,36 +1516,24 @@ fetch('data.json').then(r=>r.json()).then(d=>{
     // panel through capitalModel rather than carrying its own arithmetic, so
     // the summary and the detail cannot disagree. It goes LAST because it is
     // the bottom line the five points before it have been building toward.
-    if(VFM.hold){
-      // the frontispiece point is covered with the panel it reads, so the
-      // two can never disagree about whether there is a number to show
-      pts.push({hold:true, n:'06',
-        claim:'What it is worth, and to whom',
-        qual:'The value case is being rebuilt against Green Book appraisal ' +
-             'conventions, and against a counterfactual that heat network ' +
-             'zoning is changing. Held back rather than published ' +
-             'half-settled.',
-        ev:'the panel, and why it is held'});
-    } else if(cap){
+    if(cap){
       pts.push({
-        n:'06', fig: cap.appraisal.bcr.toFixed(2), unit:'benefit-cost ratio',
-        warn: cap.appraisal.bcr < 1, href:'#capitalpanel',
-        claim:'On the government\u2019s own appraisal rules it does not yet ' +
-              'pay for itself \u2014 and the reasons are nameable.',
-        qual:'\u00a3' + Math.round(cap.appraisal.ben.total) + 'bn of social ' +
-             'benefit over 60 years \u2014 energy \u00a3' +
-             Math.round(cap.appraisal.ben.energy) + 'bn, carbon \u00a3' +
-             Math.round(cap.appraisal.ben.carbon) + 'bn, air quality \u00a3' +
-             cap.appraisal.ben.air.toFixed(1) + 'bn \u2014 against \u00a3' +
-             Math.round(cap.appraisal.net) + 'bn of cost after optimism bias, ' +
-             'operations and heat-pump replacement\u2020. Built entirely as ' +
-             'networks rather than one installation at a time, and with the ' +
-             'boilers business as usual would have replaced counted on the ' +
-             'other side, it clears. Separately, a commercial investor can ' +
-             'raise ' + Math.round(cap.finance.cov) + '% of the build against ' +
-             'the bill saving, and using private capital rather than gilts ' +
-             'costs the exchequer \u00d7' + cap.finance.payMult.toFixed(2) +
-             ' on the same costs.',
+        n:'06', fig: cap.bcr.toFixed(2), unit:'benefit-cost ratio',
+        warn: cap.bcr < 1, href:'#capitalpanel',
+        claim: cap.bcr >= 1
+          ? 'On the government\u2019s own appraisal rules, it pays for itself.'
+          : 'On the government\u2019s own appraisal rules it does not yet pay ' +
+            'for itself \u2014 and the reasons are nameable.',
+        qual:'\u00a3' + Math.round(cap.ben) + 'bn of social benefit over 60 ' +
+             'years \u2014 energy \u00a3' + Math.round(cap.en) + 'bn, avoided ' +
+             'winter peak \u00a3' + Math.round(cap.pk) + 'bn, carbon \u00a3' +
+             cap.ca.toFixed(1) + 'bn \u2014 against \u00a3' +
+             Math.round(cap.cost) + 'bn of cost after optimism bias. Measured ' +
+             'against an air-source network, not a gas boiler, because zoning ' +
+             'is making that the alternative: so this is an efficiency and ' +
+             'capacity case, not a carbon one. All the technology is proven: ' +
+             'geothermal scaling is a diffusion challenge, not an innovation ' +
+             'deficit.',
         ev:'the value for money panel'});
     }
 
