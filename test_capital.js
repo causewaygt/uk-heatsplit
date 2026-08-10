@@ -33,12 +33,42 @@ setTimeout(() => {
   const DEF = { cap: 14, ob: 50, pk: 75, sizing: 50, loss: 10 };
   const reset = () => Object.entries(DEF).forEach(([k, v]) => set(k, v));
 
-  chk("the panel initialised and exports a model", !!M);
-  if (!M) { console.log("\n" + fails + " of " + run + " FAILED"); process.exit(1); }
+  // The panel can be HELD - one flag covers it and the frontispiece point that
+  // reads it. When held there is nothing to check but the cover itself, and
+  // the important thing is that no figure or lever is left exposed behind it.
+  const held = !M;
+  const panelHeld = !!el("capitalpanel").querySelector(".undercon");
+  chk("panel and its model are held together", held === panelHeld,
+      "model " + (held ? "off" : "on") + ", panel " +
+      (panelHeld ? "covered" : "live"));
+
+  if (held) {
+    chk("the cover is labelled work in progress",
+        /work in progress/i.test(el("capitalpanel").textContent));
+    // Deliberately says nothing about WHAT is being worked on - a cover
+    // that describes the open questions tells a reader more than a held
+    // panel should.
+    chk("the cover gives nothing away about the work",
+        el("capitalpanel").textContent.replace(/\s+/g, " ").trim()
+          === "Value for moneyWork in progress".replace(/\s+/g, " "));
+    chk("no live levers are left behind the cover",
+        el("capitalpanel").querySelectorAll("input[type=range]").length === 0);
+    chk("no orphan figure is left behind the cover",
+        !/benefit-cost ratio|\u00d71\.|per cent of capital/i
+          .test(el("capitalpanel").textContent));
+    const p6h = [...D.querySelectorAll(".pt")].pop();
+    chk("the frontispiece point is covered too",
+        p6h.classList.contains("undercon"));
+    chk("the held point carries no figure and no prose",
+        !p6h.querySelector(".fig") && !p6h.querySelector("p"));
+    console.log("\n  panel held - cover checks passed, model checks skipped");
+    console.log(fails ? fails + " of " + run + " FAILED"
+                      : "all passed (" + run + " checks)");
+    process.exit(fails ? 1 : 0);
+  }
 
   chk("the panel is visible - no cover left on it",
-      el("capitalpanel").style.display === "block" &&
-      D.querySelectorAll(".undercon").length === 0);
+      el("capitalpanel").style.display === "block");
 
   // ---- the published default -------------------------------------------
   // Pinned so a refactor cannot quietly move what the frontispiece quotes.

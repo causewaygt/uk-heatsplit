@@ -61,22 +61,36 @@ setTimeout(() => {
 
   // --- every evidence link must resolve to something on the page. A dead
   // anchor is invisible until a reader clicks it and nothing happens.
-  const dead = pts.map(p => p.querySelector(".ev").getAttribute("href"))
+  // A held point carries no evidence link - it would point at a covered
+  // panel with nothing on it - so only check the links that exist.
+  const dead = pts.map(p => p.querySelector(".ev"))
+                  .filter(a => a)
+                  .map(a => a.getAttribute("href"))
                   .filter(h => !h || !doc.querySelector(h));
   chk("no dead evidence anchors", dead.length === 0, dead.join(", "));
 
-  // --- the value point and its panel are HELD behind VFM.hold. Both are
+  // --- the value point and its panel are HELD behind one flag. Both are
   // covered or neither is: a summary claiming a number the panel no longer
   // shows is the exact failure these tests exist to catch.
-  // The panel is live again as of 10 Aug 2026. What matters now is not that
-  // the cover and the point agree, but that the NUMBER and the point agree:
-  // the frontispiece reads capitalModel rather than carrying its own copy.
+  // The panel and the point that reads it are held together by one flag. What
+  // this guards is that they are never in different states: a live point over
+  // a covered panel, or a figure quoted from a model that is not running.
   const cap = w.capitalModel ? w.capitalModel.compute() : null;
   const p6 = pts[pts.length - 1];
-  chk("the panel is live and exports a model", !!cap);
-  chk("no under-construction covers left anywhere",
-      w.document.querySelectorAll(".undercon").length === 0);
-  if (cap) {
+  const panelHeld = !!g("capitalpanel").querySelector(".undercon");
+  chk("panel and frontispiece point are held together",
+      (cap === null) === panelHeld &&
+      p6.classList.contains("undercon") === panelHeld,
+      "model " + (cap ? "on" : "off") + ", panel " +
+      (panelHeld ? "covered" : "live"));
+  if (panelHeld) {
+    chk("the held point is labelled work in progress",
+        /work in progress/i.test(p6.textContent));
+    chk("the held point says nothing about the work itself",
+        !p6.querySelector("p"));
+    chk("no figure is left in the held point",
+        !p6.querySelector(".fig"));
+  } else {
     chk("point 06 ratio equals the panel's own",
         p6.querySelector(".fig").textContent.trim()
           .startsWith(cap.bcr.toFixed(2)),
