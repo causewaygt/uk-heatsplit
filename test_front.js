@@ -95,6 +95,21 @@ setTimeout(() => {
   }
   // --- point 06 closes the case
   const pOut = pts.find(p => p.querySelector(".n").textContent === "05");
+  // The claim sentence must track its own figure. It read "fit inside" while
+  // the limit showed 98%, which is the failure this guards against.
+  const p3 = pts.find(p => { const n = p.querySelector(".n");
+                             return n && n.textContent === "03"; });
+  if (p3) {
+    const share = num(p3.querySelector(".fig").textContent);
+    const cl = p3.querySelector(".claim").textContent;
+    chk("point 03 claim matches its own figure",
+        share >= 100 ? /fit inside the grid/.test(cl)
+                     : /come close to fitting/.test(cl),
+        share + "% -> " + cl);
+    chk("point 03 states the no-peaking assumption",
+        /gas peaking/i.test(p3.querySelector(".qual").textContent));
+  }
+
   chk("the outlier point carries the closing line",
       /diffusion challenge, not an innovation deficit/i
         .test(pOut.querySelector(".qual").textContent));
