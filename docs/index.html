@@ -820,7 +820,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.2.0';
+const SITE_VERSION = '8.2.2';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1027,9 +1027,23 @@ fetch('data.json').then(r=>r.json()).then(d=>{
   // survives is the part the public side needs: Green Book Annex A's test of
   // what private capital costs against what risk transfer buys, both sides
   // shown, published against interest.
+  // ONE FLAG covers the panel and the frontispiece point that reads it, so
+  // the two can never disagree about whether there is a number to show.
+  // Set false to bring both back.
+  const VFM_HOLD = true;
+
   (() => {
     const box = document.getElementById('capitalpanel');
     if(!box) return;
+    if(VFM_HOLD){
+      box.innerHTML =
+        '<h2 style="margin-top:30px">Value for money</h2>' +
+        '<div class="undercon">' +
+          '<div class="uctag">Work in progress</div>' +
+        '</div>';
+      box.style.display = 'block';
+      return;   // no model, no levers, nothing to read
+    }
 
   // ---- basis: the government's own network programme --------------------------
   const TWh=87.2, BUILD=10, HORIZON=60;
@@ -1526,7 +1540,10 @@ const CONTINGENCY=0.20;
     // panel through capitalModel rather than carrying its own arithmetic, so
     // the summary and the detail cannot disagree. It goes LAST because it is
     // the bottom line the five points before it have been building toward.
-    if(cap){
+    if(VFM_HOLD){
+      // covered with the panel it reads - the two are held together
+      pts.push({hold:true, n:'06', claim:'What it is worth, and to whom'});
+    } else if(cap){
       pts.push({
         n:'06', fig: cap.bcr.toFixed(2), unit:'benefit-cost ratio',
         warn: cap.bcr < 1, href:'#capitalpanel',
@@ -1550,11 +1567,11 @@ const CONTINGENCY=0.20;
     document.getElementById('points').innerHTML = pts.map(p =>
       p.hold
       ? '<div class="pt undercon">' +
-          '<div class="uctag">Under construction</div>' +
+          '<div class="uctag">Work in progress</div>' +
           '<h3>' + p.claim + '</h3>' +
-          '<p>' + p.qual + '</p>' +
-          '<a class="ev" href="#capitalpanel" style="margin-top:11px">\u2193 ' +
-          p.ev + '</a>' +
+          (p.qual ? '<p>' + p.qual + '</p>' : '') +
+          (p.ev ? '<a class="ev" href="#capitalpanel" style="margin-top:11px">' +
+                  '\u2193 ' + p.ev + '</a>' : '') +
         '</div>'
       : '<div class="pt">' +
         '<div class="n">' + p.n + '</div>' +
