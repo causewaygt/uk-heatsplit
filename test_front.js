@@ -68,30 +68,24 @@ setTimeout(() => {
   // --- the value point and its panel are HELD behind VFM.hold. Both are
   // covered or neither is: a summary claiming a number the panel no longer
   // shows is the exact failure these tests exist to catch.
-  const held = w.capitalModel === undefined;
+  // The panel is live again as of 10 Aug 2026. What matters now is not that
+  // the cover and the point agree, but that the NUMBER and the point agree:
+  // the frontispiece reads capitalModel rather than carrying its own copy.
+  const cap = w.capitalModel ? w.capitalModel.compute() : null;
   const p6 = pts[pts.length - 1];
-  const panelHeld = !!g("capitalpanel").querySelector(".undercon");
-  chk("panel and frontispiece point are held together",
-      held === panelHeld && p6.classList.contains("undercon") === panelHeld,
-      "model " + (held ? "off" : "on") + ", panel " +
-      (panelHeld ? "covered" : "live"));
-  if (panelHeld) {
-    chk("the cover says it is under construction",
-        /under construction/i.test(p6.textContent) &&
-        /under construction/i.test(g("capitalpanel").textContent));
-    chk("the cover says why it is held",
-        /counterfactual/i.test(g("capitalpanel").textContent));
-    chk("no live levers are left on the page",
-        w.document.querySelectorAll("#cap_levers input").length === 0);
-    chk("no orphan figure is left in the covered panel",
-        !/benefit-cost ratio|coverage/i.test(
-          g("capitalpanel").querySelector(".undercon").textContent));
-    chk("the held point still links to the panel",
-        p6.querySelector(".ev").getAttribute("href") === "#capitalpanel");
-  } else {
-    chk("point 06 ratio equals the panel's appraisal view",
+  chk("the panel is live and exports a model", !!cap);
+  chk("no under-construction covers left anywhere",
+      w.document.querySelectorAll(".undercon").length === 0);
+  if (cap) {
+    chk("point 06 ratio equals the panel's own",
         p6.querySelector(".fig").textContent.trim()
-          .startsWith(cap.appraisal.bcr.toFixed(2)));
+          .startsWith(cap.bcr.toFixed(2)),
+        p6.querySelector(".fig").textContent.trim() + " vs " + cap.bcr.toFixed(2));
+    chk("point 06 links to the panel",
+        p6.querySelector(".ev").getAttribute("href") === "#capitalpanel");
+    chk("point 06 claim tracks whether it clears",
+        cap.bcr >= 1 ? /pays for itself\./.test(p6.textContent)
+                     : /does not yet pay/.test(p6.textContent));
   }
   // --- point 06 closes the case
   const pOut = pts.find(p => p.querySelector(".n").textContent === "05");
