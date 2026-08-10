@@ -1,0 +1,2770 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UK Heat Split — weekly estimate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+<style>
+  :root{
+    --ink:#101418; --surface:#1a2129; --line:#2a333d;
+    --ember:#e4572e; --gasdhw:#c46a3f; --oil:#9c4a2f; --bio:#7a6a3f;
+    --solid:#5d4a3a; --dh:#8b7fa8; --elec:#d9a441; --cool:#4a90c2;
+    --ash:#5c6672; --geo:#3aaa35; --paper:#eae6de; --muted:#8b95a0;
+  }
+  *{box-sizing:border-box;margin:0}
+  body{background:var(--ink);color:var(--paper);
+       font:16px/1.55 "Lato",system-ui,sans-serif}
+  .wrap{max-width:880px;margin:0 auto;padding:0 20px}
+  header{border-bottom:1px solid var(--line);padding:18px 0}
+  header .wrap{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+  .brandbox{display:flex;flex-direction:column;align-items:flex-start;gap:8px;flex:1;min-width:220px}
+  .logo img{height:48px;display:block}
+  .logo{text-decoration:none}
+  .wordmark{font-family:Lato;font-weight:900;font-size:22px;color:var(--geo);letter-spacing:.04em}
+  .wordmark em{font-style:normal;color:var(--paper);font-weight:500;margin-left:7px}
+  .brand{font-family:Lato;font-weight:900;letter-spacing:.03em;font-size:clamp(34px,6vw,52px);line-height:1.05}
+  /* the only italic on the page. "Shift" is the argument; everything else
+     here measures the thing that has not shifted yet. */
+  .brand i{font-style:italic;color:var(--geo);font-weight:900}
+  /* same size as the "The starting point" h1 below - the two headings the
+     reader meets first should sit at the same rank; weight is what
+     separates the title from the claim it makes */
+  .standfirst{font-size:clamp(26px,5vw,40px);line-height:1.12;color:var(--paper);
+              font-weight:400;padding:16px 0 2px;max-width:none}
+  /* ---- frontispiece: the case in six figures ------------------------- */
+  .front{margin-top:30px;border-top:1px solid var(--geo);
+         border-bottom:1px solid var(--line)}
+  .frontlead{font-family:"IBM Plex Mono";font-size:clamp(24px,4.4vw,34.5px);
+             letter-spacing:.02em;line-height:1.1;
+             text-transform:uppercase;color:var(--geo);padding:22px 0 6px}
+  .frontsub{font-size:14.5px;color:var(--muted);padding-bottom:22px;max-width:64ch}
+  .points{display:grid;grid-template-columns:1fr 1fr;gap:0}
+  @media (max-width:720px){.points{grid-template-columns:1fr}}
+  .pt{padding:22px 26px 24px 0;border-top:1px solid var(--line)}
+  @media (min-width:721px){
+    .points>.pt:nth-child(odd){padding-right:34px}
+    .points>.pt:nth-child(even){padding-left:26px;border-left:1px solid var(--line)}
+  }
+  /* numerals earn their place: the six are an argument in order, and a
+     reader dropping in halfway needs to know where they are in it */
+  .pt .n{font-family:"IBM Plex Mono";font-size:11px;color:var(--ash);letter-spacing:.12em}
+  .pt .fig{font-family:"IBM Plex Mono";font-size:clamp(27px,4.4vw,40px);
+           font-weight:500;line-height:1.05;margin-top:6px;color:var(--geo)}
+  .pt .fig small{font-size:.42em;color:var(--paper);letter-spacing:.02em;margin-left:5px}
+  .pt .fig.warn{color:var(--ember)}
+  .pt .claim{font-weight:700;font-size:17px;line-height:1.3;margin-top:10px}
+  .pt .qual{font-size:13.5px;line-height:1.45;color:var(--muted);margin-top:7px}
+  .pt .ev{display:inline-block;margin-top:11px;font-family:"IBM Plex Mono";
+          font-size:11.5px;color:var(--muted);text-decoration:none;
+          border-bottom:1px solid var(--line);padding-bottom:2px}
+  .pt .ev:hover,.pt .ev:focus-visible{color:var(--geo);border-color:var(--geo)}
+  .frontfoot{font-size:12.5px;color:var(--ash);padding:18px 0 22px;max-width:78ch}
+  #front[hidden]{display:none}
+  /* ---- back-to nav: only appears once you have scrolled past the case --- */
+  /* Floats centred over the foot of whatever panel the reader is on. It
+     sat in the corner at 12px and was easy to miss, which defeats the
+     point of a way back. */
+  .backnav{position:fixed;left:50%;bottom:22px;z-index:40;display:flex;gap:10px;
+           background:rgba(16,20,24,.96);border:1px solid var(--geo);
+           border-radius:10px;padding:9px;backdrop-filter:blur(8px);
+           box-shadow:0 8px 26px rgba(0,0,0,.55);
+           opacity:0;visibility:hidden;transform:translate(-50%,10px);
+           transition:opacity .18s ease,transform .18s ease,visibility .18s}
+  .backnav.show{opacity:1;visibility:visible;transform:translate(-50%,0)}
+  .backnav button{font-family:"IBM Plex Mono";font-size:15px;letter-spacing:.02em;
+                  background:none;color:var(--paper);border:1px solid var(--line);
+                  border-radius:6px;padding:11px 18px;cursor:pointer;
+                  white-space:nowrap;line-height:1.1}
+  .backnav button:hover{color:var(--geo);border-color:var(--geo);
+                        background:rgba(58,170,53,.10)}
+  .backnav button:focus-visible{outline:2px solid var(--geo);outline-offset:3px;
+                                color:var(--geo)}
+  .backnav button b{color:var(--geo);font-weight:500;margin-right:8px;
+                    font-size:1.05em}
+  @media (max-width:620px){
+    .backnav{left:12px;right:12px;bottom:12px;transform:translateY(10px);
+             justify-content:center;padding:8px;gap:8px}
+    .backnav.show{transform:translateY(0)}
+    .backnav button{flex:1;padding:12px 6px;font-size:14px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .backnav{transition:opacity .01s;transform:translate(-50%,0)}
+    .backnav.show{transform:translate(-50%,0)}
+  }
+  @media (prefers-reduced-motion:reduce) and (max-width:620px){
+    .backnav,.backnav.show{transform:none}
+  }
+  /* scroll targets take focus without drawing a permanent outline */
+  #front:focus,#startline:focus{outline:none}
+  #front:focus-visible,#startline:focus-visible{outline:2px solid var(--geo);
+                                                outline-offset:6px}
+  .tickbox{text-align:right}
+  .ticker{font-family:"IBM Plex Mono";font-size:15px;line-height:1.55;
+          border:1px solid var(--geo);border-radius:6px;padding:12px 16px;
+          max-width:360px;background:linear-gradient(180deg,rgba(58,170,53,.08),rgba(58,170,53,.02));
+          text-align:left;margin-bottom:4px}
+  .ticker b{color:var(--geo);font-size:1.35em}
+  .ticker .neg{color:var(--ember);font-size:1.35em}
+  @media (max-width:720px){.tickbox{width:100%}.ticker{max-width:none}}
+  .stamp{font-family:"IBM Plex Mono";font-size:12px;color:var(--muted)}
+  .hero{padding:44px 0 8px}
+  h1{font-family:Lato;font-weight:900;font-size:clamp(26px,5vw,40px);line-height:1.12}
+  h1 .ember{color:var(--ember)} h1 .cool{color:var(--cool)}
+  .sub{color:var(--muted);margin-top:10px;font-size:18px;line-height:1.6}
+  .statrow{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:28px}
+  @media (max-width:760px){.statrow{grid-template-columns:1fr 1fr}}
+  @media (max-width:400px){.statrow{grid-template-columns:1fr}}
+  .stat .fig{font-family:"IBM Plex Mono";font-size:clamp(24px,4vw,38px);font-weight:500}
+  .stat .cap{font-size:13.5px;line-height:1.42;color:var(--muted);margin-top:3px;max-width:30ch}
+  .trendctl{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:16px;
+            font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.05em;color:var(--muted);flex-wrap:wrap}
+  .trendctl button{font:11px "IBM Plex Mono";letter-spacing:.05em;color:var(--muted);
+            background:none;border:1px solid var(--line);border-radius:3px;padding:2px 8px;cursor:pointer}
+  .trendctl button[aria-pressed="true"]{color:var(--geo);border-color:var(--geo)}
+  .trend{margin-top:8px}
+  .trend svg{display:block;width:100%;height:34px}
+  .trend .tr-actual{fill:none;stroke:var(--paper);stroke-width:1.6;vector-effect:non-scaling-stroke}
+  .trend .tr-whatif{fill:none;stroke:var(--geo);stroke-width:1.2;opacity:.7;vector-effect:non-scaling-stroke}
+  .trend .tr-gap{fill:rgba(58,170,53,.13);stroke:none}
+  .trend .tr-dot{fill:var(--paper)}
+  details.fold{border:1px solid var(--line);background:var(--panel);
+    margin:26px 0;padding:0}
+  details.fold>summary{cursor:pointer;list-style:none;padding:13px 16px;
+    font-family:"IBM Plex Mono",monospace;font-size:12.5px;
+    letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+  details.fold>summary::before{content:"+ ";color:var(--geo)}
+  details.fold[open]>summary::before{content:"− "}
+  details.fold>summary b{color:var(--paper);font-weight:500;
+    text-transform:none;letter-spacing:0}
+  details.fold>.foldbody{padding:2px 16px 16px}
+  .tr-delta{font-family:"IBM Plex Mono";font-size:11px;margin-top:3px;color:var(--muted)}
+  .tr-delta b{font-weight:500;color:var(--paper)}
+  .tr-delta b.good{color:var(--geo)} .tr-delta b.bad{color:var(--ember)}
+  .whatifrow{border:1px solid var(--geo);border-radius:6px;padding:14px 18px;margin-top:18px;
+             background:linear-gradient(180deg,rgba(58,170,53,.07),rgba(58,170,53,.02))}
+  .whatifrow .wtitle{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.06em;color:var(--geo);margin-bottom:8px}
+  /* ---- capital panel (the only panel on this site with user inputs) ---- */
+  .capital{border:1px dashed var(--geo);border-radius:6px;padding:18px;margin-top:8px;
+           background:linear-gradient(180deg,rgba(58,170,53,.05),transparent)}
+  .capital .kind{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.07em;
+                 color:var(--geo);text-transform:uppercase}
+  .capital .kindsub{font-size:13px;color:var(--muted);margin-top:4px;max-width:62ch}
+  .capbars{margin-top:20px}
+  .capbar{position:relative;height:34px;background:var(--surface);
+          border:1px solid var(--line);border-radius:3px;overflow:hidden}
+  .capbar .fill{position:absolute;inset:0 auto 0 0;background:var(--geo);opacity:.55;
+                transition:width .18s ease}
+  .capbar .short{position:absolute;inset:0 0 0 auto;background:
+     repeating-linear-gradient(45deg,rgba(228,87,46,.5) 0 5px,transparent 5px 10px);
+                 border-left:1px solid var(--ember);transition:width .18s ease}
+  .capbar .lab{position:absolute;left:10px;top:50%;transform:translateY(-50%);
+               font-family:"IBM Plex Mono";font-size:12px;color:var(--paper)}
+  .capbar .rlab{position:absolute;right:10px;top:50%;transform:translateY(-50%);
+                font-family:"IBM Plex Mono";font-size:12px;color:var(--muted)}
+  .capscale{display:flex;justify-content:space-between;font-family:"IBM Plex Mono";
+            font-size:11px;color:var(--muted);margin-top:5px}
+  .caplevers{display:grid;grid-template-columns:1fr 1fr;gap:16px 26px;margin-top:22px}
+  /* under-construction covers - retained for future use; nothing held now */
+  .undercon{border:1px dashed var(--ash);border-radius:6px;padding:20px 22px;
+            background:rgba(139,149,160,.05)}
+  .undercon .uctag{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.09em;
+                   text-transform:uppercase;color:var(--elec)}
+  .undercon h3{font-family:Lato;font-weight:900;font-size:19px;margin-top:8px;
+               color:var(--paper)}
+  .undercon p{font-size:13.5px;line-height:1.5;color:var(--muted);margin-top:9px;
+              max-width:66ch}
+  .pt.undercon{border-top:1px solid var(--line);border-radius:0;background:none;
+               border-left:none;border-right:none;border-bottom:none}
+  /* three views, three units - so nobody lines up numbers that do not compare */
+  .viewsub{font-size:13.5px;line-height:1.45;color:var(--muted);margin-top:12px;
+           max-width:70ch}
+  .switchline{font-size:13px;line-height:1.45;color:var(--ash);margin-top:14px;
+              max-width:74ch}
+  /* view-specific levers appear only in their own view */
+  .caplevers .lever[data-view]{display:none}
+  .caplevers[data-view="appraisal"] .lever[data-view~="appraisal"],
+  .caplevers[data-view="finance"]   .lever[data-view~="finance"],
+  .caplevers[data-view="consumer"]  .lever[data-view~="consumer"]{display:block}
+  .caplevers .leverhead{grid-column:1/-1;font-family:"IBM Plex Mono";font-size:11px;
+                        letter-spacing:.09em;text-transform:uppercase;
+                        color:var(--ash);border-top:1px solid var(--line);
+                        padding-top:14px;margin-top:2px}
+  @media (max-width:640px){.caplevers{grid-template-columns:1fr}}
+  .lever label{display:flex;justify-content:space-between;align-items:baseline;
+               font-size:13px;color:var(--muted);gap:10px}
+  .lever label b{font-family:"IBM Plex Mono";font-size:14px;color:var(--paper);font-weight:500}
+  .lever label b.moved{color:var(--elec)}
+  .lever input[type=range]{width:100%;margin:7px 0 0;accent-color:var(--geo);height:20px}
+  .lever .hint{font-size:11.5px;color:var(--ash);margin-top:2px}
+  .capreset{margin-top:16px;font-family:"IBM Plex Mono";font-size:12px;
+            background:none;border:1px solid var(--line);color:var(--muted);
+            border-radius:4px;padding:6px 12px;cursor:pointer}
+  .capreset:hover,.capreset:focus-visible{border-color:var(--geo);color:var(--geo)}
+  .capreset[hidden]{display:none}
+
+  .whatifrow .statrow{margin-top:0}
+  .whatifrow .fig{color:var(--geo)}
+  .fig{font-family:"IBM Plex Mono";font-weight:500}
+  .fig small{font-size:.42em;color:var(--muted);font-family:"Lato"}
+  .context{font-family:"IBM Plex Mono";font-size:13px;color:var(--geo);margin-top:6px}
+  .barlabel{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.06em;
+            color:var(--muted);margin:22px 0 4px}
+  .barrow{display:grid;grid-template-columns:120px 1fr;gap:12px;align-items:center;margin-bottom:2px}
+  .btot{font-family:"IBM Plex Mono";font-size:14px;text-align:right;white-space:nowrap}
+  .btot small{display:block;font-size:10px;color:var(--muted)}
+  .mixbar{height:44px;display:flex;border-radius:4px;overflow:hidden;
+          border:1px solid var(--line)}
+  @media (max-width:560px){.barrow{grid-template-columns:86px 1fr}}
+  .seg.hatch{background:repeating-linear-gradient(135deg,#6b5a44 0 5px,#2a241d 5px 10px)}
+  .legendgrp{margin-top:10px}
+  .legendhdr{font-family:"IBM Plex Mono",monospace;font-size:11px;
+    letter-spacing:.14em;color:var(--muted);display:block;margin-bottom:4px}
+  .mixbar .seg{transition:width 1.1s cubic-bezier(.2,.7,.2,1);min-width:0}
+  .legend{display:flex;gap:14px 20px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-bottom:8px}
+  .legend b{color:var(--paper);font-weight:500}
+  .key{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+  .combline{font-family:"IBM Plex Mono";font-size:13px;color:var(--muted);margin:10px 0 36px}
+  .combline b{color:var(--ember)}
+  section{border-top:1px solid var(--line);padding:34px 0}
+  h2{font-family:Lato;font-weight:700;font-size:19px;margin-bottom:14px;text-transform:uppercase;letter-spacing:.03em}
+  #ts{width:100%;height:340px}
+  .burnbar{margin:18px 0 6px;height:36px;display:flex;border-radius:4px;overflow:hidden;
+           border:1px solid var(--line)}
+  .burnbar .seg{transition:width 1.1s cubic-bezier(.2,.7,.2,1)}
+  .seg.space{background:var(--ember)}
+  .seg.waste{background:repeating-linear-gradient(135deg,#b83f1e 0 6px,#7e2c15 6px 12px)}
+  .seg.base{background:var(--ash)}
+  .costtable{width:100%;border-collapse:collapse;font-size:14px;margin:12px 0 6px}
+  .costtable td,.costtable th{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left}
+  .costtable th{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.06em;color:var(--muted);font-weight:400}
+  .costtable .num{font-family:"IBM Plex Mono";text-align:right;white-space:nowrap}
+  .costtable tr.geo-row td{color:var(--geo);font-weight:500}
+  .costnote{font-size:14.5px;color:var(--muted);line-height:1.6}
+  .billline{font-family:"IBM Plex Mono";font-size:14px;margin:14px 0 4px}
+  .billline b{color:var(--paper)}
+  .geo{border:1px solid var(--geo);border-radius:6px;padding:22px 22px 18px;margin-top:6px;
+       background:linear-gradient(180deg,rgba(58,170,53,.06),rgba(58,170,53,.015))}
+  .geo h2{color:var(--geo)}
+  .geofig{font-family:"IBM Plex Mono";font-size:clamp(24px,4.5vw,34px);color:var(--geo);margin:4px 0 2px}
+  .geofig small{font-size:.45em;color:var(--muted);font-family:"Lato"}
+  .geosub{color:var(--muted);font-size:16px;line-height:1.6;margin-bottom:18px}
+  .geobars{display:flex;flex-direction:column;gap:10px}
+  .geobar{display:grid;grid-template-columns:110px 1fr;gap:12px;align-items:center}
+  .geobar .lab{font-family:"IBM Plex Mono";font-size:12px;color:var(--paper);text-align:right}
+  .geobar .track{height:22px;border:1px solid var(--line);border-radius:3px;overflow:hidden;background:rgba(0,0,0,.15)}
+  .geobar .fill{height:100%;width:0%;background:var(--geo);transition:width 1.1s cubic-bezier(.2,.7,.2,1)}
+  .geobar .fill.fc{background:repeating-linear-gradient(135deg,var(--geo) 0 6px,rgba(58,170,53,.35) 6px 12px)}
+  .geotag{font-size:12px;color:var(--muted);grid-column:2}
+  .tierrow{display:grid;grid-template-columns:210px 1fr 90px;gap:10px;align-items:center;margin:7px 0}
+  @media (max-width:640px){.tierrow{grid-template-columns:120px 1fr 74px}}
+  .tierrow .tlabel{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.04em;color:var(--muted);text-align:right}
+  .tierrow .tval{font-family:"IBM Plex Mono";font-size:12.5px;white-space:nowrap}
+  .tiertrack{height:22px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:3px;overflow:hidden}
+  .tiertrack .tfill{height:100%;width:0%;transition:width 1s cubic-bezier(.2,.7,.2,1)}
+  .tfill.t1{background:var(--cool)}
+  .tfill.t2{background:var(--muted)}
+  .tfill.t3{background:repeating-linear-gradient(135deg,var(--ember) 0 6px,rgba(228,87,46,.30) 6px 12px)}
+  .tfill.geo-s{background:repeating-linear-gradient(135deg,var(--geo) 0 6px,rgba(58,170,53,.30) 6px 12px)}
+  .tfill.geo-w{background:var(--geo)}
+  .whygrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+  @media (max-width:700px){.whygrid{grid-template-columns:1fr}}
+  .status{display:flex;gap:16px;flex-wrap:wrap;font-family:"IBM Plex Mono";font-size:12px}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+  .ok{background:var(--geo)} .stale{background:var(--ember)} .lag{background:#d9a514}
+  .method p{color:var(--muted);font-size:16px;line-height:1.6;margin-bottom:12px}
+  .method b{color:var(--paper);font-weight:500}
+  footer{padding:26px 0 48px;color:var(--muted);font-size:12.5px;border-top:1px solid var(--line)}
+  @media (prefers-reduced-motion:reduce){.mixbar .seg,.burnbar .seg{transition:none}}
+
+  /* ---- value for money panel (merged 10 Aug 2026) ---- */
+  #capitalpanel .kind{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.09em;
+        text-transform:uppercase;color:var(--elec);margin-top:14px}
+  #capitalpanel .basis{font-size:15px;line-height:1.55;margin-top:16px;
+         border-left:2px solid var(--geo);padding-left:15px}
+  #capitalpanel .basis b{color:var(--geo)}
+  #capitalpanel .plain{font-size:16.5px;line-height:1.45;margin-top:20px}
+  #capitalpanel .plain b{color:var(--geo)}
+  #capitalpanel .sub{font-size:13.5px;line-height:1.5;color:var(--muted);margin-top:12px}
+  #capitalpanel .verdict{display:flex;gap:28px;align-items:flex-end;flex-wrap:wrap;
+           margin-top:24px;padding-bottom:20px;border-bottom:1px solid var(--line)}
+  #capitalpanel .big{font-family:"IBM Plex Mono";font-weight:600;font-size:clamp(48px,10vw,80px);
+       line-height:.92;color:var(--geo)}
+  #capitalpanel .big small{font-size:.30em;color:var(--muted);letter-spacing:.02em;display:block;
+             margin-top:10px;font-weight:400}
+  #capitalpanel .side{font-family:"IBM Plex Mono";font-size:clamp(17px,3vw,22px);padding-bottom:6px}
+  #capitalpanel .side small{display:block;font-size:12.5px;color:var(--muted);margin-top:5px;font-family:Lato}
+  #capitalpanel .deal{margin-top:22px;background:var(--surface);border-radius:6px;padding:16px 18px}
+  #capitalpanel .deallab{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.08em;
+           text-transform:uppercase;color:var(--ash)}
+  #capitalpanel .dealnote{font-size:13.5px;line-height:1.5;color:var(--muted);margin-top:12px}
+  #capitalpanel .dealnote b{color:var(--paper)}
+  #capitalpanel .compbar{display:flex;height:32px;border-radius:4px;overflow:hidden;
+           border:1px solid var(--line);margin-top:22px}
+  #capitalpanel .key{display:flex;gap:16px;flex-wrap:wrap;margin-top:11px;
+       font-family:"IBM Plex Mono";font-size:12px;color:var(--muted)}
+  #capitalpanel .key i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
+  #capitalpanel .levers{display:grid;grid-template-columns:repeat(3,1fr);gap:18px 24px;margin-top:24px}
+  #capitalpanel .lever label{display:flex;justify-content:space-between;font-family:"IBM Plex Mono";
+               font-size:12.5px;color:var(--muted);gap:8px}
+  #capitalpanel .lever label b{color:var(--paper);font-weight:600}
+  #capitalpanel .lever input{width:100%;margin-top:8px;accent-color:var(--geo)}
+  #capitalpanel .lever .hint{font-size:11.5px;line-height:1.4;color:var(--ash);margin-top:6px}
+  #capitalpanel .fixed{margin-top:20px;font-size:12.5px;line-height:1.55;color:var(--ash);
+         border-left:2px solid var(--line);padding-left:14px}
+  #capitalpanel .note{font-size:13px;line-height:1.55;margin-top:20px;background:var(--surface);
+        border-radius:6px;padding:14px 16px}
+  #capitalpanel .note b{color:var(--geo)}
+  #capitalpanel .caveat{font-size:12.5px;line-height:1.5;color:var(--ash);margin-top:16px}
+  #capitalpanel .block{margin-top:30px;border-top:1px solid var(--line);padding-top:22px}
+  #capitalpanel .scales{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:16px}
+  #capitalpanel .pan{border:1px solid var(--line);border-radius:6px;padding:14px 16px}
+  #capitalpanel .pan.cost{border-color:var(--ember)}
+  #capitalpanel .pan.buys{border-color:var(--geo)}
+  #capitalpanel .pan .lab{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.07em;
+            text-transform:uppercase;color:var(--ash)}
+  #capitalpanel .pan .fig{font-family:"IBM Plex Mono";font-size:30px;margin-top:8px}
+  #capitalpanel .pan.cost .fig{color:var(--ember)} .pan.buys .fig{color:var(--geo)}
+  #capitalpanel .pan p{font-size:12.5px;line-height:1.45;color:var(--muted);margin-top:8px}
+  #capitalpanel .block ol{margin:12px 0 0 20px;font-size:14px;line-height:1.65;max-width:74ch}
+  #capitalpanel .block li{margin-bottom:7px} .block li span{color:var(--muted)}
+  #capitalpanel .block dl{margin-top:12px;font-size:13.5px;line-height:1.55}
+  #capitalpanel .block dt{color:var(--ember);font-weight:700;margin-top:11px}
+  #capitalpanel .block dd{color:var(--muted);margin:2px 0 0 0;max-width:74ch}
+  #capitalpanel .block .note, #capitalpanel .block .caveat{max-width:74ch}
+  @media(max-width:700px){#capitalpanel .levers{grid-template-columns:1fr 1fr}
+                          #capitalpanel .scales{grid-template-columns:1fr}}
+  @media(max-width:440px){#capitalpanel .levers{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <div class="brandbox">
+    <a class="logo" href="https://causewaygt.com" target="_blank" rel="noopener"
+       aria-label="Causeway Energies">
+      <img src="causeway-logo.png" alt="Causeway Energies"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='inline'">
+      <span class="wordmark" style="display:none">CAUSEWAY<em>ENERGIES</em></span>
+    </a>
+    <div class="brand">UK Heat <i>Shift</i></div>
+  </div>
+  <div class="tickbox">
+    <div class="ticker" id="ticker"></div>
+    <div class="stamp" id="stamp">loading…</div>
+  </div>
+</div>
+<div class="wrap"><p class="standfirst">The strategic case for GW-scale
+  geothermal heating and cooling in the UK</p></div>
+</header>
+
+<div class="wrap">
+  <section class="front" id="front" tabindex="-1" hidden>
+    <div class="frontlead">The case in six figures</div>
+    <p class="frontsub">Every number here is computed from the live estimate
+      below and restates with it. Daggers mark figures resting on Causeway
+      judgement rather than a published source.</p>
+    <div class="points" id="points"></div>
+    <p class="frontfoot" id="frontfoot"></p>
+  </section>
+
+  <div class="hero">
+    <h1 id="startline" tabindex="-1">The starting point — how Britain
+      <span class="ember">heated</span> and <span class="cool">cooled</span>
+      itself <span id="startwin">in the last week</span>.</h1>
+    <div class="trendctl" id="trendctl" style="justify-content:flex-start;margin-top:14px" hidden>
+      <span>TREND — LIVE WEEKS</span>
+      <button data-win="2" aria-pressed="true">1w</button>
+      <button data-win="5">4w</button>
+      <button data-win="13">12w</button>
+      <button data-win="53">12m</button>
+      <span id="trendspan"></span>
+    </div>
+    <p class="sub">A weekly estimate of the energy behind Britain's building heat and
+      cooling, by source — and how much can be saved when geothermal is adopted. Gas space heating
+      is estimated live from grid data; other sources are official annual figures
+      shaped by this week's weather. Estimates, not measurements.</p>
+    <div class="statrow">
+      <div class="stat"><div class="fig" id="st_energy">—</div>
+        <div class="cap" id="st_energy_cap">GWh of heating &amp; cooling energy purchased this week</div>
+        <div class="trend" data-trend="purchased_GWh" data-good="down" hidden></div></div>
+      <div class="stat"><div class="fig" id="st_indig">—</div>
+        <div class="cap">estimated UK-indigenous share of heat &amp; cooling delivered</div>
+        <div class="trend" data-trend="indig_pct" data-good="up" hidden></div></div>
+      <div class="stat"><div class="fig" id="st_bill">—</div>
+        <div class="cap" id="st_bill_cap">national energy bill this week</div>
+        <div class="trend" data-trend="bill_Mgbp" data-good="down" hidden></div></div>
+      <div class="stat"><div class="fig" id="st_carbon">—</div>
+        <div class="cap" id="st_carbon_cap">heating &amp; cooling emissions this week</div>
+        <div class="trend" data-trend="emissions_kt" data-good="down" hidden></div></div>
+    </div>
+    <div class="whatifrow">
+      <div class="wtitle" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">WHAT IF
+        <span style="font-size:2.2em;font-weight:700;color:var(--geo);line-height:1">20%</span>
+        OF HEAT &amp; COOLING MOVED TO
+        <span style="font-size:2.2em;font-weight:700;color:var(--geo);line-height:1">GEOTHERMAL?</span></div>
+      <div class="statrow">
+        <div class="stat"><div class="fig" id="wf_energy">—</div>
+          <div class="cap" id="wf_energy_cap">GWh purchased — the ground supplies the rest free</div></div>
+        <div class="stat"><div class="fig" id="wf_indig">—</div>
+          <div class="cap">UK-indigenous share</div></div>
+        <div class="stat"><div class="fig" id="wf_bill">—</div>
+          <div class="cap" id="wf_bill_cap">national bill</div></div>
+        <div class="stat"><div class="fig" id="wf_carbon">—</div>
+          <div class="cap" id="wf_carbon_cap">emissions</div></div>
+      </div>
+    </div>
+    <div class="context" id="peakctx" style="margin-top:14px"></div>
+  </div>
+  <div class="hero">
+    <div class="barlabel" id="balancesection">ENERGY IN — fuel &amp; electricity purchased<span id="barwin"></span></div>
+    <div class="barrow">
+      <div class="btot" id="tot_in">—</div>
+      <div class="mixbar" id="mixbar" aria-label="This week's heat and cooling mix — energy in"></div>
+    </div>
+    <div class="barlabel">USEFUL HEAT &amp; COOL OUT — after boiler losses, heat-pump harvest and cooling delivery</div>
+    <div class="barrow">
+      <div class="btot" id="tot_out">—</div>
+      <div class="mixbar" id="usebar" aria-label="This week's useful heat and cooling delivered"></div>
+    </div>
+    <div class="legendgrp"><span class="legendhdr">ENERGY IN</span>
+      <div class="legend" id="mixlegend"></div></div>
+    <div class="legendgrp"><span class="legendhdr">ENERGY OUT — USEFUL</span>
+      <div class="legend" id="uselegend"></div></div>
+    <div class="combline" id="combline"></div>
+  </div>
+  <section id="routes" hidden>
+    <h2>Electricity grid impacts — the 20% what-if, hour by hour</h2>
+    <p class="lede">One fifth of Britain's heat, replaced three ways —
+    air-source heat pumps, ground source, and geothermal networks —
+    hour by hour across the last twelve months. Where the heat comes from
+    decides how much electricity Britain has to find on its coldest
+    hour.</p>
+    <div class="trendctl" style="margin-top:4px">
+      <span>VIEW</span>
+      <button data-rt="h" aria-pressed="true">Hourly · 7d</button>
+      <button data-rt="d">Daily · 90d</button>
+      <button data-rt="m">Monthly · falcon</button>
+      <span id="rt_span"></span>
+    </div>
+    <div id="rt_main" style="width:100%;height:340px;margin-top:10px"></div>
+
+    <div class="barlabel">THE COLDEST HOUR — EXTRA ELECTRICITY THE FIFTH WOULD NEED</div>
+    <div class="statrow" id="rt_winter"></div>
+    <div id="rt_winbars" style="width:100%;height:300px;margin-top:12px"></div>
+    <div class="barlabel" id="rt_bindlbl" hidden style="margin-top:16px">THE TIGHTEST HOUR OF THE YEAR — WHAT BRITAIN'S POWER STATIONS WOULD HAVE TO COVER†</div>
+    <div class="statrow" id="rt_bind"></div>
+    <div id="rt_bindbars" style="width:100%;height:300px;margin-top:12px" hidden></div>
+    <div class="barlabel" id="rt_limlbl" hidden style="margin-top:22px">HOW FAR COULD BRITAIN ELECTRIFY ITS HEAT INSIDE TODAY'S FLEET?†</div>
+    <div class="statrow" id="rt_lim"></div>
+    <div id="rt_limbars" style="width:100%;height:320px;margin-top:12px" hidden></div>
+    <p class="costnote" id="rt_limnote"></p>
+    <div class="barlabel" style="margin-top:16px">THE HOTTEST HOUR — COOLING, AND WHAT DOUBLING IT WOULD COST†</div>
+    <div class="statrow" id="rt_summer"></div>
+    <div id="rt_sumbars" style="width:100%;height:300px;margin-top:12px" hidden></div>
+    <div class="barlabel" id="rt_wklbl" style="margin-top:20px">THE WORST WEEK — FROZEN EXHIBIT</div>
+    <div id="rt_worst" style="width:100%;height:320px;margin-top:8px"></div>
+    <div class="barlabel" style="margin-top:20px">COP: HOW MUCH HEAT EACH ROUTE GETS PER UNIT OF ELECTRICITY, BY TEMPERATURE</div>
+    <div id="rt_cop" style="width:100%;height:260px;margin-top:8px"></div>
+    <p class="costnote" id="rt_note"></p>
+  </section>
+  <section id="geosection">
+    <div class="geo">
+      <h2>Geothermal &amp; ground source — now and next</h2>
+      <div class="geofig" id="geofig">—<small> GWh of heat from geothermal this week (estimate)</small></div>
+      <p class="geosub" id="geoshare"></p>
+      <div class="geobars" id="geobars"></div>
+      <div class="billline" id="geowhatif" style="margin-top:18px"></div>
+      <p class="geosub" id="geowhatifnote"></p>
+      <p class="geosub" id="geobench" style="margin-top:16px"></p>
+      <div id="emptybar" style="display:none">
+        <h2 style="margin-top:30px">The empty bar — installed hardware vs the 20% what-if</h2>
+        <div class="statrow" style="grid-template-columns:repeat(3,1fr);margin-top:14px">
+          <div class="stat"><div class="fig" id="eb_installed">—</div>
+            <div class="cap" id="eb_installed_cap">UK ground-source operating today†</div></div>
+          <div class="stat"><div class="fig" id="eb_pp">—</div>
+            <div class="cap" id="eb_pp_cap">installed thermal watts per person†</div></div>
+          <div class="stat"><div class="fig" id="eb_need">—</div>
+            <div class="cap" id="eb_need_cap">what the 20% what-if requires†</div></div>
+        </div>
+        <div id="emptybarplot" style="width:100%;height:300px;margin-top:14px"></div>
+        <h2 style="margin-top:26px;font-size:16px">The same fleets, calibrated — share of each country's own buildings heat</h2>
+        <div id="emptysharesplot" style="width:100%;height:240px;margin-top:10px"></div>
+        <p class="costnote" id="emptybarnote"></p>
+      </div>
+      <div id="capitalpanel" style="display:none">
+
+        <h2>Value for money? How geothermal would improve the UK’s heat networks</h2>
+        <div class="kind">Based on government heat network plans and appraisal guidance</div>
+
+        <p class="basis"><b>This does not ask whether to build the networks.</b>
+          Government has committed to heat networks supplying about 20% of UK heat by
+          2050, up from about 3% today, on more than £80bn of investment — roughly
+          87 TWh a year of delivered heat. The pipes, the trenches and the connections
+          are in that number either way. What is still open is what sits at the head
+          of them. The model compares geothermal as the source and store of thermal
+          energy to an air-source heat pump system.</p>
+
+        <p class="plain" id="plain"></p>
+        <p class="sub" id="sub"></p>
+
+        <div class="verdict">
+          <div class="big" id="big">—<small>benefit-cost ratio</small></div>
+          <div class="side" id="s1">—<small>net present social value</small></div>
+          <div class="side" id="s2">—<small>social cost, 60 years</small></div>
+        </div>
+
+        <div class="deal">
+          <div class="deallab">The comparison</div>
+          <p class="dealnote" id="dealnote"></p>
+        </div>
+
+        <div class="compbar" id="compbar"></div>
+        <div class="key" id="key"></div>
+        <p class="caveat" id="invar"></p>
+
+        <div class="levers">
+          <div class="lever">
+            <label for="lv_cap">Subsurface increment <b id="lv_cap_v"></b></label>
+            <input type="range" id="lv_cap" min="6" max="26" step="0.5" value="14">
+            <div class="hint">Energy centre and subsurface over the air-source
+              alternative, at the reference sizing of 50% of peak; it scales with the
+              sizing lever below. Distribution and connections are common to both
+              routes and cancel.</div>
+          </div>
+          <div class="lever">
+            <label for="lv_ob">Optimism bias <b id="lv_ob_v"></b></label>
+            <input type="range" id="lv_ob" min="0" max="66" step="2" value="50">
+            <div class="hint">Treasury upper bound for non-standard civil engineering
+              is 66%, mitigating toward 40–50% at outline business case.</div>
+          </div>
+          <div class="lever">
+            <label for="lv_pk">Avoided winter peak <b id="lv_pk_v"></b></label>
+            <input type="range" id="lv_pk" min="0" max="120" step="5" value="75">
+            <div class="hint">£/kW·yr across distribution, transmission and generation
+              capacity. Generation at net cost of new entry, not the Capacity Market
+              clearing price.</div>
+          </div>
+          <div class="lever">
+            <label for="lv_loss">Subsurface shortfall <b id="lv_loss_v"></b></label>
+            <input type="range" id="lv_loss" min="0" max="40" step="2" value="10">
+            <div class="hint">Rated capacity the ground does not deliver — a
+              failed well, too little recharge, a store driven warm by over-reinjection, or a
+              round-trip below design. Gas makes up the gap, so less heat is
+              electrified. The counterfactual has no equivalent: the atmosphere does
+              not run down.</div>
+          </div>
+          <div class="lever">
+            <label for="lv_sizing">Plant sized at <b id="lv_sizing_v"></b></label>
+            <input type="range" id="lv_sizing" min="40" max="100" step="5" value="50">
+            <div class="hint">Of the winter peak, with top-up gas boilers above — applied
+              to BOTH routes. Draft TS1 requires this to be optimised on whole-life
+              cost, not assumed, so it is a lever.</div>
+          </div>
+        </div>
+
+        <p class="fixed" id="fixed"></p>
+        <p class="note" id="switch"></p>
+        <p class="caveat" id="caveat"></p>
+
+        <!-- ANNEX A: the financing question, both sides -->
+        <div class="block">
+          <h3>Who pays for it, and what that costs</h3>
+          <p class="sub" id="finsub"></p>
+          <p class="sub" id="finassume"></p>
+
+          <div class="scales">
+            <div class="pan cost">
+              <div class="lab">What private capital costs</div>
+              <div class="fig" id="fin_cost">—</div>
+              <p id="fin_cost_p"></p>
+            </div>
+            <div class="pan buys">
+              <div class="lab">What it buys</div>
+              <div class="fig" id="fin_buys">—</div>
+              <p id="fin_buys_p"></p>
+            </div>
+          </div>
+
+          <p class="note" id="fin_verdict"></p>
+          <p class="caveat" id="declare"></p>
+          <p class="caveat" id="devex"></p>
+        </div>
+
+        <!-- RISK -->
+        <div class="block">
+          <h3>What is not in the numbers</h3>
+          <dl>
+            <dt>Long-term subsurface performance — now priced above, not listed here</dt>
+            <dd>There is little or no UK experience of geothermal systems at this
+              scale, and UK outturn data barely exists. Rather than leave that as an
+              unquantified caveat, the subsurface shortfall lever puts it in the
+              numbers as capacity the ground does not deliver — whether from a
+              failed well, too little recharge, a store driven warm by over-reinjection, or a
+              round-trip below design. What remains outside the numbers is which
+              failure mode it is and when it appears, since each has a different fix
+              and a different cost to correct. Two things keep it small: a balanced
+              store, returning in summer what winter takes, and European practice
+              transferred in at design, since the Dutch, Danish and French fleets carry
+              decades of monitored operation.</dd>
+            <dt>Connection and take-up</dt>
+            <dd>Mandatory connection inside designated zones removes the risk that
+              historically killed UK heat network cases. Outside zones it is
+              unprotected, and no published UK benchmark of realised against forecast
+              connection rates was found. It appears here as a switching value rather
+              than a modelled cost.</dd>
+            <dt>The coincident-peak claim is model-derived</dt>
+            <dd>No published UK study compares the winter peak of two otherwise
+              identical networks differing only in heat source. The mechanism is
+              evidenced — monitored air-source efficiency falls to 2.44 on the coldest
+              days against 3.24 for ground source — but the head-to-head figure comes
+              from an hourly model of instantaneous performance, not a field trial.</dd>
+          </dl>
+        </div>
+
+        <!-- THE ASK -->
+        <div class="block">
+          <h3>What would change on the strength of this</h3>
+          <ol>
+            <li>Zoning designates <b>where</b> networks go. It does not appraise
+              <b>what feeds them</b>. <span>On these numbers that second decision
+              carries a benefit-cost ratio above 2 on an increment of about a ninth of
+              the programme's own capital.</span></li>
+            <li>Require a source options appraisal at zone designation.
+              <span>Ground, aquifer and mine water against air source, on whole-life
+              cost including avoided peak, not capital alone.</span></li>
+            <li>Publish outturn against sanctioned cost for every funded scheme.
+              <span>Optimism bias here rests on a 2002 categorical table, not on a
+              reference class of completed heat networks, because no UK dataset
+              exists. The Green Heat Network Fund is building one scheme by scheme
+              — publishing it would give the sector a real base rate within a few
+              years. Flyvbjerg’s own finding argues it would be a favourable one:
+              modular programmes, built the same way many times, are the best
+              performers in a database of more than 16,000 projects, and a heat
+              network rollout is modular where a tunnel is not.</span></li>
+            <li>Map the resource against the zones. <span>One property in four sits on
+              Britain’s coalfield, which covers 11% of its land area (Mining
+              Remediation Authority) — a quarter of the buildings on a ninth of the
+              ground, and the zoned towns and cities are largely the same places.</span></li>
+          </ol>
+        </div>
+
+      </div>
+      <p class="geosub" style="margin-top:16px">Geothermal heat is steady,
+        local, combustion-free — and the same boreholes and aquifers that heat in
+        winter cool in summer, rejecting heat to ~12°C ground instead of 30°C
+        summer air. Active ground-source cooling beats air-cooled chillers on
+        efficiency; passive borehole cooling (circulation only, no compressor)
+        can deliver cooling at COPs of 15–30. Solid bars are estimated actuals;
+        hatched bars are third-party forecasts and ambitions, each tagged with
+        its source. Forecast bars are heat only — no published UK geothermal
+        cooling forecast exists to cite.</p>
+    </div>
+  </section>
+  <section id="coolsection">
+    <h2>Cooling: demand vs delivery</h2>
+    <div class="barlabel">TIER 1 &amp; 2 — WHAT THE EQUIPPED FLEET DELIVERS</div>
+    <div class="billline" id="coolobsline"></div>
+    <details class="fold" id="fold_cool"><summary>EVIDENCE —
+      <b>the observed response curve and the reconciliation diagnostic</b></summary>
+    <div class="foldbody">
+    <div id="coolcurve" style="width:100%;height:300px"></div>
+    <p class="costnote" id="coolobsnote"></p>
+    <div id="reconblock" style="display:none">
+      <div class="barlabel" style="margin-top:26px">RECONCILIATION DIAGNOSTIC — YEAR-ROUND FIT (not yet in the bill)</div>
+      <div class="billline" id="reconline"></div>
+      <p class="costnote" id="reconnote"></p>
+    </div>
+    </div></details>
+    <div class="barlabel" style="margin-top:26px">TIER 3 — THE COMFORT DEFICIT: BUILDINGS WITH NO COOLING AT ALL</div>
+    <div class="billline" id="deficitline"></div>
+    <div id="tierbars" style="margin:14px 0 6px"></div>
+    <p class="geosub" id="deficitcontext"></p>
+    <div class="barlabel" style="margin-top:22px">THE GEOCOOLING DIVIDEND — SUMMER HEAT BANKED, WINTER HEAT RECOVERED</div>
+    <div id="utesbars" style="margin:10px 0 4px"></div>
+    <p class="costnote" id="utesnote"></p>
+    <p class="costnote" id="deficitnote"></p>
+  </section>
+  <section id="costsection">
+    <h2>What heat costs</h2>
+    <div class="billline" id="billline"></div>
+    <details class="fold" id="fold_cost"><summary>EVIDENCE —
+      <b>every route priced per useful kWh, with its basis</b></summary>
+    <div class="foldbody">
+    <table class="costtable">
+      <thead><tr><th>Route</th><th class="num">p per useful kWh</th><th>Basis</th></tr></thead>
+      <tbody id="costrows"></tbody>
+    </table>
+    <p class="costnote" id="costnote"></p>
+    <p class="costnote">† = Causeway estimate – see Method &amp; caveats.</p>
+    </div></details>
+  </section>
+  <section>
+    <h2>What heat emits</h2>
+    <div class="billline" id="carbline"></div>
+    <details class="fold" id="fold_carb"><summary>EVIDENCE —
+      <b>every route's carbon per useful kWh, live grid intensity</b></summary>
+    <div class="foldbody">
+    <table class="costtable">
+      <thead><tr><th>Route</th><th class="num">gCO2e per useful kWh</th></tr></thead>
+      <tbody id="carbrows"></tbody>
+    </table>
+    <p class="costnote" id="carbnote"></p>
+    </div></details>
+  </section>
+  <details class="fold" id="fold_engine"><summary>UNDER THE BONNET —
+    <b>the gas engine: daily LDZ gas regressed on degree days, live</b></summary>
+  <div class="foldbody"><section>
+    <h2>The gas engine room: daily gas to buildings vs the heating signal</h2>
+    <div id="ts"></div>
+    <div class="burnbar" id="burnbar" aria-label="This week's buildings gas split"></div>
+    <div class="legend">
+      <span><span class="key" style="background:var(--ember)"></span><b>Space heating</b> (useful)</span>
+      <span><span class="key" style="background:repeating-linear-gradient(135deg,#b83f1e 0 4px,#7e2c15 4px 8px)"></span><b>Wasted at the boiler</b> (~15–17.5%)</span>
+      <span><span class="key" style="background:var(--ash)"></span><b>Non-weather gas to buildings</b> (hot water, cooking, industry on the distribution network)</span>
+    </div>
+  </section>
+
+  </div></details>
+  <section>
+    <h2>Northern Ireland</h2>
+    <p class="costnote" id="nipanel">—</p>
+  </section>
+  <section class="method">
+    <h2>WHY HEAT?</h2>
+    <p class="geosub" id="whyheatline"></p>
+    <div class="whygrid">
+      <div><div class="barlabel">ENERGY SERVICES DELIVERED — TWh/yr</div><div id="why_twh" style="width:100%;height:260px"></div></div>
+      <div><div class="barlabel">WHAT WE SPEND — £bn/yr</div><div id="why_cost" style="width:100%;height:260px"></div></div>
+      <div><div class="barlabel">IMPORTED ENERGY — TWh/yr</div><div id="why_imp" style="width:100%;height:260px"></div></div>
+      <div><div class="barlabel">ENERGY EMISSIONS — Mt CO2e/yr</div><div id="why_em" style="width:100%;height:260px"></div></div>
+    </div>
+    <p class="costnote" id="whyheatnote"></p>
+
+    <h2>Method &amp; caveats</h2>
+    <p class="geosub" style="margin-bottom:10px">Full technical methodology, with equations, figures and a complete bibliography: <a href="uk-heatsplit-methodology.pdf" style="color:var(--geo)">UK Heat Split: data sources and estimation methodology (PDF)</a>.</p>
+    <p style="color:var(--geo);font-size:15px;line-height:1.6">† Current
+      Causeway Energies estimate – challenge and input welcome at
+      <a href="mailto:contact@causewaygt.com" style="color:var(--geo)">contact@causewaygt.com</a>.</p>
+    <p><b>Gas (live).</b> Daily gas offtake to Britain's local distribution zones
+      (LDZ — the network serving homes and most businesses) is regressed against
+      population-weighted GB heating degree days (ERA5 reanalysis via Open-Meteo).
+      The temperature-sensitive component is attributed to space heating.
+      Directly-connected power stations are excluded. Approach follows the
+      published Watson/Sansom method. Current fit: <span id="fit">—</span>.</p>
+    <p><b>Everything else (shaped annual).</b> Oil, electric heating, bioenergy,
+      heat networks, solid fuel and cooling take their annual levels from the
+      DESNZ ECUK 2025 End Use tables (calendar 2024) and are distributed across
+      the year by heating/cooling degree days. They do not respond to live grid
+      data. Cooling is the weakest element: the ECUK figure combines cooling and
+      ventilation, split here 50% flat / 50% weather-shaped by assumption, and UK
+      cooling demand is poorly measured. Electric heating counts the electricity
+      into heat pumps, not the ambient heat they harvest — so the useful heat
+      delivered by heat pumps is understated for now.</p>
+    <p><b>The two bars.</b> The top bar is final energy — fuel and electricity
+      purchased. The bottom bar is useful heat and cooling delivered: combustion
+      derated by measured in-situ efficiencies (gas 83.5%, oil 82%, bio 70%,
+      solid 55% — the last three are estimates), heat networks shown at delivered
+      heat, resistive electric at 100%, heat pumps multiplied by a blended SPF of
+      2.8 (Energy Systems Catapult field data) with the harvested ambient heat
+      shown in teal, and the weather-driven half of cooling multiplied by an
+      assumed EER of 3. Heat-pump electricity is the ECUK 2025 domestic figure
+      (2.0 TWh, 2024); non-domestic heat pumps are not yet counted, so the teal
+      segment is understated.</p>
+    <p><b>Known biases.</b> Hot-water heating is treated as flat but is mildly
+      seasonal (colder mains water in winter), so gas space heating carries a
+      small upward bias. The boiler-waste band uses in-situ UK boiler efficiency
+      measurements (82.5–85%), not nameplate values.</p>
+    <p><b>Geothermal panel.</b> Today's heat figure is anchored on the EGEC
+      2025 UK Country Update (1,430 GWhth/yr from ~55,210 GSHP units,
+      847–861 MWth installed — a 2023 estimate from sales data; the
+      Environment Agency's 2024 review suggests only ~30–38k of those units
+      may be operational, hence the 1.4–2.0 range) plus ~0.07 TWh/yr from
+      mine-water, deep and open-loop district schemes. No national metering
+      or single register of ground-source systems exists; cooling is anchored
+      only on 11 ATES systems (~8 MWth cold) and historic Southampton data.
+      Forward bars are third-party pathways (CCC, Project InnerSpace/REA/ARUP)
+      or explicitly flagged Causeway derivations, not predictions. The 2031
+      bar carries a range of roughly 3.5–6 TWh/yr. If the NI DfE licensing
+      proposals (consultation to 7 Aug 2026; heat below 100&nbsp;m depth)
+      proceed, the resulting register with published system performance would
+      be the UK's first mandatory geothermal data source — this panel is
+      designed to ingest it from ~2027.</p>
+    <p><b>Northern Ireland.</b> NI is not on the GB network shown here. NI heating
+      is estimated annually from subnational consumption statistics scaled by NI
+      degree days.</p>
+    <p id="trendpara" style="display:none"><b>Trends.</b> <span id="trendnote">—</span></p>
+    <p><b>Indigenous share &amp; 20% what-if.</b> <span id="indignote">—</span></p>
+    <p><b>Calibration.</b> <span id="calib">—</span></p>
+    <div class="status" id="status"></div>
+  </section>
+</div>
+
+<footer><div class="wrap">
+  † Causeway Energies estimate – challenge and input welcome:
+  <a href="mailto:contact@causewaygt.com" style="color:var(--geo)">contact@causewaygt.com</a><br>
+  <span id="siteversion"></span>Contains data from National Gas Transmission open data · Weather: Open-Meteo.com
+  (CC BY 4.0) / Copernicus ERA5 · Contains public sector information licensed under
+  the Open Government Licence v3.0 (DESNZ ECUK 2025) · A Causeway Energies
+  public-interest tool.
+</div></footer>
+
+<nav class="backnav" id="backnav" aria-label="Back to top sections">
+  <button type="button" data-to="front"><b>&uarr;</b>The case</button>
+  <button type="button" data-to="startline"><b>&uarr;</b>The starting point</button>
+</nav>
+
+<script>
+// SITE_VERSION x.y.z - bump on every commit that changes the page:
+//   x: major - new data source or new panel
+//   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
+//   z: patch - wording or formatting change
+const SITE_VERSION = '8.2.0';
+document.addEventListener('DOMContentLoaded', () => {
+  const el = document.getElementById('siteversion');
+  if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
+});
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const fmt = n => Math.round(n).toLocaleString('en-GB');
+
+const MIX_DEF = [
+  ["gas_space",     "Gas — space heating",  "--ember"],
+  ["gas_dhw",       "Gas — hot water",      "--gasdhw"],
+  ["oil",           "Oil",                  "--oil"],
+  ["bio_other",     "Bioenergy & other",    "--bio"],
+  ["solid",         "Solid fuel",           "--solid"],
+  ["heat_networks", "Heat networks",        "--dh"],
+  ["elec_heat",     "Electric heating",     "--elec"],
+  ["cooling",       "Cooling & ventilation","--cool"],
+];
+
+fetch('data.json').then(r=>r.json()).then(d=>{
+  document.getElementById('stamp').textContent =
+    'updated ' + (d.updated||'').slice(0,10) + ' · week ending ' + (d.weekly?.week_ending||'—');
+
+  const m = d.weekly_mix, u = d.weekly_useful;
+  if(m){
+    const IN_DEF = [
+      ["gas_space","Gas — space heating","--ember"],
+      ["gas_dhw","Gas — hot water","--gasdhw"],
+      ["oil","Oil","--oil"],
+      ["bio_other","Bioenergy & other","--bio"],
+      ["solid","Solid fuel","--solid"],
+      ["heat_networks","Heat networks","--dh"],
+      ["elec_heat","Electric heating","--elec"],
+      ["cooling","Cooling & ventilation (electricity)","--cool"],
+    ];
+    const OUT_DEF = u ? [
+      ["gas_space","Gas — space heating","--ember"],
+      ["gas_dhw","Gas — hot water","--gasdhw"],
+      ["oil","Oil","--oil"],
+      ["bio_other","Bioenergy & other","--bio"],
+      ["solid","Solid fuel","--solid"],
+      ["heat_networks","Heat networks","--dh"],
+      ["elec_resistive","Resistive electric","--elec"],
+      ["hp_electricity","Heat pumps — electricity","--elec"],
+      ["hp_ambient","Heat pumps — ambient heat harvested","--geo"],
+      ["cooling_delivered","Cooling & ventilation delivered","--cool"],
+    ] : null;
+    const totalIn = m.total_GWh || 1;
+    const totalOut = u ? (u.total_GWh || 1) : 0;
+    const scale = Math.max(totalIn, totalOut);
+
+    document.getElementById('st_energy').textContent = fmt(totalIn);
+    const hh = d.headlines;
+    if(hh && hh.indigenous_pct != null){
+      document.getElementById('st_indig').textContent = hh.indigenous_pct + '%';
+      if(hh.heat_GWh != null && hh.cooling_GWh != null){
+        document.getElementById('st_energy_cap').textContent =
+          'GWh of heating & cooling energy purchased this week (heat ' +
+          fmt(hh.heat_GWh) + ' \u00b7 cooling ' + fmt(hh.cooling_GWh) + ')';
+      }
+    }
+    if(d.cost && d.cost.national_week_total_Mgbp != null){
+      document.getElementById('st_bill').textContent =
+        '£' + fmt(d.cost.national_week_total_Mgbp) + 'm';
+      if(d.cost.national_week_heat_Mgbp != null){
+        document.getElementById('st_bill_cap').textContent =
+          'national bill this week (heat £' + fmt(d.cost.national_week_heat_Mgbp) +
+          'm · cooling £' + fmt(d.cost.national_week_cool_Mgbp) + 'm)';
+      }
+    }
+    if(d.carbon && d.carbon.week_kt != null){
+      document.getElementById('st_carbon').textContent =
+        fmt(d.carbon.week_kt) + ' kt';
+      document.getElementById('st_carbon_cap').textContent =
+        'heating & cooling emissions this week (CO2e; heat ' +
+        fmt(d.carbon.week_heat_kt) + ' kt · cooling ' +
+        fmt(d.carbon.week_cool_kt) + ' kt)';
+    }
+    if(hh && hh.whatif_20pct_geothermal){
+      const w = hh.whatif_20pct_geothermal;
+      document.getElementById('wf_energy').textContent = fmt(w.purchased_GWh);
+      if(w.heat_GWh != null && w.cooling_GWh != null){
+        document.getElementById('wf_energy_cap').textContent =
+          'GWh purchased (heat ' + fmt(w.heat_GWh) + ' \u00b7 cooling ' +
+          fmt(w.cooling_GWh) + ' \u00b7 saves ' +
+          fmt(hh.purchased_GWh - w.purchased_GWh) +
+          ' GWh this week) \u2014 the ground supplies the rest free';
+      }
+      document.getElementById('wf_indig').textContent =
+        (w.indigenous_pct != null ? w.indigenous_pct + '%' : '—');
+      document.getElementById('wf_bill').textContent = '£' + fmt(w.bill_Mgbp) + 'm';
+      if(w.bill_heat_Mgbp != null && w.bill_cool_Mgbp != null){
+        document.getElementById('wf_bill_cap').textContent =
+          'national bill (heat \u00a3' + fmt(w.bill_heat_Mgbp) +
+          'm \u00b7 cooling \u00a3' + fmt(w.bill_cool_Mgbp) + 'm' +
+          (d.cost && d.cost.national_week_total_Mgbp != null
+            ? ' \u00b7 saves \u00a3' +
+              fmt(d.cost.national_week_total_Mgbp - w.bill_Mgbp) +
+              'm this week' : '') + ')';
+      }
+      if(d.carbon && d.carbon.whatif_20pct_kt != null){
+        document.getElementById('wf_carbon').textContent =
+          fmt(d.carbon.whatif_20pct_kt) + ' kt';
+        document.getElementById('wf_carbon_cap').textContent =
+          'emissions (' + (d.carbon.whatif_heat_kt != null
+            ? 'heat ' + fmt(d.carbon.whatif_heat_kt) + ' \u00b7 cooling ' +
+              fmt(d.carbon.whatif_cool_kt) + ' kt \u00b7 ' : '') +
+          'saves ' + fmt(d.carbon.whatif_saving_kt) + ' kt)';
+      }
+    }
+
+    const seen = {};
+    function renderBar(el, def, comp, wasted, legendId, scaleOverride){
+      legendId = legendId || 'mixlegend';
+      // Replace, never append. drawEnergyBars is called once at setup and
+      // again on every trend-window change, so an appending bar stacks a
+      // fresh set of segments on top of the last one and reads as banding.
+      // The legends are already cleared by the caller; the bars were not.
+      while(el.firstChild) el.removeChild(el.firstChild);
+      const scale = scaleOverride || Math.max(totalIn, totalOut) || 1;
+      // When only one gas leg is running - as in summer, when space
+      // heating is off - the split label is noise: just say "Gas".
+      const oneGas = !((comp.gas_space || 0) > 0 && (comp.gas_dhw || 0) > 0);
+      def = def.map(([k, lbl, v]) =>
+        (oneGas && (k === 'gas_space' || k === 'gas_dhw'))
+          ? [k, 'Gas', v] : [k, lbl, v]);
+      def.forEach(([key,label,varname])=>{
+        const v = comp[key] || 0;
+        if(v <= 0) return;
+        const seg = document.createElement('div');
+        seg.className = 'seg';
+        seg.style.background = css(varname);
+        seg.style.width = '0%';
+        seg.title = label + ': ' + fmt(v) + ' GWh';
+        el.appendChild(seg);
+        requestAnimationFrame(()=>{ seg.style.width = (100*v/scale)+'%'; });
+        if(!seen[legendId + label]){
+          seen[legendId + label] = true;
+          document.getElementById(legendId).insertAdjacentHTML('beforeend',
+            `<span><span class="key" style="background:${css(varname)}"></span>` +
+            `<b>${label}</b></span>`);
+        }
+      });
+      if(wasted > 0){
+        const seg = document.createElement('div');
+        seg.className = 'seg hatch';
+        seg.style.width = '0%';
+        seg.title = 'Combustion losses: ' + fmt(wasted) + ' GWh';
+        el.appendChild(seg);
+        requestAnimationFrame(()=>{ seg.style.width = (100*wasted/scale)+'%'; });
+        if(!seen[legendId + 'lost']){
+          seen[legendId + 'lost'] = true;
+          document.getElementById(legendId).insertAdjacentHTML('beforeend',
+            `<span><span class="key hatch" style="width:11px;height:11px;` +
+            `border:1px solid #6b5a44"></span>` +
+            `<b>Lost in combustion (never becomes useful heat)</b></span>`);
+        }
+      }
+    }
+    // Bars draw from `agg` when a trend window is active, from the live
+    // week otherwise. `m` and `u` stay in scope throughout so no caption
+    // or guard below can dereference a missing block (Irish trap 3).
+    window.drawEnergyBars = function(agg){
+      const W    = !!(agg && agg.fuels);
+      const inC  = W ? agg.in_components  : m.components_GWh;
+      const outC = W ? agg.out_components : (u ? u.components_GWh : null);
+      const tIn  = W ? agg.total_in  : totalIn;
+      const tOut = W ? agg.total_out : totalOut;
+      const lost = W ? agg.wasted : (u ? u.wasted_GWh : 0);
+      const when = W ? agg.when : 'this week';
+      const sc   = Math.max(tIn, tOut) || 1;
+      document.getElementById('mixlegend').innerHTML = '';
+      document.getElementById('uselegend').innerHTML = '';
+      Object.keys(seen).forEach(k => { delete seen[k]; });
+      document.getElementById('tot_in').innerHTML =
+        fmt(tIn) + '<small>GWh in</small>';
+      renderBar(document.getElementById('mixbar'), IN_DEF, inC, 0,
+                'mixlegend', sc);
+      if(outC){
+        document.getElementById('tot_out').innerHTML =
+          fmt(tOut) + '<small>GWh useful</small>';
+        renderBar(document.getElementById('usebar'), OUT_DEF, outC, lost,
+                  'uselegend', sc);
+      }
+      const cShare = W ? agg.combustion_share : m.combustion_share;
+      if(cShare != null){
+        let line = 'Combustion share of energy in: <b>' +
+          (100*cShare).toFixed(0) + '%</b>';
+        const amb = outC ? (outC.hp_ambient || 0) : 0;
+        if(amb > 0){
+          line += ' · Ambient heat harvested by heat pumps ' + when +
+            ': <b style="color:'+css('--geo')+'">' + fmt(amb) +
+            ' GWh — free heat from the environment</b>';
+        }
+        document.getElementById('combline').innerHTML = line;
+      }
+    };
+    window.drawEnergyBars(null);
+  }
+
+  // ---- value for money: one panel, Green Book conventions ----------------
+  // Rebuilt 10 Aug 2026. The private finance VIEW is gone - infrastructure
+  // capital is not reached through a public dashboard, and a developer
+  // publishing its own returns on an advocacy page reads as a pitch. What
+  // survives is the part the public side needs: Green Book Annex A's test of
+  // what private capital costs against what risk transfer buys, both sides
+  // shown, published against interest.
+  (() => {
+    const box = document.getElementById('capitalpanel');
+    if(!box) return;
+
+  // ---- basis: the government's own network programme --------------------------
+  const TWh=87.2, BUILD=10, HORIZON=60;
+  const YR=[2026,2030,2035,2040,2045,2050,2055,2060];
+  const LRV=[14.306,12.530,12.763,12.695,12.565,12.273,12.273,12.273];
+  const CARB=[277.2,294.5,317.6,342.5,369.0,397.5,397.5,397.5];
+  const EF=[0.1907,0.0931,0.0248,0.0066,0.0014,0.0014,0.0025,0.0025];
+  const AQ=[0.1196,0.0748,0.0259,0.0090,0.0055,0.0040,0.0040,0.0040];
+
+  // ONE counterfactual. Every improvement that raises air-source performance
+  // either raises geothermal by the same proportion (machine quality is
+  // multiplicative on both) or by MORE (lower flow helps the warmer source more).
+  // The only air-specific gain is defrost mitigation, worth about 0.1 SPF - and
+  // it is conceded here rather than argued over. Note defrost costs 12% at +2C
+  // and nothing at the -5C design condition, so it lifts the seasonal figure and
+  // leaves the peak COP untouched.
+  const CF={spf:2.90, peak:1.85};
+  const GEO={spf:5.00, peak:3.55, src:19.6};
+  const PEAK_TH=32.1;                 // GW thermal peak for the programme
+  const TS1_STORE_L_PER_KW=75;        // draft TS1 1.7.15 minimum
+  // share of annual heat served, from the programme's own duration curve.
+  // Runs down to 15% of peak so a large subsurface shortfall still bites.
+  const SERVED={15:0.388,20:0.490,25:0.585,30:0.671,40:0.811,50:0.907,
+                60:0.963,70:0.987,80:0.996,90:0.999,100:1.0};
+  // financing
+  const GILT=3.6, TENOR=25, NET_CAPITAL=110;
+  // Resource risk insurance. GEORISK (Horizon 2020, EGEC) compared 21 European
+  // schemes; funds operate in France, Germany, Iceland, the Netherlands, Denmark
+  // and Switzerland. France is the usable benchmark - fees around 3% of drilling
+  // cost today, moving to 5-10% under the new three-zone scheme, with coverage
+  // held at 90%. German PRIVATE cover at a 30% minimum was itself a barrier to
+  // the market forming, so mutual and public funds are what function at scale.
+  // The literature splits the risk as the panel needs: SHORT-TERM, failing to
+  // find a resource after drilling, which is pre-FID and excluded here; and
+  // LONG-TERM depletion until exploitation is unprofitable, which is the
+  // subsurface shortfall lever.
+  const COVERAGE=0.90, PREMIUM_RATE=0.06;
+  // Fixed and stated rather than offered as sliders: three assumptions a reader
+  // can disagree with in words, but which do not need dragging to be understood.
+  const R_GEO=0.110, R_NET=0.060;
+// Contingency is expressed on CAPITAL, which is how a sponsor carries it -
+// not as a share of the optimism bias, which is a different and smaller
+// quantity. At a 50% bias, 20% of capital is 40% of the bias.
+// It sits on the WHOLE build, matching the exposure it is netted against.
+// Netting a geothermal-only contingency off a programme-wide exposure would
+// count the network sponsor's own contingency as zero, and flatter the case
+// by about GBP 22bn on an omission rather than an argument.
+const CONTINGENCY=0.20;
+  // The increment is bought by the kW, so it scales with what the plant is RATED
+  // at - not with what the ground delivers, since a shortfall is capacity paid
+  // for and not received. The lever is quoted at the reference sizing because
+  // that is where its source anchor sits: the doublet class is priced at
+  // 5,400-6,000 equivalent full-load hours, which at this programme's 31% load
+  // factor is about half the winter peak.
+  const REF_SIZING=50;
+  const capNow=()=>S.cap*(S.sizing/REF_SIZING);
+  // Subsurface performance risk, expressed the way it actually shows up in
+  // operation: as CAPACITY not delivered. It lumps the failure modes together
+  // rather than modelling each - a failed well, insufficient recharge, a store
+  // driven warm by
+  // too much reinjection, or a round-trip efficiency below design all end in the
+  // same place, which is a plant that cannot deliver its rated output. The
+  // shortfall is made up by the top-up gas boilers already in the design, so it
+  // shows as less heat electrified and less peak avoided, not as a lower COP.
+  // The counterfactual has no equivalent: the atmosphere does not run down.
+  let S={cap:14, ob:50, pk:75, sizing:50, loss:10, };
+
+  const at=(a,y)=>{
+    if(y<=YR[0]) return a[0];
+    if(y>=YR[YR.length-1]) return a[a.length-1];
+    for(let i=1;i<YR.length;i++) if(y<=YR[i]){
+      const f=(y-YR[i-1])/(YR[i]-YR[i-1]); return a[i-1]+f*(a[i]-a[i-1]);
+    }
+    return a[a.length-1];
+  };
+  function stpr(t){                    // declining social time preference rate
+    let f=1,k=1;
+    while(k<=Math.floor(t)){ f/=(1+(k<=30?0.035:(k<=75?0.030:0.025))); k++; }
+    const fr=t-Math.floor(t); if(fr) f/=Math.pow(1.035,fr);
+    return f;
+  }
+  function served(f){
+    const k=Object.keys(SERVED).map(Number).sort((a,b)=>a-b);
+    if(f<=k[0]) return SERVED[k[0]];
+    for(let i=1;i<k.length;i++) if(f<=k[i]){
+      const t=(f-k[i-1])/(k[i]-k[i-1]);
+      return SERVED[k[i-1]]+t*(SERVED[k[i]]-SERVED[k[i-1]]);
+    }
+    return 1.0;
+  }
+  const ann=(r,n)=>(1-Math.pow(1+r,-n))/r;
+
+  // Peaking applies to BOTH routes, so gas covers the same share of heat either
+  // way and cancels; only the electrified remainder differs by source.
+  const effSizing=()=>S.sizing*(1-S.loss/100);   // rated size less the shortfall
+  const servedNow=()=>served(effSizing());
+  const avoidedTWh=()=>TWh*servedNow()*(1/CF.spf-1/GEO.spf);
+  const avoidedGW =()=>PEAK_TH*(effSizing()/100)*(1/CF.peak-1/GEO.peak);
+  const storeM3   =()=>PEAK_TH*(S.sizing/100)*1e6*TS1_STORE_L_PER_KW/1000;
+
+  // Benefits at a stated shortfall, so the cost of the shortfall itself can be
+  // priced. Called twice: once at the chosen setting for the appraisal, once at
+  // zero to value what a shortfall would destroy.
+  function appraiseAt(loss){
+    const keep=S.loss; S.loss=loss; const r=appraise(); S.loss=keep; return r;
+  }
+  function appraise(){
+    let en=0,ca=0,aq=0,pk=0;
+    for(let t=1;t<=HORIZON;t++){
+      const y=2026+t-1, b=Math.min(t,BUILD)/BUILD, d=stpr(t);
+      const kWh=avoidedTWh()*1e9, gw=avoidedGW();
+      en+=b*kWh*at(LRV,y)/100/1e9*d;
+      ca+=b*(kWh*at(EF,y)/1e9)*at(CARB,y)/1e3*d;
+      aq+=b*kWh*at(AQ,y)/100/1e9*d;
+      pk+=b*gw*1e6*S.pk/1e9*d;
+    }
+    let cost=0;
+    for(let t=1;t<=BUILD;t++) cost+=(capNow()*(1+S.ob/100)/BUILD)*stpr(t-0.5);
+    const ben=en+ca+aq+pk;
+    return {en,ca,aq,pk,ben,cost,bcr:ben/cost,npsv:ben-cost};
+  }
+  // Green Book Annex A: discount the COSTS of each option at the risk-free gilt
+  // rate to compare total exchequer cost. The premium is what private capital
+  // costs against public borrowing - and the Treasury's own test is whether risk
+  // transfer and delivery efficiencies outweigh it. So both sides.
+  function financing(){
+    const tot=capNow()+NET_CAPITAL;
+    const rg=R_GEO, rn=R_NET, g=GILT/100;
+    const blend=(capNow()*rg+NET_CAPITAL*rn)/tot;
+    const mult=r=>ann(g,TENOR)/ann(r,TENOR);
+    const prem_fin=tot*(mult(blend)-1);
+    // Optimism bias and the overrun a contractor absorbs are the SAME quantity
+    // seen from two sides - using different numbers for them was an
+    // inconsistency. A fixed price does not shift all of it, though: the
+    // contractor prices the expected value in, so what transfer removes is
+    // nearer the variance. Hence the transfer fraction.
+    // CONSTRUCTION. Optimism bias is the uplift from a naive estimate to an
+    // unbiased expectation. On a megaproject a sponsor builds contingency into
+    // the SANCTIONED cost up front - that part is paid whoever builds it and is
+    // not transferred. Only the residual tail moves to a fixed-price contractor.
+    const exposure=tot*(S.ob/100);
+    const sanctioned=tot*CONTINGENCY;
+    // UPPER BOUND. A fixed-price contract transfers construction risk, but a
+  // PUBLIC sponsor can let one too - Annex A compares private finance against
+  // public borrowing, not against cost-plus procurement. So only part of this
+  // tail is private finance's to claim, and the panel says so rather than
+  // putting an unsourced fraction on it.
+  const construction=Math.max(0,exposure-sanctioned);
+
+    // SUBSURFACE. Priced the way the market prices it: a premium on the
+    // subsurface capital buying cover against the resource underdelivering.
+    // What transfer is worth is the exposure covered, net of what the cover cost.
+    const geoExposure=Math.max(0, appraiseAt(0).ben - appraiseAt(S.loss).ben);
+    const premium=capNow()*PREMIUM_RATE;
+    const geoCovered=geoExposure*COVERAGE;
+    const geological=geoCovered-premium;
+    const transferred=construction+geological;
+    return {tot,blend,mult:mult(blend),mGeo:mult(rg),mNet:mult(rn),
+            premium:prem_fin,construction,geological,transferred,
+            exposure,sanctioned,geoExposure,geoCovered,insPremium:premium,
+            net:transferred-prem_fin};
+  }
+
+  const el=id=>document.getElementById(id);
+  const gbp=n=>Math.abs(n)<0.1?'\u00a3'+Math.round(n*1000)+'m'
+              :'\u00a3'+(Math.abs(n)<10?n.toFixed(1):Math.round(n))+'bn';
+  const pc=n=>(100*n).toFixed(1)+'%';
+
+  function render(){
+    const a=appraise(), f=financing();
+
+    el('plain').innerHTML='In plain terms: about <b>\u00a3'+a.bcr.toFixed(2)+
+      ' of public benefit for every \u00a31 spent</b>, over sixty years, on the ' +
+      'government\u2019s own appraisal rules.';
+    el('sub').textContent=
+      'Appraised on HM Treasury conventions: energy at long-run variable cost ' +
+      'because taxes and levies are transfers, carbon at DESNZ values, a ' +
+      'declining social time preference rate, a sixty-year horizon, and optimism ' +
+      'bias on capital.';
+
+    el('big').innerHTML=a.bcr.toFixed(2)+'<small>benefit-cost ratio</small>';
+    el('big').style.color=a.bcr>=1?'var(--geo)':'var(--ember)';
+    el('s1').innerHTML=(a.npsv>=0?'+':'\u2212')+gbp(Math.abs(a.npsv))+
+      '<small>net present social value</small>';
+    el('s2').innerHTML=gbp(a.cost)+'<small>social cost, 60 years</small>';
+
+    el('dealnote').innerHTML='A geothermal source at a seasonal factor of '+
+      GEO.spf.toFixed(1)+' against <b>a network-scale air-source energy centre at '+
+      CF.spf.toFixed(1)+'</b> \u2014 same pipes, same connections, same buildings. '+
+      'Both rated at <b>'+S.sizing+'% of the winter peak</b> with top-up gas '+
+      'boilers above. At a <b>'+S.loss+'%</b> subsurface shortfall the geothermal '+
+      'plant delivers '+effSizing().toFixed(0)+'% of peak, serving <b>'+
+      Math.round(100*servedNow())+'%</b> of the heat electrically, with gas '+
+      'making up the rest on either side. That leaves <b>'+
+      avoidedTWh().toFixed(1)+' TWh a year</b> of electricity avoided and <b>'+
+      avoidedGW().toFixed(1)+' GW</b> at the winter peak, where the instantaneous '+
+      'COPs are '+CF.peak.toFixed(2)+' against '+GEO.peak.toFixed(2)+'\u2020. '+
+      'Electrification of Heat, 742 monitored units, gives 2.80; the extra 0.10 '+
+      'concedes the defrost mitigation that is the only air-specific improvement '+
+      'available \u2014 and defrost costs 12% at +2\u00b0C and nothing at the '+
+      '\u22125\u00b0C design condition, so it lifts the seasonal figure and leaves '+
+      'the peak untouched.';
+
+    const parts=[['Energy at resource cost',a.en,'var(--geo)'],
+                 ['Avoided winter peak',a.pk,'var(--elec)'],
+                 ['Carbon',a.ca,'var(--cool)'],
+                 ['Air quality',a.aq,'var(--ash)']];
+    el('compbar').innerHTML=parts.map(p=>
+      '<span style="width:'+(100*p[1]/a.ben)+'%;background:'+p[2]+'"></span>').join('');
+    el('key').innerHTML=parts.map(p=>
+      '<span style="white-space:nowrap"><i style="background:'+p[2]+'"></i>'+p[0]+
+      ' '+gbp(p[1])+' <span style="color:var(--ash)">'+
+      Math.round(100*p[1]/a.ben)+'%</span></span>').join('');
+    el('invar').textContent=
+      'The ratio does not depend on how large you think the programme is. ' +
+      'Benefits and costs both scale with heat delivered, so halving or doubling ' +
+      'the build leaves the ratio where it is and moves only the absolute figures.';
+
+    [['cap',gbp(S.cap)+(S.sizing!==REF_SIZING?' \u2192 '+gbp(capNow()):'')],['ob',S.ob+'%'],['pk','\u00a3'+S.pk+'/kW\u00b7yr'],
+     ['sizing',S.sizing+'% of peak'],
+     ['loss',S.loss+'% of rated'],
+     ]
+      .forEach(([k,v])=>{ el('lv_'+k+'_v').textContent=v; el('lv_'+k).value=S[k]; });
+
+    el('fixed').textContent=
+      'Fixed at Green Book conventions: a sixty-year horizon for infrastructure; ' +
+      'a declining social time preference rate of 3.5% to year 30, 3.0% to 75 and ' +
+      '2.5% thereafter; energy at long-run variable cost, because taxes and levies ' +
+      'are transfers rather than resource savings; DESNZ carbon values rising from ' +
+      '\u00a3277 to \u00a3398 a tonne by 2050; capital spread over a ten-year build ' +
+      'with benefits ramping as the fleet completes. Plant sizing follows draft ' +
+      'Heat Network Technical Standard TS1 requirement 1.7.15, which requires ' +
+      'generation and storage to be optimised on whole-life cost through an hourly ' +
+      'operating model rather than set by rule of thumb, and sets a minimum thermal ' +
+      'store of '+TS1_STORE_L_PER_KW+' litres per kW of heat pump output \u2014 ' +
+      'about '+(storeM3()/1e6).toFixed(1)+' million cubic metres at this sizing. ' +
+      'TS1 supersedes CIBSE CP1 as the regulated standard and is in consultation ' +
+      'to 15 April 2026.';
+
+    const up=a.bcr>=1;
+    el('switch').innerHTML= up
+      ? 'Switching values: costs could rise <b>'+Math.round(100*(a.bcr-1))+
+        '%</b> or benefits fall <b>'+Math.round(100*(1-1/a.bcr))+'%</b> before ' +
+        'this stops being value for money. The Green Book asks for these rather ' +
+        'than a generic haircut on benefits, because none exists for this class ' +
+        'of project.'
+      : 'Below 1.0 \u2014 costs would need to fall <b>'+Math.round(100*(1-a.bcr))+
+        '%</b> to clear.';
+    el('caveat').textContent=
+      'A calculator on a live input: the energy saving is measured weekly from ' +
+      'public grid data and pinned to twelve months; the valuation is yours to ' +
+      'set. It covers the part of value for money that can be monetised \u2014 the ' +
+      'Green Book\u2019s own definition also takes in unmonetisable effects, risk ' +
+      'and distribution, and no calculator settles those.';
+
+    // ---- Annex A, both sides -------------------------------------------------
+    el('finassume').innerHTML=
+      'Three assumptions are fixed here rather than offered as sliders, because ' +
+      'they are things to disagree with in words rather than drag: a <b>'+
+      (100*R_GEO).toFixed(1)+'%</b> real return on the geothermal slice, which ' +
+      'carries construction and resource risk; <b>'+(100*R_NET).toFixed(1)+
+      '%</b> on the network, contracted and long-lived, against the <b>5.23%</b> ' +
+      'Ofgem allowed on regulated equity at RIIO-ED2; and a <b>'+
+      Math.round(100*CONTINGENCY)+'%</b> contingency on capital carried in the ' +
+      'sanctioned cost \u2014 our own rate for geothermal scope, applied across ' +
+      'the programme because it is netted against a programme-wide exposure, ' +
+      'and the network scope carries its own. A percentage is an inside-view ' +
+      'instrument \u2014 the right one is a reference class of completed ' +
+      'schemes, and no UK dataset for heat network outturn yet exists. That is ' +
+      'the third ask below.';
+    el('finsub').textContent=
+      'Green Book Annex A requires the costs of a private finance option to be ' +
+      'discounted at a risk-free gilt rate alongside the main appraisal, so the ' +
+      'exchequer can see what private capital costs against borrowing. The test ' +
+      'it sets is not whether the premium exists but whether risk transfer and ' +
+      'delivery efficiencies outweigh it. Both sides are below.';
+    el('fin_cost').textContent='\u00d7'+f.mult.toFixed(2)+'  \u00b7  '+gbp(f.premium);
+    el('fin_cost_p').innerHTML='Financing the '+gbp(f.tot)+' programme at a '+
+      pc(f.blend)+' blended real return costs the exchequer '+gbp(f.premium)+
+      ' more in present value than borrowing at a '+GILT.toFixed(1)+
+      '% gilt. The geothermal slice carries the higher multiple \u2014 \u00d7'+
+      f.mGeo.toFixed(2)+' against \u00d7'+f.mNet.toFixed(2)+
+      ' for the network \u2014 because it carries the higher risk. Infrastructure ' +
+      'capital takes the whole asset rather than the slice, so the blend is what ' +
+      'is actually paid.';
+    el('fin_buys').textContent=gbp(f.transferred);
+    el('fin_buys_p').innerHTML=
+      '<b>Construction '+gbp(f.construction)+', an upper bound.</b> A '+S.ob+
+      '% optimism bias on '+gbp(f.tot)+' is '+gbp(f.exposure)+' of exposure; a '+
+      Math.round(100*CONTINGENCY)+'% capital contingency carries '+
+      gbp(f.sanctioned)+', leaving a tail a fixed price moves. Public ' +
+      'procurement can let a fixed price too, so only part of this is private ' +
+      'finance\u2019s to claim.' +
+      '<br><br><b>Subsurface '+gbp(f.geological)+'.</b> A '+S.loss+
+      '% shortfall destroys '+gbp(f.geoExposure)+'; cover at '+
+      Math.round(100*COVERAGE)+'% is worth '+gbp(f.geoCovered)+' and costs '+
+      gbp(f.insPremium)+' at the French 6% benchmark.';
+  const net=f.net;
+    el('fin_verdict').innerHTML= net>=0
+      ? 'At these settings the risk transferred exceeds the premium by <b>'+
+        gbp(net)+'</b>, and private finance is the better value option on the ' +
+        'Annex A test. A close-run judgement, and the buys side is an upper ' +
+        'bound \u2014 which is why Annex A requires it to be presented rather ' +
+        'than assumed.'
+      : 'At these settings the premium exceeds the risk transferred by <b>'+
+        gbp(-net)+'</b>, and public borrowing is the better value option on the ' +
+        'Annex A test. A close-run judgement, and the buys side is an upper ' +
+        'bound \u2014 which is why Annex A requires it to be presented rather ' +
+        'than assumed.';
+    el('declare').textContent=
+      'Causeway Energies develops geothermal networks and would be among the ' +
+      'investors, so this block is published against interest.';
+    el('devex').textContent=
+      'Pre-FID development capital is excluded from all of the above. Resource ' +
+      'assessment, seismic, exploration drilling and permits would be of order ' +
+      '15\u201320% of construction cost \u2014 '+gbp(f.tot*0.15)+' to '+
+      gbp(f.tot*0.20)+' \u2014 and are taken by a developer at a development ' +
+      'return, not by infrastructure capital at financial close. The success rate ' +
+      'of prospects reaching close, not the percentage spent, is what sets its ' +
+      'true cost.';
+  }
+  ['cap','ob','pk','sizing','loss',].forEach(k=>{
+    el('lv_'+k).addEventListener('input',e=>{ S[k]=+e.target.value; render(); });
+  });
+
+    box.style.display = 'block';
+    render();
+    // the frontispiece reads the panel rather than carrying its own copy
+    // The frontispiece reads THIS rather than carrying its own arithmetic, so
+    // point 06 and the panel cannot disagree. compute() returns the flat shape
+    // the frontispiece quotes; appraise() and financing() are the full objects.
+    window.capitalModel = {
+      compute: () => {
+        const a = appraise(), f = financing();
+        return {bcr:a.bcr, ben:a.ben, cost:a.cost, npsv:a.npsv,
+                en:a.en, pk:a.pk, ca:a.ca, aq:a.aq,
+                premium:f.premium, transferred:f.transferred, net:f.net,
+                twh:avoidedTWh(), gw:avoidedGW()};
+      },
+      appraise, financing, S, avoidedTWh, avoidedGW, servedNow, capNow};
+  })();
+
+  // ---- back-to nav ------------------------------------------------------
+  // Appears only once the reader has scrolled past the case, because at the
+  // top of the page there is nothing to go back to. Scrolling alone moves
+  // the viewport but not the keyboard, so each jump also moves focus to the
+  // target - otherwise tabbing from the button carries on from the footer.
+  (function(){
+    const nav = document.getElementById('backnav');
+    if(!nav) return;
+    const front = document.getElementById('front');
+    const reduce = window.matchMedia &&
+                   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    nav.addEventListener('click', ev => {
+      const b = ev.target.closest('button');
+      if(!b) return;
+      const t = document.getElementById(b.dataset.to);
+      if(!t) return;
+      t.scrollIntoView({behavior: reduce ? 'auto' : 'smooth', block: 'start'});
+      // focus after the scroll settles; preventScroll stops the browser
+      // yanking the page a second time
+      setTimeout(() => t.focus({preventScroll: true}), reduce ? 0 : 420);
+    });
+
+    // show once the case has left the top of the viewport
+    function tick(){
+      const past = front && !front.hidden
+        ? front.getBoundingClientRect().bottom < 0
+        : window.scrollY > 600;
+      nav.classList.toggle('show', past);
+    }
+    let queued = false;
+    window.addEventListener('scroll', () => {
+      if(queued) return;
+      queued = true;
+      window.requestAnimationFrame(() => { queued = false; tick(); });
+    }, {passive: true});
+    window.addEventListener('resize', tick, {passive: true});
+    window.backnavTick = tick;
+    tick();
+  })();
+
+  // ---- frontispiece: the case in six figures ----------------------------
+  // Runs after the capital panel so point 05 reads that panel's published
+  // default through capitalModel rather than carrying its own copy of the
+  // arithmetic. One derivation, two places on the page - they cannot drift.
+  (function(){
+    const box = document.getElementById('front');
+    if(!box || !Array.isArray(d.history)) return;
+    const hist = d.history.filter(e => e && e.week_ending && e.whatif)
+                   .sort((a,b) => a.week_ending < b.week_ending ? -1 : 1);
+    if(hist.length < 26) return;
+
+    // Pinned to twelve months whatever the toggle below is set to. In an
+    // August week Britain draws almost no heat; an annual case cannot be
+    // read off one of them.
+    const Y = hist.slice(-52);
+    const nf = (n, dp) => n.toLocaleString('en-GB',
+      {minimumFractionDigits: dp || 0, maximumFractionDigits: dp || 0});
+    const sum = f => Y.reduce((a, e) => a + f(e), 0);
+    const purTWh = sum(e => e.purchased_GWh) / 1000;
+    const billBn = sum(e => e.bill_Mgbp) / 1000;
+    const emMt   = sum(e => e.emissions_kt) / 1000;
+    const savBn  = sum(e => e.bill_Mgbp - e.whatif.bill_Mgbp) / 1000;
+
+    const lim = d.whatif_routes && d.whatif_routes.system
+              && d.whatif_routes.system.limits;
+    const cd  = d.comfort_deficit;
+    const hw  = d.geothermal && d.geothermal.hardware;
+    const sh  = hw && hw.share_of_national_heat;
+    if(!lim || !cd || !sh) return;
+    const cty = n => sh.countries.find(c => new RegExp(n).test(c.name)) || {};
+    const uk = cty('United Kingdom'), se = cty('Sweden'), nl = cty('Netherlands');
+    // Annual combustion share, to match the annual TWh, bill and emissions
+    // beside it. weekly_mix.combustion_share is this week's, and in August
+    // with almost no gas space heating that is a materially different
+    // number - 76% against 92% over the year.
+    const COMB = ['gas_space','gas_dhw','oil','bio_other','solid',
+                  'heat_networks'];
+    let cIn = 0, tIn = 0;
+    Y.forEach(e => {
+      for(const k in e.fuels){
+        if(k === '_u') continue;
+        const inp = k === 'cool' ? e.fuels[k].i : e.fuels[k].i;
+        tIn += inp;
+        if(COMB.indexOf(k) >= 0) cIn += inp;
+      }
+    });
+    const comb = tIn ? Math.round(100 * cIn / tIn)
+                     : Math.round(100 * d.weekly_mix.combustion_share);
+    const cap = window.capitalModel ? window.capitalModel.compute() : null;
+
+    const pts = [
+      {n:'01', fig: nf(purTWh, 0), unit:'TWh', href:'#balancesection',
+       claim:'Heat is the largest thing Britain buys, and it is still fire.',
+       qual:'\u00a3' + nf(billBn,1) + 'bn and ' + nf(emMt,1) + ' Mt of ' +
+            'CO\u2082e over the last twelve months. ' + comb + '% of the ' +
+            'energy going in over that year is combustion.',
+       ev:'the energy balance'},
+
+      {n:'02', fig:'\u00a3' + d.spark.gshp_heat_gbp_mwh.toFixed(2), unit:'/MWh',
+       href:'#costsection',
+       claim:'Geothermal heat is already the cheaper commodity.',
+       qual:'Against \u00a3' + d.spark.gas_boiler_heat_gbp_mwh.toFixed(2) +
+            '/MWh for gas-boiler heat at the latest wholesale prices \u2014 a ' +
+            'gap of \u00a3' + d.spark.gap_gbp_mwh.toFixed(2) + '. Commodity ' +
+            'only: excludes network, policy and supply costs.',
+       ev:'the daily spark gap'},
+
+      {n:'03', fig: nf(lim.routes.network.share_pct, 0), unit:'%',
+       href:'#routes',
+       // The number is computed; the sentence describing it must be too.
+       // This went stale once already when the limit moved below 100%.
+       claim: lim.routes.network.share_pct >= 100
+         ? 'Only geothermal networks fit inside the grid Britain already has.'
+         : 'Only geothermal networks come close to fitting inside the grid ' +
+           'Britain already has.',
+       qual:'Of all building heat, electrified through networks without ' +
+            'exceeding today\u2019s winter capacity \u2014 against ' +
+            nf(lim.routes.shallow.share_pct,0) + '% ground source and ' +
+            nf(lim.routes.ashp.share_pct,0) + '% air source. ' +
+            lim.ratio_vs_air + '\u00d7 the heat for the same capacity. A ' +
+            'peak-capacity test, not an energy test, and it assumes no gas ' +
+            'peaking: a few per cent of heat from top-up boilers would let any ' +
+            'route fit, which is why the durable claim is that geothermal ' +
+            'needs none. One winter is one sample.',
+       ev:'the electrification limit'},
+
+      {n:'04', fig:'1/' + Math.round(cd.elec_if_air_GWh / cd.elec_if_ground_GWh),
+       unit:'of the electricity', href:'#coolsection',
+       claim:'The same asset does cooling \u2014 and cooling is the part that grows.',
+       qual:'Meeting the central comfort deficit by ground draws ' +
+            cd.elec_if_ground_GWh + ' GWh against ' + cd.elec_if_air_GWh +
+            ' GWh air-source\u2020. Heat rejected in summer returns in winter ' +
+            'at ' + Math.round(100 * cd.utes.round_trip) + '% round trip. ' +
+            'Fewer than 5% of UK homes have air conditioning today.',
+       ev:'the comfort deficit'},
+
+      {n:'05', fig: uk.share_pct.toFixed(1), unit:'%', href:'#emptybar',
+       claim:'Britain is the outlier, not the pioneer.',
+       qual:'Geothermal serves ' + uk.share_pct + '% of UK buildings heat, ' +
+            'against ' + nl.share_pct + '% in the Netherlands and ' +
+            se.share_pct + '% in Sweden \u2014 whose existing fleet already ' +
+            'serves about the share this site\u2019s 20% what-if proposes. ' +
+            hw.per_person_W + ' installed thermal watts per person here, ' +
+            hw.sweden_per_person_W + ' there. All the technology is proven: ' +
+            'geothermal scaling is a diffusion challenge, not an innovation ' +
+            'deficit.',
+       ev:'installed hardware, four countries'}
+    ];
+
+    // The value point only exists if the panel initialised; it reads that
+    // panel through capitalModel rather than carrying its own arithmetic, so
+    // the summary and the detail cannot disagree. It goes LAST because it is
+    // the bottom line the five points before it have been building toward.
+    if(cap){
+      pts.push({
+        n:'06', fig: cap.bcr.toFixed(2), unit:'benefit-cost ratio',
+        warn: cap.bcr < 1, href:'#capitalpanel',
+        claim: cap.bcr >= 1
+          ? 'On the government\u2019s own appraisal rules, it pays for itself.'
+          : 'On the government\u2019s own appraisal rules it does not yet pay ' +
+            'for itself \u2014 and the reasons are nameable.',
+        qual:'\u00a3' + Math.round(cap.ben) + 'bn of social benefit over 60 ' +
+             'years \u2014 energy \u00a3' + Math.round(cap.en) + 'bn, avoided ' +
+             'winter peak \u00a3' + Math.round(cap.pk) + 'bn, carbon \u00a3' +
+             cap.ca.toFixed(1) + 'bn \u2014 against \u00a3' +
+             Math.round(cap.cost) + 'bn of cost after optimism bias. Measured ' +
+             'against an air-source network, not a gas boiler, because zoning ' +
+             'is making that the alternative: so this is an efficiency and ' +
+             'capacity case, not a carbon one. All the technology is proven: ' +
+             'geothermal scaling is a diffusion challenge, not an innovation ' +
+             'deficit.',
+        ev:'the value for money panel'});
+    }
+
+    document.getElementById('points').innerHTML = pts.map(p =>
+      p.hold
+      ? '<div class="pt undercon">' +
+          '<div class="uctag">Under construction</div>' +
+          '<h3>' + p.claim + '</h3>' +
+          '<p>' + p.qual + '</p>' +
+          '<a class="ev" href="#capitalpanel" style="margin-top:11px">\u2193 ' +
+          p.ev + '</a>' +
+        '</div>'
+      : '<div class="pt">' +
+        '<div class="n">' + p.n + '</div>' +
+        '<div class="fig' + (p.warn ? ' warn' : '') + '">' + p.fig +
+          '<small>' + p.unit + '</small></div>' +
+        '<div class="claim">' + p.claim + '</div>' +
+        '<div class="qual">' + p.qual + '</div>' +
+        '<a class="ev" href="' + p.href + '">\u2193 ' + p.ev + '</a>' +
+      '</div>').join('');
+
+    document.getElementById('frontfoot').textContent =
+      'Twelve months to ' + Y[Y.length-1].week_ending + ', ' + Y.length +
+      ' complete weeks of live gas data. The frontispiece is pinned to twelve ' +
+      'months whatever window is selected below: in an August week Britain ' +
+      'draws almost no heat, and an annual case cannot be read off one of them.';
+    box.hidden = false;
+  })();
+
+  if(d.peak_week){
+    document.getElementById('peakctx').textContent =
+      'For scale: last winter\'s peak week (w/e ' + d.peak_week.week_ending +
+      ') burned ~' + fmt(d.peak_week.space_heat_GWh) + ' GWh of gas for space heating alone.';
+  }
+
+  if(d.weekly){
+    const w=d.weekly, gtotal=w.gas_total_GWh || 1;
+    const useful=w.gas_space_heat_GWh*0.835, waste=w.gas_space_heat_GWh*0.165;
+    const bb=document.getElementById('burnbar');
+    [[useful,'space'],[waste,'waste'],[w.gas_baseline_GWh,'base']].forEach(([v,cls])=>{
+      const seg=document.createElement('div');
+      seg.className='seg '+cls; seg.style.width='0%';
+      bb.appendChild(seg);
+      requestAnimationFrame(()=>{ seg.style.width=(100*v/gtotal)+'%'; });
+    });
+  }
+
+  if(d.series){
+    const traces=[
+      {x:d.series.dates,y:d.series.gas_GWh,name:'Gas to buildings (LDZ)',
+       mode:'lines',line:{color:css('--ash'),width:1.5}},
+      {x:d.series.dates,y:d.series.space_heat_GWh,name:'Space-heating estimate',
+       mode:'lines',fill:'tozeroy',line:{color:css('--ember'),width:2},
+       fillcolor:'rgba(228,87,46,.18)'}
+    ];
+    if(d.series.nts_GWh && d.series.nts_GWh.some(v=>v!=null)){
+      traces.unshift({x:d.series.dates,y:d.series.nts_GWh,
+        name:'Total NTS (incl. power stations)',mode:'lines',
+        line:{color:css('--line'),width:1,dash:'dot'}});
+    }
+    Plotly.newPlot('ts',traces,{
+      paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',
+      font:{family:'Lato',color:css('--muted'),size:12},
+      margin:{l:52,r:10,t:10,b:40},
+      yaxis:{title:'GWh/day',gridcolor:css('--line')},
+      xaxis:{gridcolor:css('--line')},
+      legend:{orientation:'h',y:1.14}
+    },{displayModeBar:false,responsive:true});
+  }
+
+  const cost = d.cost;
+  if(cost){
+    document.getElementById('billline').innerHTML =
+      'Britain\'s estimated heating &amp; cooling energy bill this week: <b>~£' +
+      fmt(cost.national_week_total_Mgbp) + ' million</b>' +
+      (cost.national_week_heat_Mgbp != null
+        ? ' (heat ~£' + fmt(cost.national_week_heat_Mgbp) +
+          'm · cooling ~£' + fmt(cost.national_week_cool_Mgbp) + 'm)'
+        : '') +
+      (cost.gshp_vs_gas_boiler && cost.gshp_vs_gas_boiler.gshp_cheaper
+        ? ' · At current capped prices, ground-source heat (' +
+          cost.gshp_vs_gas_boiler.gshp + 'p/useful kWh) is <b style="color:' +
+          css('--geo') + '">cheaper than a gas boiler</b> (' +
+          cost.gshp_vs_gas_boiler.gas_boiler + 'p).'
+        : '');
+    const rows = document.getElementById('costrows');
+    (cost.household_p_per_useful_kwh || []).forEach(r=>{
+      const isGeo = r.route.toLowerCase().includes('ground');
+      rows.insertAdjacentHTML('beforeend',
+        `<tr${isGeo?' class="geo-row"':''}><td>${r.route}</td>` +
+        `<td class="num">${r.p_per_useful_kwh}p</td>` +
+        `<td style="color:var(--muted);font-size:12.5px">${r.basis}</td></tr>`);
+    });
+    document.getElementById('costnote').textContent =
+      cost.price_tag + '. ' + cost.note;
+  }
+
+  const cb = d.carbon;
+  if(cb && cb.week_kt != null){
+    document.getElementById('carbline').innerHTML =
+      'Estimated heating &amp; cooling emissions this week: <b>~' +
+      fmt(cb.week_kt) + ' kt CO2e</b> (heat ' + fmt(cb.week_heat_kt) +
+      ' kt · cooling ' + fmt(cb.week_cool_kt) + ' kt) · 20% geothermal ' +
+      'what-if saves <b style="color:' + css('--geo') + '">~' +
+      fmt(cb.whatif_saving_kt) + ' kt</b> · grid intensity ' +
+      cb.grid_ci_g_per_kwh + ' g/kWh (7-day mean)';
+    const rows = document.getElementById('carbrows');
+    (cb.routes_g_per_useful_kwh || []).forEach(r=>{
+      const isGeo = r.route.toLowerCase().includes('ground') ||
+                    r.route.toLowerCase().includes('geothermal');
+      rows.insertAdjacentHTML('beforeend',
+        `<tr${isGeo?' class="geo-row"':''}><td>${r.route}</td>` +
+        `<td class="num">${r.g_per_useful_kwh}g</td></tr>`);
+    });
+    document.getElementById('carbnote').textContent = cb.note;
+  }
+
+  const co = d.cooling_observed;
+  if(co && co.response_curve_GWh_per_day){
+    document.getElementById('coolobsline').innerHTML =
+      'This week (observed basis): cooling delivered ~<b>' +
+      fmt(co.week_delivered_GWh) + ' GWh</b> of electricity' +
+      (co.latent_slope_reliable
+        ? ' · latent demand ~' + fmt(co.week_latent_GWh) +
+          ' GWh · unmet ~<b style="color:' + css('--cool') + '">' +
+          fmt(co.week_unmet_GWh) + ' GWh</b>'
+        : ' · latent-demand slope not yet reliably identified from this sample');
+    const bins = Object.keys(co.response_curve_GWh_per_day).map(Number).sort((a,b)=>a-b);
+    const x = bins.map(b => b - 0.5);
+    const y = bins.map(b => co.response_curve_GWh_per_day[b]);
+    const xl = [0, Math.max(...x)];
+    const yl = xl.map(v => v * co.latent_slope_GWh_per_CDD);
+    Plotly.newPlot('coolcurve', [
+      {x: xl, y: yl, name: 'Latent demand (linear)', mode: 'lines',
+       line: {color: css('--muted'), dash: 'dot', width: 1.5}},
+      {x: x, y: y, name: 'Observed response', mode: 'lines+markers',
+       line: {color: css('--cool'), width: 2.5},
+       marker: {size: 8, color: css('--cool')}}
+    ], {
+      paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
+      font:{family:'Lato', color:css('--muted'), size:12},
+      margin:{l:60,r:10,t:10,b:44},
+      xaxis:{title:'Cooling degree days (base 18°C)', gridcolor:css('--line')},
+      yaxis:{title:'Cooling electricity, GWh/day', gridcolor:css('--line')},
+      legend:{orientation:'h', y:1.15}
+    }, {displayModeBar:false, responsive:true});
+    document.getElementById('coolobsnote').textContent = co.note +
+      ' Sample: ' + co.summer_days_used + ' summer days.';
+  } else {
+    document.getElementById('coolobsline').textContent =
+      'Observed cooling analysis pending sufficient summer data.';
+    document.getElementById('coolcurve').style.display = 'none';
+  }
+
+  const hw = (d.geothermal || {}).hardware;
+  if(hw && hw.whatif_MWth){
+    document.getElementById('emptybar').style.display = '';
+    const inst = hw.uk_gshp_MWth + hw.uk_deep_MWth;
+    document.getElementById('eb_installed').innerHTML =
+      fmt(hw.uk_gshp_MWth) + '<small> MWth</small>';
+    document.getElementById('eb_installed_cap').textContent =
+      'UK ground-source operating today† · ~55,210 systems (EGEC ' +
+      '2025) · deeper geothermal adds ~' + hw.uk_deep_MWth + ' MWth†';
+    document.getElementById('eb_pp').innerHTML =
+      hw.per_person_W.toFixed(0) + '<small> vs </small>' +
+      hw.sweden_per_person_W + '<small> W†</small>';
+    document.getElementById('eb_pp_cap').textContent =
+      'installed thermal watts per person, UK vs Sweden† · and still ' +
+      'compounding: 2025 sales UK ' + fmt(hw.sales_2025.uk) + ' vs Sweden ' +
+      fmt(hw.sales_2025.sweden) + ' units (EGEC)';
+    document.getElementById('eb_need').innerHTML =
+      (hw.whatif_MWth / 1000).toFixed(1) + '<small> GWth</small>';
+    document.getElementById('eb_need_cap').textContent =
+      'installed capacity the 20% what-if requires at ' + fmt(hw.eflh) +
+      ' equivalent full-load hours†';
+    const cats = ['United Kingdom'].concat(hw.comparators.map(c =>
+      c.name + '†'));
+    const gshp = [hw.uk_gshp_MWth].concat(hw.comparators.map(c => c.gshp_MWth));
+    const deep = [hw.uk_deep_MWth].concat(hw.comparators.map(c => c.deep_MWth));
+    const wif  = [Math.max(0, hw.whatif_MWth - inst)]
+                 .concat(hw.comparators.map(() => 0));
+    Plotly.newPlot('emptybarplot', [
+      {x: cats, y: gshp, type: 'bar', name: 'ground source, installed',
+       marker: {color: css('--geo')}},
+      {x: cats, y: deep, type: 'bar', name: 'deeper geothermal, installed†',
+       marker: {color: css('--cool')}},
+      {x: cats, y: wif, type: 'bar', name: 'the 20% what-if†',
+       marker: {color: 'rgba(58,170,53,.25)',
+                pattern: {shape: '/', fgcolor: css('--geo'), solidity: .25}}},
+    ], {
+      barmode: 'stack',
+      paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+      font: {family: 'Lato', color: css('--muted'), size: 12},
+      margin: {l: 60, r: 10, t: 10, b: 30},
+      xaxis: {gridcolor: css('--line')},
+      yaxis: {title: 'installed capacity — MWth', gridcolor: css('--line')},
+      legend: {orientation: 'h', y: 1.12, traceorder: 'normal'},
+      annotations: [{x: 'United Kingdom',
+        y: hw.whatif_MWth, yanchor: 'bottom',
+        text: '→ ' + fmt(hw.whatif_MWth) + ' MWth†',
+        showarrow: false, font: {size: 11, color: css('--geo')}}],
+    }, {displayModeBar: false, responsive: true});
+    const sh = hw.share_of_national_heat;
+    if(sh && sh.countries){
+      const nm = sh.countries.map(c => c.name === 'United Kingdom'
+                                  ? c.name : c.name + '\u2020');
+      const pv = sh.countries.map(c => c.share_pct);
+      Plotly.newPlot('emptysharesplot', [{
+        x: nm, y: pv, type: 'bar', width: .5,
+        marker: {color: pv.map(v =>
+          v >= sh.whatif_pct ? css('--geo') : css('--muted'))},
+        text: pv.map(v => v + '%'), textposition: 'outside',
+        textfont: {size: 11},
+        hovertemplate: '%{x}: %{y}% of own buildings heat<extra></extra>',
+      }], {
+        paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+        font: {family: 'Lato', color: css('--muted'), size: 12},
+        margin: {l: 52, r: 10, t: 22, b: 30},
+        xaxis: {gridcolor: css('--line')},
+        yaxis: {title: '% of national buildings heat', gridcolor: css('--line'),
+                range: [0, Math.max(26, Math.max(...pv) + 4)]},
+        shapes: [{type: 'line', xref: 'paper', x0: 0, x1: 1,
+                  y0: sh.whatif_pct, y1: sh.whatif_pct,
+                  line: {color: css('--geo'), width: 1.5}}],
+        annotations: [{xref: 'paper', x: 0.01, y: sh.whatif_pct,
+                       yanchor: 'bottom', xanchor: 'left',
+                       text: 'the 20% what-if',
+                       showarrow: false,
+                       font: {size: 11, color: css('--geo')}}],
+      }, {displayModeBar: false, responsive: true});
+    }
+    document.getElementById('emptybarnote').textContent =
+      'The chart prices the what-if strip in hardware, in installed thermal '+
+      'megawatts: the solid green base of the UK bar is ground-source '+
+      'capacity operating today (' + fmt(hw.uk_gshp_MWth) + ' MWth, '+
+      'EGC 2025 country update), the blue sliver is deeper geothermal '+
+      '(Gateshead, Eden and peers, ~' + hw.uk_deep_MWth + ' MWth†), '+
+      'and the hatched stack is what serving 20% of delivered buildings '+
+      'heat requires at ' + fmt(hw.eflh) + ' equivalent full-load '+
+      'hours† — ' + (hw.whatif_MWth/1000).toFixed(1) + ' GWth '+
+      'against ' + fmt(hw.uk_gshp_MWth + hw.uk_deep_MWth) + ' MWth '+
+      'installed. Today\u2019s entire UK stock is the sliver at the base. '+
+      'The three bars on the right are not scenarios but installed reality '+
+      'elsewhere†: even Sweden\u2019s fleet — the largest in '+
+      'Europe, in a country of 10.5 million — covers barely a quarter '+
+      'of the UK requirement, which is the scale argument in one picture: '+
+      'the what-if is unremarkable per person (Sweden already runs ' +
+      hw.sweden_per_person_W + ' W/person against the UK\u2019s ' +
+      hw.per_person_W.toFixed(0) + ') and enormous only because Britain '+
+      'has never started. ' + hw.note + ' Constants shared with the '+
+      'Irish sibling.' +
+      (sh ? ' The lower chart is the calibration: ' + sh.note + ' ' +
+            sh.boiler_flow_note : '');
+  }
+
+  const cr = d.cooling_reconciliation;
+  if(cr && cr.beta_cool_GWh_per_CDD != null){
+    document.getElementById('reconblock').style.display = '';
+    const flat = cr.implied_weather_flat_share != null
+      ? Math.round(100 * cr.implied_weather_flat_share) : null;
+    document.getElementById('reconline').innerHTML =
+      'Year-round fit (' + cr.n_days + ' days, R² ' + cr.r2 +
+      '): conditioning starts at ~<b>' + cr.cdd_base_c +
+      '°C</b> outdoors · weather-driven cooling electricity <b>' +
+      fmt(cr.beta_cool_GWh_per_CDD) + ' GWh/CDD</b> → ~<b>' +
+      fmt(cr.annual_weather_cooling_elec_GWh) +
+      ' GWh/yr</b> (' + fmt(cr.week_weather_cooling_elec_GWh) +
+      ' GWh this week) vs ECUK cooling &amp; ventilation anchor ' +
+      fmt(cr.ecuk_annual_cooling_vent_GWh) + ' GWh/yr' +
+      (flat != null
+        ? ' — implying <b style="color:' + css('--cool') + '">~' + flat +
+          '% weather-flat</b> (ventilation · base-load cooling · ' +
+          'below-base conditioning)&nbsp;†'
+        : '') +
+      (cr.summer_centring_slope_GWh_per_CDD != null
+        ? ' · summer centring slope ' + cr.summer_centring_slope_GWh_per_CDD +
+          ' GWh/CDD for comparison'
+        : '');
+    let rn = cr.note;
+    if(cr.stability && cr.stability.runs_60d >= 2){
+      const st = cr.stability;
+      rn += ' Stability (' + st.runs_60d + ' runs, 60d): fitted base ' +
+        st.base_range_60d[0] + '\u2013' + st.base_range_60d[1] +
+        '\u00b0C, slope ' + st.slope_range_60d[0] + '\u2013' +
+        st.slope_range_60d[1] + ' GWh/CDD' +
+        (st.base_stable_pm1c ? ' \u2014 within the switchover gate.'
+                             : ' \u2014 not yet within the switchover gate.');
+    }
+    document.getElementById('reconnote').textContent = rn;
+  }
+
+  const cd = d.comfort_deficit;
+  if(cd && cd.scenarios){
+    const c = cd.scenarios.central, lo = cd.scenarios.low, hi = cd.scenarios.high;
+    document.getElementById('deficitline').innerHTML =
+      'This week: <b>' + cd.odh26_week_degC_h + ' °C·h</b> above the ' +
+      cd.threshold_c + '°C comfort threshold · <b>' + lo.dwellings_M + '–' +
+      hi.dwellings_M + ' million homes</b> overheating with no cooling ' +
+      '(central ' + c.dwellings_M + 'M) · latent need ~<b>' +
+      fmt(lo.latent_thermal_GWh) + '–' + fmt(hi.latent_thermal_GWh) +
+      ' GWh</b> of cooling that no equipment exists to deliver';
+    document.getElementById('deficitcontext').innerHTML =
+      'Serving the central load would draw ~<b style="color:' + css('--geo') +
+      '">' + cd.elec_if_ground_GWh + ' GWh</b> of electricity via passive ' +
+      'ground cooling vs ~<b>' + cd.elec_if_air_GWh + ' GWh</b> via ' +
+      'air-source compressors. Context: ' + cd.context.ac_penetration_note +
+      ' · ' + cd.context.hospitals_note + ' · ' + cd.context.health_note +
+      ' · ' + cd.context.productivity_note + '.';
+    const tb = cd.tier_bars;
+    if(tb){
+      const rows = [
+        ['TIER 1 · DELIVERED (equipped fleet)', tb.t1_delivered_th_GWh, 't1', ''],
+        ['TIER 2 · EQUIPPED BUT UNMET', tb.t2_unmet_th_GWh, 't2', ''],
+        ['TIER 3 · NO EQUIPMENT AT ALL', tb.t3_central_GWh, 't3',
+         ' (' + fmt(tb.t3_low_GWh) + '–' + fmt(tb.t3_high_GWh) + ')'],
+      ];
+      const mx = Math.max(tb.t1_delivered_th_GWh, tb.t3_high_GWh, 1);
+      const el = document.getElementById('tierbars');
+      rows.forEach(([lab, v, cls, extra])=>{
+        el.insertAdjacentHTML('beforeend',
+          `<div class="tierrow"><div class="tlabel">${lab}</div>` +
+          `<div class="tiertrack"><div class="tfill ${cls}" data-w="${100*v/mx}"></div></div>` +
+          `<div class="tval">${fmt(v)}${extra} GWh</div></div>`);
+      });
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        el.querySelectorAll('.tfill').forEach(f=>{f.style.width=f.dataset.w+'%';});
+      }));
+    }
+    const ut = cd.utes;
+    if(ut){
+      const el2 = document.getElementById('utesbars');
+      const mx2 = ut.summer_banked_GWh || 1;
+      [['SUMMER · HEAT REJECTED TO STORE', ut.summer_banked_GWh, 'geo-s'],
+       ['WINTER · RECOVERED FOR HEATING', ut.winter_recovered_GWh, 'geo-w']]
+      .forEach(([lab, v, cls])=>{
+        el2.insertAdjacentHTML('beforeend',
+          `<div class="tierrow"><div class="tlabel">${lab}</div>` +
+          `<div class="tiertrack"><div class="tfill ${cls}" data-w="${100*v/mx2}"></div></div>` +
+          `<div class="tval">${fmt(v)} GWh</div></div>`);
+      });
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        el2.querySelectorAll('.tfill').forEach(f=>{f.style.width=f.dataset.w+'%';});
+      }));
+      document.getElementById('utesnote').textContent =
+        'If the central tier-3 load were ground-served: rejected cooling heat ' +
+        '(load + pump input) banks in the aquifer or borehole store; ~' +
+        Math.round(ut.round_trip*100) + '% recovers for winter heating ' +
+        '(UTES round-trip, literature range 50–80% †). Cooling\'s waste ' +
+        'product is heating\'s fuel — one asset, both seasons.';
+    }
+    document.getElementById('deficitnote').textContent = cd.note;
+  }
+
+  const geo = d.geothermal;
+  if(geo){
+    document.getElementById('geofig').innerHTML =
+      fmt(geo.week_GWh) + '<small> GWh heat</small>' +
+      ' <span style="color:var(--cool)">· ' + fmt(geo.week_cool_GWh || 0) +
+      '<small style="color:var(--muted)"> GWh cool</small></span>' +
+      '<small> — from geothermal this week (estimate)</small>';
+    if(geo.week_share_of_heat != null){
+      let t = 'That is ~' + (100*geo.week_share_of_heat).toFixed(1) +
+        '% of Britain\'s building heat this week. Deep and mine-water schemes ' +
+        'contribute ~' + geo.annual_TWh.today_deep_only +
+        ' TWh/yr of the ' + geo.annual_TWh.today + ' TWh/yr total today.';
+      if(geo.week_cool_GWh > 0){
+        t += ' Geothermal also supplied an estimated ' + fmt(geo.week_cool_GWh) +
+          ' GWh of cooling this week (reversible ground-source systems and ' +
+          'aquifer storage, ~' + geo.cool_today_TWh + ' TWh/yr — barely measured, ' +
+          'and the clearest growth headroom of all).';
+      }
+      document.getElementById('geoshare').textContent = t;
+    }
+    const w20 = d.headlines && d.headlines.whatif_20pct_geothermal;
+    if(w20 && d.cost.national_week_total_Mgbp){
+      const actual = d.cost.national_week_total_Mgbp;
+      const saving = actual - w20.bill_Mgbp;
+      document.getElementById('geowhatif').innerHTML =
+        'What if? Moving <b style="color:' + css('--geo') + '">20% of heat ' +
+        'and cooling</b> to geothermal networks would have cost <b style="color:' +
+        css('--geo') + '">~£' + fmt(w20.bill_Mgbp) + ' million</b> this week ' +
+        'instead of ~£' + fmt(actual) + 'm — a saving of <b>~£' +
+        fmt(saving) + ' million</b>. This matches the headline what-if above.';
+      document.getElementById('geowhatifnote').textContent =
+        'Illustrative Causeway what-if: one-fifth of useful heat and cooling ' +
+        'delivered via geothermal networks — heat at SCOP 5.0, cooling ' +
+        'passively at COP ~20, current capped electricity price. Running cost ' +
+        'only; no capex, network build, or price feedbacks. †';
+    }
+    if(geo.benchmark){
+      document.getElementById('geobench').textContent = geo.benchmark;
+    }
+    const rows = [
+      ["Today",  geo.annual_TWh.today,         false, geo.tags.today],
+      ["2027",   geo.annual_TWh.forecast_2027, true,  geo.tags.forecast_2027],
+      ["2031",   geo.annual_TWh.forecast_2031, true,  geo.tags.forecast_2031],
+      ["2050",   geo.annual_TWh.ambition_2050, true,  geo.tags.ambition_2050],
+    ];
+    const maxv = Math.max(...rows.map(r=>r[1]));
+    const holder = document.getElementById('geobars');
+    rows.forEach(([lab,v,isFc,tag])=>{
+      const row = document.createElement('div');
+      row.className = 'geobar';
+      row.innerHTML =
+        `<div class="lab">${lab} · ${v} TWh/yr</div>` +
+        `<div class="track"><div class="fill${isFc?' fc':''}"></div></div>` +
+        `<div class="geotag">${tag}</div>`;
+      holder.appendChild(row);
+      const fill = row.querySelector('.fill');
+      requestAnimationFrame(()=>{ fill.style.width = (100*v/maxv)+'%'; });
+    });
+  }
+
+  const sp = d.spark;
+  if(sp && sp.gap_gbp_mwh != null){
+    const cheaper = sp.gap_gbp_mwh > 0;
+    document.getElementById('ticker').innerHTML =
+      'Heat spark gap (' + sp.date + '): gas-boiler heat £' +
+      sp.gas_boiler_heat_gbp_mwh + '/MWh vs geothermal £' +
+      sp.gshp_heat_gbp_mwh + '/MWh — ' +
+      (cheaper ? '<b>ground wins by £' + sp.gap_gbp_mwh + '</b>'
+               : '<span class="neg">gas ahead by £' + Math.abs(sp.gap_gbp_mwh) + '</span>');
+    document.getElementById('ticker').title = sp.basis;
+  }
+  const wh = d.why_heat;
+  if(wh){
+    document.getElementById('whyheatline').innerHTML =
+      'Zoom out: of everything Britain pays for as energy — power, ' +
+      'transport, heat — <b style="color:' + css('--ember') + '">heat is ' +
+      'the largest service, the cheapest per unit, and still fossil</b>. ' +
+      'Four views of the same three services, ' + wh.year + ':';
+    const CLR = {heat: css('--ember'), transport: '#7A8B99',
+                 power_other: '#5B9BD5'};
+    const NAME = {heat: 'Heat', transport: 'Transport',
+                  power_other: 'Power (other electricity)'};
+    function whypie(el, obj, unit){
+      const keys = ['heat','transport','power_other'];
+      Plotly.newPlot(el, [{
+        type: 'pie', sort: false, direction: 'clockwise',
+        labels: keys.map(k=>NAME[k]),
+        values: keys.map(k=>obj[k]),
+        marker: {colors: keys.map(k=>CLR[k]),
+                 line: {color: '#101512', width: 2}},
+        textinfo: 'value', texttemplate: '%{value:,}' + unit,
+        textfont: {family: 'IBM Plex Mono', size: 12},
+        hovertemplate: '%{label}: %{value:,}' + unit +
+                       ' (%{percent})<extra></extra>',
+        hole: 0.45,
+      }], {
+        paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+        showlegend: true,
+        legend: {font: {color: '#c9d3cc', size: 10.5},
+                 orientation: 'h', xanchor: 'center', x: 0.5,
+                 yanchor: 'top', y: -0.02},
+        margin: {l: 6, r: 6, t: 6, b: 42},
+        font: {color: '#c9d3cc'},
+      }, {displayModeBar: false, responsive: true});
+    }
+    whypie('why_twh',  wh.services_TWh, '');
+    whypie('why_cost', wh.cost_bn,      '');
+    whypie('why_imp',  wh.imported_TWh, '');
+    whypie('why_em',   wh.emissions_Mt, '');
+    document.getElementById('whyheatnote').textContent = wh.note;
+  }
+
+  const ni = d.ni_panel;
+  if(ni){
+    document.getElementById('nipanel').textContent =
+      'This week in NI (estimate): ' + fmt(ni.week_heat_GWh_est) +
+      ' GWh of building heat (' + ni.week_hdd + ' heating degree days); ~' +
+      ni.annual_TWh_est + ' TWh/yr' + (ni.est_mark ? '\u2020' : '') +
+      ', ' + ni.oil_share_note + '. ' +
+      ni.why_separate;
+  }
+  if(d.headlines && d.headlines.indig_note){
+    document.getElementById('indignote').textContent = d.headlines.indig_note;
+  }
+  const reg=d.regression;
+  if(reg){
+    document.getElementById('fit').textContent =
+      'R² ' + reg.r2 + ' over ' + reg.window_days + ' days, base ' +
+      reg.base_temp + '°C, sensitivity ' + reg.slope_GWh_per_HDD +
+      ' GWh per degree day' +
+      (reg.resid_se_GWh ? ' (residual SE ±' + fmt(reg.resid_se_GWh) +
+       ' GWh/day — the honest daily uncertainty; R² is flattered by the '+
+       'annual cycle)' : '');
+  }
+  const c=d.calibration;
+  if(c){
+    document.getElementById('calib').textContent =
+      `Trailing 12-month gas space-heat estimate ${c.model_12m_gas_space_heat_TWh} TWh vs ` +
+      `ECUK-derived, GB-adjusted, weather-normalised anchor ${c.ecuk_anchor_TWh} TWh ` +
+      `(ratio ${c.ratio}). ` +
+      'The model runs ' + (c.ratio>=1?'+':'') + Math.round((c.ratio-1)*100) +
+      '% vs the ECUK anchor. ' +
+      (c.within_10pct ? 'Within our ±10% publication gate.'
+                      : 'OUTSIDE the ±10% gate — split under review.');
+  }
+  // --- trend layer: weekly hero-number history (live weeks only) ------------
+  (function(){
+    const hist = Array.isArray(d.history)
+      ? d.history.filter(e => e && e.week_ending).slice()
+                 .sort((a,b) => a.week_ending < b.week_ending ? -1 : 1)
+      : [];
+    if(hist.length < 2) return;
+    const els = [...document.querySelectorAll('.trend')];
+    const ctl = document.getElementById('trendctl');
+    ctl.hidden = false;
+    document.getElementById('trendspan').textContent =
+      '· ' + hist.length + ' wks on record · what-if in green';
+    if(d.history_note){
+      ctl.title = d.history_note;
+      const tn = document.getElementById('trendnote');
+      tn.textContent = d.history_note +
+        (d.gas_window ? ' Live gas window: ' + d.gas_window.oldest +
+                        ' → ' + d.gas_window.newest + '.' : '');
+      document.getElementById('trendpara').style.display = '';
+    }
+    const dfmt = s => {
+      const dte = new Date(s + 'T00:00:00Z');
+      const lbl = dte.toLocaleDateString('en-GB',
+        {day:'numeric', month:'short'});
+      return (Date.now() - dte.getTime() > 300 * 864e5)
+        ? lbl + ' ' + String(dte.getUTCFullYear()).slice(2) : lbl;
+    };
+
+    // hero windowing: snapshot the live this-week figures, re-total on demand
+    const HERO_IDS = ['st_energy','st_indig','st_bill','st_carbon',
+                      'wf_energy','wf_indig','wf_bill','wf_carbon'];
+    const snap = {};
+    HERO_IDS.forEach(id => {
+      const fig = document.getElementById(id), cap = fig.nextElementSibling;
+      snap[id] = {fig: fig, cap: cap,
+                  figHTML: fig.innerHTML, capHTML: cap.innerHTML};
+    });
+    const fE = g => g >= 9999.5
+      ? Math.round(g/1000).toLocaleString('en-GB') + '<small> TWh</small>'
+      : fmt(g) + '<small> GWh</small>';
+    const fB = m => m >= 999.5 ? '£' + (m/1000).toFixed(1) + 'bn'
+                               : '£' + fmt(m) + 'm';
+    const fK = k => k >= 999.5 ? (k/1000).toFixed(1) + '<small> Mt CO2e</small>'
+                               : fmt(k) + '<small> kt CO2e</small>';
+    const fKplain = k => k >= 999.5 ? (k/1000).toFixed(1) + ' Mt'
+                                    : fmt(k) + ' kt';
+    function setHero(win){
+      if(win === 2){
+        HERO_IDS.forEach(id => {
+          snap[id].fig.innerHTML = snap[id].figHTML;
+          snap[id].cap.innerHTML = snap[id].capHTML;
+        });
+        if(window.drawEnergyBars) window.drawEnergyBars(null);
+        const bl = document.getElementById('barwin');
+        if(bl) bl.textContent = '';
+        return;
+      }
+      const sumN = {5: 4, 13: 12, 53: 52}[win];
+      const rows = hist.slice(-sumN), n = rows.length;
+      const label = 'over the last ' + {5:'4 weeks',13:'12 weeks',
+                                        53:'12 months'}[win]
+                    + (n < sumN ? ' (' + n + ' live wks)' : '');
+      const S  = k => rows.reduce((a,e) => a + (e[k] || 0), 0);
+      const SW = k => rows.reduce((a,e) => a + ((e.whatif||{})[k] || 0), 0);
+      const wavg = wf => {
+        let num = 0, den = 0;
+        rows.forEach(e => {
+          const o = wf ? (e.whatif || {}) : e;
+          if(o.indig_pct != null && o.purchased_GWh){
+            num += o.indig_pct * o.purchased_GWh; den += o.purchased_GWh;
+          }
+        });
+        return den ? Math.round(num/den) : null;
+      };
+      const set = (id, figHTML, capText) => {
+        snap[id].fig.innerHTML = figHTML;
+        snap[id].cap.textContent = capText;
+      };
+      const fEc = g => g >= 9999.5
+        ? Math.round(g/1000).toLocaleString('en-GB') + ' TWh'
+        : fmt(g) + ' GWh';
+      // Energy bars over the window: sum the per-fuel blocks, but only
+      // when EVERY row carries them - a stranded old week degrades the
+      // bars to their live-week form rather than showing a wrong sum.
+      if(window.drawEnergyBars){
+        const okF = rows.every(e => e.fuels);
+        const barLbl = document.getElementById('barwin');
+        if(barLbl) barLbl.textContent = okF
+          ? ' \u2014 totals ' + label + ', shares of the window, not of one week'
+          : '';
+        if(!okF){
+          window.drawEnergyBars(null);
+        } else {
+          const inC = {}, outC = {};
+          let tIn = 0, tOut = 0, lost = 0, comb = 0;
+          const COMB = ['gas_space','gas_dhw','oil','bio_other','solid',
+                        'heat_networks'];
+          rows.forEach(e => {
+            for(const k in e.fuels){
+              if(k === '_u') continue;
+              const f = e.fuels[k];
+              if(k === 'cool'){
+                inC.cooling = (inC.cooling || 0) + f.i;
+                outC.cooling_delivered = (outC.cooling_delivered || 0) + f.u;
+                tIn += f.i; tOut += f.u;
+              } else {
+                inC[k] = (inC[k] || 0) + f.i;
+                tIn += f.i; tOut += f.u;
+                // conversion loss: the per-fuel gap, HEATING FUELS ONLY -
+                // cooling's useful output legitimately exceeds its input
+                // (Irish trap 4). Never zero this for windowed calls.
+                if(COMB.indexOf(k) >= 0){
+                  lost += Math.max(0, f.i - f.u);
+                  comb += f.i;
+                }
+                if(k !== 'elec_heat') outC[k] = (outC[k] || 0) + f.u;
+              }
+            }
+            const su = e.fuels._u || {};
+            ['elec_resistive','hp_electricity','hp_ambient'].forEach(k => {
+              if(su[k]) outC[k] = (outC[k] || 0) + su[k];
+            });
+          });
+          window.drawEnergyBars({
+            fuels: true, in_components: inC, out_components: outC,
+            total_in: tIn, total_out: tOut, wasted: lost,
+            combustion_share: tIn ? comb / tIn : null,
+            when: 'over the window'});
+        }
+      }
+      const hasSplit = rows.every(e => e.heat_GWh != null &&
+                                       e.cooling_GWh != null);
+      set('st_energy', fE(S('purchased_GWh')),
+          'heating & cooling energy purchased ' + label +
+          (hasSplit ? ' (heat ' + fEc(S('heat_GWh')) + ' \u00b7 cooling ' +
+                      fEc(S('cooling_GWh')) + ')' : ''));
+      set('st_indig', (wavg(false) != null ? wavg(false) + '%' : '—'),
+          'estimated UK-indigenous share of heat & cooling delivered — ' +
+          'energy-weighted avg ' + label);
+      const billSplit = rows.every(e => e.bill_heat_Mgbp != null &&
+                                        e.bill_cool_Mgbp != null);
+      set('st_bill', fB(S('bill_Mgbp')), 'national bill ' + label +
+          (billSplit ? ' (heat ' + fB(S('bill_heat_Mgbp')) +
+            ' \u00b7 cooling ' + fB(S('bill_cool_Mgbp')) + ')' : ''));
+      const emSplit = rows.every(e => e.emissions_heat_kt != null &&
+                                      e.emissions_cool_kt != null);
+      const fKc = k => k >= 999.5 ? (k/1000).toFixed(1) + ' Mt'
+                                  : fmt(k) + ' kt';
+      set('st_carbon', fK(S('emissions_kt')),
+          'heating & cooling emissions ' + label +
+          (emSplit ? ' (heat ' + fKc(S('emissions_heat_kt')) +
+            ' \u00b7 cooling ' + fKc(S('emissions_cool_kt')) + ')' : ''));
+      const SWk = k => rows.reduce((a,e) => a + ((e.whatif||{})[k] || 0), 0);
+      const wfSplit = rows.every(e => e.whatif && e.whatif.heat_GWh != null
+                                      && e.whatif.cooling_GWh != null);
+      set('wf_energy', fE(SW('purchased_GWh')),
+          'purchased' + (wfSplit ? ' (heat ' + fEc(SWk('heat_GWh')) +
+            ' \u00b7 cooling ' + fEc(SWk('cooling_GWh')) + ')' : '') +
+          ' — the ground supplies the rest free');
+      set('wf_indig', (wavg(true) != null ? wavg(true) + '%' : '—'),
+          'UK-indigenous share — energy-weighted avg');
+      const wfBillSplit = rows.every(e => e.whatif &&
+          e.whatif.bill_heat_Mgbp != null && e.whatif.bill_cool_Mgbp != null);
+      set('wf_bill', fB(SW('bill_Mgbp')),
+          'national bill (' + (wfBillSplit
+            ? 'heat ' + fB(SWk('bill_heat_Mgbp')) + ' \u00b7 cooling ' +
+              fB(SWk('bill_cool_Mgbp')) + ' \u00b7 ' : '') +
+          'saves ' + fB(S('bill_Mgbp') - SW('bill_Mgbp')) +
+          ' ' + label + ')');
+      const wfEmSplit = rows.every(e => e.whatif &&
+          e.whatif.emissions_heat_kt != null &&
+          e.whatif.emissions_cool_kt != null);
+      set('wf_carbon', fK(SW('emissions_kt')),
+          'emissions (' + (wfEmSplit
+            ? 'heat ' + fKplain(SWk('emissions_heat_kt')) +
+              ' \u00b7 cooling ' + fKplain(SWk('emissions_cool_kt')) +
+              ' \u00b7 ' : '') +
+          'saves ' + fKplain(S('emissions_kt') -
+          SW('emissions_kt')) + ' ' + label + ')');
+    }
+    function draw(win){
+      setHero(win);
+      els.forEach(el => {
+        const key = el.dataset.trend, goodDir = el.dataset.good;
+        const rows = hist.slice(-win).filter(e => e[key] != null);
+        if(rows.length < 2){ el.hidden = true; return; }
+        el.hidden = false;
+        const W = Math.max(el.clientWidth || 0, 120), H = 34, pad = 3;
+        const t0 = Date.parse(rows[0].week_ending),
+              t1 = Date.parse(rows[rows.length-1].week_ending);
+        const X = e => t1 === t0 ? W/2
+          : pad + (W - 2*pad) * (Date.parse(e.week_ending) - t0) / (t1 - t0);
+        const vs = rows.map(e => e[key]);
+        const wfAll = rows.map(e => (e.whatif || {})[key]);
+        const wf = wfAll.every(v => v != null) ? wfAll : null;
+        const span = vs.concat(wf || []);
+        let lo = Math.min(...span), hi = Math.max(...span);
+        if(hi === lo){ hi += 1; lo -= 1; }
+        const Y = v => pad + (H - 2*pad) * (1 - (v - lo) / (hi - lo));
+        const P = arr => rows.map((e,i) => X(e).toFixed(1) + ',' +
+                                           Y(arr[i]).toFixed(1)).join(' ');
+        let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" aria-hidden="true">';
+        if(wf){
+          svg += '<polygon class="tr-gap" points="' + P(vs) + ' ' +
+                 P(wf).split(' ').reverse().join(' ') + '"/>' +
+                 '<polyline class="tr-whatif" points="' + P(wf) + '"/>';
+        }
+        svg += '<polyline class="tr-actual" points="' + P(vs) + '"/>' +
+               '<circle class="tr-dot" cx="' + X(rows[rows.length-1]).toFixed(1) +
+               '" cy="' + Y(vs[vs.length-1]).toFixed(1) + '" r="2"/></svg>';
+        const a = vs[0], b = vs[vs.length-1],
+              dir = b > a ? 1 : (b < a ? -1 : 0);
+        const txt = key === 'indig_pct'
+          ? (b - a > 0 ? '+' : '') +
+            (b - a).toFixed(1).replace(/\.0$/, '') + ' pp'
+          : (a ? ((b - a) / a > 0 ? '+' : '') +
+                 (100 * (b - a) / a).toFixed(0) + '%' : '—');
+        const cls = dir === 0 ? '' :
+          ((dir > 0) === (goodDir === 'up') ? 'good' : 'bad');
+        const arrow = dir > 0 ? '\u25b2' : (dir < 0 ? '\u25bc' : '\u25ac');
+        el.innerHTML = svg +
+          '<div class="tr-delta">' + arrow + ' <b class="' + cls + '">' + txt +
+          '</b> vs ' + dfmt(rows[0].week_ending) + '</div>';
+        el.title = rows.length + ' live weeks to w/e ' +
+                   rows[rows.length-1].week_ending;
+      });
+    }
+    // The heading names the window the reader is looking at. Window values
+    // are weeks+1 - the trend needs a prior point to measure change from.
+    const START_WIN = {2:'in the last week', 5:'in the last 4 weeks',
+                       13:'in the last 12 weeks', 53:'in the last 12 months'};
+    function setStartWin(w){
+      const el = document.getElementById('startwin');
+      if(el) el.textContent = START_WIN[w] || 'in the last week';
+    }
+    let win = 2;
+    setStartWin(win);
+    ctl.querySelectorAll('button').forEach(b => {
+      b.addEventListener('click', () => {
+        win = +b.dataset.win;
+        ctl.querySelectorAll('button').forEach(x =>
+          x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+        setStartWin(win);
+        draw(win);
+      });
+    });
+    let rt;
+    window.addEventListener('resize', () => {
+      clearTimeout(rt); rt = setTimeout(() => draw(win), 150);
+    });
+    draw(win);
+  })();
+
+  const st=document.getElementById('status');
+  Object.entries(d.sources||{}).forEach(([k,v])=>{
+    st.insertAdjacentHTML('beforeend',
+      `<span><span class="dot ${v.status==='ok'?'ok':(v.status==='lagging'?'lag':'stale')}"></span>${k}: ${v.status}` +
+      (v.last_good?` (last good ${v.last_good})`:'') +
+      (v.status==='lagging'?' — source publishes on a lag':'')+'</span>');
+  });
+
+  // ===== v7: three-routes panel ==========================================
+  (function(){
+    const WR = d.whatif_routes;
+    if(!WR || !WR.stress) return;
+    document.getElementById('routes').hidden = false;
+    const RC = {ashp:'#e06c5c', shallow:'#5ca8e0', network:css('--geo')};
+    const RN = {ashp:'air-source', shallow:'ground source',
+                network:'SCOP-5 geothermal network'};
+    const AMB = '#e0b13c';
+    const st = WR.stress, ss = WR.stress_summer;
+    const stat = (fig, cap, col) =>
+      '<div class="stat"><div class="fig"' +
+      (col ? ' style="color:' + col + '"' : '') + '>' + fig +
+      '</div><div class="cap">' + cap + '</div></div>';
+    document.getElementById('rt_winter').innerHTML =
+      stat(st.worst_hour.slice(5,13).replace('T',' ') + '<small>h</small>',
+           'worst modelled hour\u2020 \u00b7 ' + st.worst_hour_heat_GWh +
+           ' GWh of heat at ' + st.worst_hour_temp_C + ' \u00b0C') +
+      ['ashp','shallow','network'].map(r => stat(
+        '+' + st[r].added_GW + '<small> GW</small>',
+        RN[r] + (st[r].pct_of_hour != null
+          ? ' \u00b7 ' + Math.round(st[r].pct_of_hour)
+            + "% on top of what Britain was using that hour"
+          : ' added load'), RC[r])).join('');
+    (function(){
+      const fifth = 0.2 * st.worst_hour_heat_GWh;      // GW of heat
+      const RK = ['ashp','shallow','network'];
+      const cats = ['plug-in electric<br>heating'].concat(
+        RK.map(r => RN[r].replace(' ', '<br>')));
+      const elec = [fifth].concat(RK.map(r => st[r].added_GW));
+      const free = elec.map(e => Math.round((fifth - e) * 10) / 10);
+      Plotly.newPlot('rt_winbars', [
+        {type:'bar', width:0.55, name:'electricity bought',
+         x:cats, y:elec,
+         marker:{color:['#6f7883'].concat(RK.map(r => RC[r]))},
+         text:elec.map(v => v.toFixed(1) + ' GW'),
+         textposition:'inside', insidetextanchor:'middle',
+         textfont:{color:'#0d1117', size:14},
+         hovertemplate:'%{y:.1f} GW of electricity<extra></extra>'},
+        {type:'bar', width:0.55,
+         name:'heat harvested free from the ground or air',
+         x:cats, y:free,
+         marker:{color:'rgba(87,194,107,0.22)',
+                 line:{color:css('--geo'), width:1.2}},
+         text:free.map(v => v > 0.5 ? '+' + v.toFixed(1) + ' GW free' : ''),
+         textposition:'inside', insidetextanchor:'middle',
+         textfont:{color:css('--geo'), size:13},
+         hovertemplate:'%{y:.1f} GW harvested<extra></extra>'}],
+        {paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
+         font:{family:'Lato', color:css('--muted'), size:11},
+         barmode:'stack', showlegend:true,
+         legend:{orientation:'h', y:1.24, font:{size:12},
+                 traceorder:'reversed'},
+         margin:{l:48, r:10, t:14, b:44},
+         xaxis:{gridcolor:css('--line')},
+         yaxis:{title:'GW at the worst hour', gridcolor:css('--line')},
+         annotations:[{x:0.5, xref:'paper', y:fifth, yshift:14,
+           showarrow:false, font:{color:css('--muted'), size:11},
+           text:'every bar delivers the same ' + fifth.toFixed(1) +
+                ' GW of heat \u2014 the fifth, at the worst hour'}]},
+        {displayModeBar:false, responsive:true});
+    })();
+    if(ss){
+      document.getElementById('rt_summer').innerHTML =
+        stat(ss.peak_hour.slice(5,13).replace('T',' ') + '<small>h</small>',
+             'peak cooling hour \u00b7 ' + ss.peak_temp_C + ' \u00b0C' +
+             (ss.today_pct_of_hour != null
+               ? " \u00b7 " + ss.today_pct_of_hour +
+                 "% of that hour's observed demand"
+               : (ss.today_pct_of_same_day != null
+                  ? " \u00b7 " + ss.today_pct_of_same_day +
+                    "% of that day's demand\u2020" : ''))) +
+        stat(ss.today_GW + '<small> GW</small>',
+             "cooling Britain already runs \u2014 this is inside today's " +
+             'demand, not on top of it', AMB) +
+        stat('+' + ss.x2_scenario_added_GW + '<small> GW</small>',
+             'if cooling doubles over the next 10 years\u2020 \u2014 added on ' +
+             'top', AMB) +
+        stat('\u2212' + ss.whatif_relief_GW + '<small> GW</small>',
+             'what a geothermal fifth would take back off\u2020',
+             css('--geo'));
+    }
+    if(ss && ss.hour_demand_GW){
+      const sb = document.getElementById('rt_sumbars');
+      sb.hidden = false;
+      const rest = Math.round((ss.hour_demand_GW - ss.today_GW) * 10) / 10;
+      const cool0 = ss.today_GW;
+      const dbl = ss.x2_scenario_added_GW;
+      const relief = ss.whatif_relief_GW;
+      const cats = ['today',
+                    'if cooling doubles\u2020<br>on today\u2019s kit',
+                    'if it doubles\u2020 with<br>a geothermal fifth'];
+      Plotly.newPlot(sb, [
+        {type:'bar', width:0.52, name:'everything else on the grid',
+         x:cats, y:[rest, rest, rest], marker:{color:'#6f7883'},
+         text:[rest + ' GW', '', ''], textposition:'inside',
+         insidetextanchor:'middle', hovertemplate:'%{y:.1f} GW<extra></extra>',
+         textfont:{color:'#0d1117', size:13}},
+        {type:'bar', width:0.52, name:'cooling electricity',
+         x:cats, y:[cool0, cool0 + dbl, cool0 + dbl - relief],
+         marker:{color:AMB},
+         text:[cool0.toFixed(1) + ' GW', (cool0 + dbl).toFixed(1) + ' GW',
+               (cool0 + dbl - relief).toFixed(1) + ' GW'],
+         textposition:'inside', insidetextanchor:'middle',
+         hovertemplate:'%{y:.1f} GW of cooling<extra></extra>',
+         textfont:{color:'#0d1117', size:14}},
+        {type:'bar', width:0.52,
+         name:'avoided by ground cooling (COP 20\u2020)',
+         x:cats, y:[0, 0, relief],
+         marker:{color:'rgba(87,194,107,0.30)',
+                 line:{color:css('--geo'), width:1.5}},
+         text:['', '', '\u2212' + relief.toFixed(1) + ' GW'],
+         textposition:'outside', cliponaxis:false,
+         hovertemplate:'%{y:.1f} GW avoided<extra></extra>',
+         textfont:{color:css('--geo'), size:14}}],
+        {paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
+         font:{family:'Lato', color:css('--muted'), size:11},
+         barmode:'stack', showlegend:true,
+         legend:{orientation:'h', y:1.24, font:{size:12},
+                 traceorder:'reversed'},
+         margin:{l:48, r:10, t:14, b:44},
+         xaxis:{gridcolor:css('--line')},
+         yaxis:{title:'GW at the peak cooling hour',
+                gridcolor:css('--line')}},
+        {displayModeBar:false, responsive:true});
+    }
+    const sv = WR.system;
+    if(sv){
+      document.getElementById('rt_bindlbl').hidden = false;
+      const rb = sv.routes;
+      document.getElementById('rt_bind').innerHTML =
+        stat(rb.ashp.binding_hour.slice(5,13).replace('T',' ') +
+             '<small>h</small>',
+             'the binding hour — highest net requirement on ' +
+             'dispatchable supply · ' + rb.ashp.binding_temp_C +
+             ' °C, wind ' + rb.ashp.binding_wind_GW + ' GW') +
+        ['ashp','shallow','network'].map(r => stat(
+          rb[r].dispatch_req_GW + '<small> GW</small>',
+          RN[r] + ' \u00b7 ' + (rb[r].headroom_GW >= 0 ? '' : 'short by ') +
+          Math.abs(rb[r].headroom_GW) + ' GW of spare capacity left\u2020' +
+          (rb[r].hours_above_block
+            ? ' \u00b7 ' + rb[r].hours_above_block + ' hours over the line'
+            : ''), RC[r])).join('');
+      const bb = document.getElementById('rt_bindbars');
+      bb.hidden = false;
+      const RK = ['ashp','shallow','network'];
+      const base = RK.map(r => Math.round(
+        (rb[r].dispatch_req_GW - rb[r].net_add_GW) * 10) / 10);
+      Plotly.newPlot(bb, [
+        {type:'bar', width:0.5, name:'actual use',
+         x:RK.map(r => RN[r]), y:base,
+         marker:{color:'#6f7883'},
+         text:base.map(v => v + ' GW'),
+         textposition:'inside', insidetextanchor:'middle',
+         textfont:{color:'#0d1117', size:14}},
+        {type:'bar', width:0.5, name:'+ 20% what-if (net\u2020)',
+         x:RK.map(r => RN[r]),
+         y:RK.map(r => rb[r].net_add_GW),
+         marker:{color:RK.map(r => RC[r])},
+         text:RK.map(r => '+' + rb[r].net_add_GW + ' GW'),
+         textposition:'outside', cliponaxis:false,
+         textfont:{color:css('--paper'), size:14}}],
+        {paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
+          font:{family:'Lato', color:css('--muted'), size:11},
+          xaxis:{gridcolor:css('--line')}, barmode:'stack',
+          showlegend:true, legend:{orientation:'h', y:1.22,
+                                   font:{size:12}, traceorder:'reversed'},
+          margin:{l:46, r:10, t:10, b:26},
+          yaxis:{title:'GW at the binding hour',
+                 gridcolor:css('--line'),
+                 range:[0, sv.dispatch_derated_GW * 1.12]},
+          shapes:[{type:'line', x0:-0.5, x1:2.5, xref:'x',
+                   y0:sv.dispatch_derated_GW, y1:sv.dispatch_derated_GW,
+                   line:{color:css('--muted'), width:1.5, dash:'dashdot'}}],
+          annotations:[{x:0.01, xref:'paper',
+            y:sv.dispatch_derated_GW, yref:'y', yshift:9, showarrow:false,
+            xanchor:'left', font:{color:css('--muted'), size:11},
+            text:'capacity to deliver\u2020 \u2014 ' + sv.dispatch_derated_GW +
+                 ' GW (NESO Winter Outlook 2025/26)'}]},
+        {displayModeBar:false, responsive:true});
+    }
+    if(sv && sv.limits){
+      const L = sv.limits, RKl = ['ashp','shallow','network'];
+      document.getElementById('rt_limlbl').hidden = false;
+      document.getElementById('rt_lim').innerHTML =
+        RKl.map(r => stat(
+          Math.round(L.routes[r].share_pct) + '<small>%</small>',
+          (L.routes[r].all_of_it ? 'all of Britain\u2019s building heat \u2014 ' : '') +
+          RN[r] + ' \u00b7 ' + L.routes[r].heat_TWh.toLocaleString() +
+          ' TWh a year, electrified, before the winter peak fills ' +
+          'today\u2019s fleet\u2020', RC[r])).join('');
+
+      const lb = document.getElementById('rt_limbars');
+      lb.hidden = false;
+      const obs = RKl.map(r => L.routes[r].share_pct);
+      const stl = (L.scenarios.find(x => x.key === 'zero') || {}).shares;
+      const hex2rgba = (h, a) => {
+        const c = h.trim().replace('#','');
+        const n = parseInt(c.length === 3 ? c.split('').map(x=>x+x).join('') : c, 16);
+        return 'rgba(' + [(n>>16)&255, (n>>8)&255, n&255].join(',') + ',' + a + ')';
+      };
+      const tr = [{type:'bar', name:'with last winter\u2019s actual wind',
+        x:RKl.map(r => RN[r]), y:obs,
+        marker:{color:RKl.map(r => RC[r])},
+        text:obs.map(v => v.toFixed(0) + '%'),
+        textposition:'outside', cliponaxis:false,
+        hovertemplate:'%{y:.0f}% of Britain\u2019s heat<extra></extra>',
+        textfont:{color:css('--paper'), size:14}}];
+      if(stl){
+        tr.push({type:'bar', name:'if the wind had never blown, all winter',
+          x:RKl.map(r => RN[r]), y:RKl.map(r => stl[r]),
+          marker:{color:RKl.map(r => hex2rgba(RC[r], 0.28)),
+                  line:{width:1.4, color:RKl.map(r => RC[r])}},
+          text:RKl.map(r => stl[r].toFixed(0) + '%'),
+          textposition:'outside', cliponaxis:false,
+          hovertemplate:'%{y:.0f}% with no wind<extra></extra>',
+          textfont:{color:css('--muted'), size:13}});
+      }
+      Plotly.newPlot(lb, tr, {
+        paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
+        font:{family:'Lato', color:css('--muted'), size:11},
+        barmode:'group', bargap:0.34, bargroupgap:0.08,
+        showlegend:true, legend:{orientation:'h', y:1.22, font:{size:12}},
+        margin:{l:52, r:12, t:14, b:30},
+        xaxis:{gridcolor:css('--line')},
+        yaxis:{title:'% of Britain\u2019s building heat', gridcolor:css('--line'),
+               range:[0, Math.max(120, Math.max.apply(null, obs) * 1.22)]},
+        shapes:[{type:'line', x0:-0.5, x1:2.5, xref:'x', y0:100, y1:100,
+                 line:{color:css('--muted'), width:1.4, dash:'dash'}}],
+        annotations:[{x:0.01, xref:'paper', y:100, yref:'y', yshift:9,
+          showarrow:false, xanchor:'left',
+          font:{color:css('--muted'), size:11},
+          text:'all Britain\u2019s building heat'}]},
+        {displayModeBar:false, responsive:true});
+
+      const mid = L.scenarios.filter(x => x.key === 'cap5' || x.key === 'still')
+        .map(x => x.label + ' \u2014 ' +
+             RKl.map(r => Math.round(x.shares[r]) + '%').join(' / ')).join('; ');
+      document.getElementById('rt_limnote').textContent =
+        'Bars are air-source / ground source / geothermal networks. ' +
+        'Between the two cases shown: ' + mid + '. The ordering never ' +
+        'changes \u2014 all three draw on the same ceiling, so wind moves ' +
+        'how far you get, not which route gets furthest. ' + L.note;
+    }
+    // The coincidence premium panel was withdrawn on 9 Aug 2026: hard to
+    // read at a glance and it was not carrying weight in the argument.
+    // The statistic is still computed and logged each run (retro.py,
+    // premium block) so the question stays answered, just not drawn.
+
+    const P = {paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
+               font:{family:'Lato', color:css('--muted'), size:11},
+               margin:{l:46, r:46, t:8, b:28},
+               legend:{orientation:'h', y:1.16},
+               xaxis:{gridcolor:css('--line')}};
+    function windowTraces(w){
+      const t0 = new Date(w.start + ':00:00Z');
+      const x = w.temp_C.map((_,i) => new Date(t0.getTime() + i*3600e3));
+      const tr = [{x, y:w.heat_GWh,
+        name:'all buildings heat, delivered (modelled\u2020)',
+        line:{color:'#c9d2da', width:1.1, dash:'dash'}, fill:'tozeroy',
+        fillcolor:'rgba(200,210,220,0.06)'}];
+
+      for(const r of ['ashp','shallow','network'])
+        tr.push({x, y:w.routes[r], yaxis:'y2',
+                 name:'the fifth via ' + RN[r],
+                 line:{color:RC[r], width:1.7}});
+      return tr;
+    }
+    const LAYW = Object.assign({}, P, {
+      yaxis:{title:'heat delivered, GWh per hour',
+             gridcolor:css('--line'), rangemode:'tozero'},
+      yaxis2:{title:'electricity, GWh per hour (= average GW)',
+              overlaying:'y', side:'right',
+              rangemode:'tozero', showgrid:false}});
+    (function(){
+      const w = (WR.system && WR.binding_week) ? WR.binding_week
+                                              : WR.worst_week;
+      if(!(WR.system && w.demand_GW)){
+        Plotly.newPlot('rt_worst', windowTraces(w), LAYW,
+                       {displayModeBar:false, responsive:true});
+        return;
+      }
+      const t0 = new Date(w.start + ':00:00Z');
+      const x = w.temp_C.map((_,i) => new Date(t0.getTime() + i*3600e3));
+      const ceil = w.wind_GW.map((wv,i) =>
+        WR.system.dispatch_derated_GW + wv + w.solar_GW[i]);
+      const dsp = w.displaced_GW || w.temp_C.map(() => 0);
+      const tr = [
+        {x, y:ceil, name:'capacity to deliver\u2020 (NESO Winter Outlook block + the wind and solar actually generated)',
+         line:{color:css('--muted'), width:1.7, dash:'dashdot'},
+         fill:'tozeroy', fillcolor:'rgba(154,164,174,0.07)'},
+        {x, y:w.demand_GW, name:'actual use', fill:'tozeroy',
+         fillcolor:'rgba(13,17,23,0.85)',
+         line:{color:'#c9d2da', width:1.5}}];
+      for(const r of ['ashp','shallow','network'])
+        tr.push({x, y:w.routes[r].map((g,i) =>
+                   w.demand_GW[i] + Math.max(0, g - dsp[i])),
+                 name:'actual use + ' + RN[r] + ' fifth (net\u2020)',
+                 line:{color:RC[r], width:1.7}});
+      const bh = WR.system.routes.ashp.binding_hour;
+      const bi = x.findIndex(dd => dd.toISOString().slice(0,13) === bh);
+      Plotly.newPlot('rt_worst', tr, Object.assign({}, P, {
+        yaxis:{title:'GW', gridcolor:css('--line'),
+               range:[Math.max(0, Math.min(...w.demand_GW) - 6),
+                      Math.max(...ceil) + 3]},
+        annotations: bi >= 0 ? [{x:x[bi],
+          y:w.demand_GW[bi] + Math.max(0, w.routes.ashp[bi] - dsp[bi]),
+          showarrow:true, arrowhead:2, ax:-64, ay:-46,
+          font:{color:RC.ashp, size:11}, arrowcolor:RC.ashp,
+          text:'the binding hour'}] : []}),
+        {displayModeBar:false, responsive:true});
+    })();
+    (function(){
+      const ew = (WR.system && WR.binding_week) ? WR.binding_week
+                                                : WR.worst_week;
+      const t0 = new Date(ew.start + ':00:00Z');
+      const t1 = new Date(t0.getTime() + 167*3600e3);
+      const f = d => d.toLocaleDateString('en-GB',
+        {day:'numeric', month:'short', timeZone:'UTC'});
+      document.getElementById('rt_wklbl').textContent =
+        (WR.system && WR.binding_week
+          ? 'THE TIGHTEST WEEK OF THE YEAR \u2014 ' + f(t0).toUpperCase()
+            + ' TO ' + f(t1).toUpperCase() + ' \u00b7 THE SEVEN DAYS '
+            + 'AROUND THAT HOUR'
+          : 'THE WORST WEEK UNDER THE CEILING \u2014 ' + f(t0).toUpperCase()
+            + ' TO ' + f(t1).toUpperCase() + ' \u00b7 THE ROLLING 168 HOURS '
+            + 'OF MAXIMUM HEAT, EMPIRICALLY LOCATED (NOT A CALENDAR WEEK)');
+    })();
+
+    function drawMain(mode){
+      if(mode === 'h'){
+        const lw = WR.hourly_live_7d;
+        const hmax = Math.max(...lw.heat_GWh) * 1.3;
+        const emax = Math.max(...['ashp','shallow','network']
+          .map(r => Math.max(...lw.routes[r]))) * 1.4;
+        Plotly.react('rt_main', windowTraces(lw), Object.assign({}, LAYW,
+          {yaxis:Object.assign({}, LAYW.yaxis, {range:[0, hmax]}),
+           yaxis2:Object.assign({}, LAYW.yaxis2, {range:[0, emax]})}),
+          {displayModeBar:false, responsive:true});
+        document.getElementById('rt_span').textContent =
+          'live rolling week \u00b7 hourly \u00b7 summer heat is hot water only'
+          + ' \u2014 cooling sits in the Daily and Monthly views';
+      } else if(mode === 'd'){
+        const D = WR.daily_90, x = D.map(r => r.date);
+        const tr = [{x, y:D.map(r => r.heat_GWh),
+          name:'all buildings heat, delivered (modelled\u2020)',
+          line:{color:'#c9d2da', width:1, dash:'dash'}, fill:'tozeroy',
+          fillcolor:'rgba(200,210,220,0.06)'}];
+        if(D[0].cool_GWh != null) tr.push({x, y:D.map(r => r.cool_GWh),
+          yaxis:'y2', name:'cooling electricity today (embedded\u2020)',
+          line:{color:AMB, width:1.3, dash:'dash'}});
+        for(const r of ['ashp','shallow','network'])
+          tr.push({x, y:D.map(q => q[r + '_GWh']), yaxis:'y2',
+                   name:'the fifth via ' + RN[r],
+                   line:{color:RC[r], width:1.7}});
+        Plotly.react('rt_main', tr, Object.assign({}, P,
+          {yaxis:{title:'heat delivered, GWh per day',
+                  gridcolor:css('--line'), rangemode:'tozero'},
+           yaxis2:{title:'electricity, GWh per day',
+                   overlaying:'y', side:'right', rangemode:'tozero',
+                   showgrid:false}}),
+          {displayModeBar:false, responsive:true});
+        document.getElementById('rt_span').textContent =
+          'last 90 days \u00b7 daily sums';
+      } else {
+        const M = WR.monthly_calendar || WR.monthly_13;
+        const x = M.map(r => r.label || r.month);
+        const tr = [{x, y:M.map(r => r.heat_GWh/1000),
+          name:'all buildings heat, delivered (modelled\u2020)',
+          line:{color:'#c9d2da', width:1, dash:'dash'}, fill:'tozeroy',
+          fillcolor:'rgba(200,210,220,0.07)'},
+          {x, y:M.map(r => 0.2*r.heat_GWh/1000), yaxis:'y2',
+           name:'the same fifth on plug-in electric heating \u2014 the comparison case',
+           line:{color:'#77808a', width:1.3, dash:'dot'}}];
+        if(M[0].cool_GWh != null){
+          tr.push({x, y:M.map(r => r.cool_GWh/1000), yaxis:'y2',
+            name:'cooling electricity today (embedded\u2020)',
+            line:{color:AMB, width:1.5, dash:'dash'}, fill:'tozeroy',
+            fillcolor:'rgba(224,177,60,0.10)'});
+          tr.push({x, y:M.map(r => 2*r.cool_GWh/1000), yaxis:'y2',
+            name:'cooling electricity if doubled\u2020',
+            line:{color:AMB, width:1, dash:'dot'}});
+        }
+        for(const r of ['ashp','shallow','network'])
+          tr.push({x, y:M.map(q => q[r + '_GWh']/1000), yaxis:'y2',
+                   name:'the fifth via ' + RN[r],
+                   mode:'lines+markers', marker:{size:4},
+                   line:{color:RC[r], width:2}});
+        Plotly.react('rt_main', tr, Object.assign({}, P,
+          {xaxis:{gridcolor:css('--line'), type:'category'},
+           yaxis:{title:'heat delivered, TWh per month',
+                  gridcolor:css('--line'), rangemode:'tozero'},
+           yaxis2:{title:'electricity, TWh per month',
+                   overlaying:'y', side:'right', rangemode:'tozero',
+                   showgrid:false}}),
+          {displayModeBar:false, responsive:true});
+        document.getElementById('rt_span').textContent =
+          (WR.monthly_calendar
+            ? 'the falcon curve \u00b7 calendar year, latest complete months'
+            : 'the falcon curve \u00b7 trailing months');
+      }
+    }
+    const ctl = document.querySelector('#routes .trendctl');
+    ctl.addEventListener('click', e => {
+      const b = e.target.closest('button[data-rt]');
+      if(!b) return;
+      ctl.querySelectorAll('button').forEach(x =>
+        x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+      drawMain(b.dataset.rt);
+    });
+    drawMain('h');
+
+    const cal = WR.calibration, eta = cal.eta;
+    const fAt = cal.flow_at || [15, -5];
+    const src = cal.sources || {air_approach: -3, ground_c: 8, network_c: 19.6};
+    const flow = t => cal.flow[0] + (cal.flow[1]-cal.flow[0]) *
+                      Math.min(1, Math.max(0, (fAt[0]-t)/(fAt[0]-fAt[1])));
+    const carnot = (tf, tsrc) => (tf+273.15)/Math.max(5, tf-tsrc);
+    const dfr = t => 1 - cal.defrost_max*Math.exp(-(((t-2)/3)**2));
+    const ts = Array.from({length:61}, (_,i) => -10 + i*0.5);
+    Plotly.newPlot('rt_cop', [
+      {x:ts, y:ts.map(t => Math.max(1, eta.ashp*carnot(flow(t), t+src.air_approach)*dfr(t))),
+       name:RN.ashp, line:{color:RC.ashp, width:2}},
+      {x:ts, y:ts.map(t => Math.max(1, eta.shallow*carnot(flow(t), src.ground_c))),
+       name:RN.shallow, line:{color:RC.shallow, width:2}},
+      {x:ts, y:ts.map(t => Math.max(1, eta.network*carnot(flow(t), src.network_c))),
+       name:RN.network, line:{color:RC.network, width:2}}],
+      Object.assign({}, P, {
+        xaxis:{title:'air temperature \u00b0C', gridcolor:css('--line')},
+        yaxis:{title:'COP', gridcolor:css('--line'), rangemode:'tozero'},
+        margin:{l:46, r:10, t:8, b:32}}),
+      {displayModeBar:false, responsive:true});
+
+    // The calibration disclosure runs in BOTH branches. It was written
+    // inside the long branch first, where a payload carrying basis_short
+    // short-circuits past it - the fractions are the point, so they are
+    // appended unconditionally.
+    const rtBase = (sv && sv.basis_short) ? sv.basis_short :
+      WR.basis + ' ' + st.basis + (ss ? ' ' + ss.basis : '') +
+      (sv ? ' ' + sv.basis + ' ' + sv.displaced_note : '') + ' ' +
+      '\u03b7 calibrated so each route ' +
+      'integrates to its published SPF anchor (2.80 / 3.24 / 5.0); the ' +
+      'air-source defrost band\u2020 is shaped on the monitored fleet, ' +
+      'level re-anchored.';
+    document.getElementById('rt_note').textContent = rtBase +
+      ' Sources: air is outdoor less a ' +
+      Math.abs(src.air_approach) + ' K approach, shallow ground ' +
+      src.ground_c + '\u00b0C, network ' + src.network_c + '\u00b0C\u2020 ' +
+      '\u2014 a UTES and intermediate-doublet blend recharged by summer ' +
+      'cooling rejection, not virgin ground, and derived rather than ' +
+      'measured: it is the source at which all three routes share one ' +
+      'Carnot fraction (' +
+      ['ashp','shallow','network'].map(r => (eta[r]||0).toFixed(3)).join(' / ') +
+      '). A fraction is a statement about machine quality, which does not ' +
+      'differ by route; what differs is the source, which the Carnot term ' +
+      'already carries. The build refuses to publish if the three drift ' +
+      'more than 15% apart.';
+  })();
+}).catch(()=>{document.getElementById('stamp').textContent='data.json not found — run the workflow once';});
+
+</script>
+<script data-goatcounter="https://causewaygt.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>
