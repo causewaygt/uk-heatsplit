@@ -21,7 +21,10 @@ DESIGN (all decisions per the v7 plan of record):
 - Gates before anything renders (Phase B refuses to slice on failure):
   G1 each route's integrated SPF within 0.01 of its anchor;
   G2 network-route annual replacement electricity within 3% of the
-     weekly model's what-if replacement over the same window.
+     weekly model's what-if replacement over the same window;
+  G5 the three routes' calibrated Carnot fractions within 15% of their
+     mean - they describe machine quality, which does not differ by
+     route, so a spread means an anchor and a source that disagree.
 - Persistence: docs/retro.json - append-only day store, frozen once
   written except the trailing 2 days (feed revisions), schema-versioned
   like the weekly history. COPs are DERIVED at read time from stored
@@ -46,7 +49,18 @@ import urllib.request
 # --- constants -------------------------------------------------------------
 SPF_ANCHORS = {"ashp": 2.80, "shallow": 3.24, "network": 5.0}
 GROUND_SOURCE_C = 8.0        # 11C ground less 3C brine approach
-NETWORK_SOURCE_C = 10.0      # shared ambient loop
+NETWORK_SOURCE_C = 19.6      # dagger - UTES and intermediate-doublet
+                             # blend, NOT virgin ground. A shared loop
+                             # coupled to seasonal storage is recharged
+                             # by summer cooling rejection, so it runs
+                             # warmer than the 8C shallow figure. 19.6
+                             # is DERIVED, not measured: it is the
+                             # source at which the network route's
+                             # calibrated Carnot fraction matches the
+                             # other two (see G5). At 10C the network
+                             # needed 0.487 against 0.332/0.336 for air
+                             # and shallow - a 45% better machine for a
+                             # 2K better source, which is not physical.
 AIR_APPROACH_C = 3.0         # evaporator approach below air temp
 FLOW_MILD_C, FLOW_COLD_C = 30.0, 50.0   # weather compensation endpoints
 FLOW_MILD_AT, FLOW_COLD_AT = 15.0, -5.0
@@ -485,9 +499,14 @@ def build_retro(start_day, end_day, space_annual_twh, dhw_annual_twh,
     }
 
 
+ETA_SPREAD_MAX = 0.15        # G5 - see below
+
+
 def gates(retro, weekly_whatif_repl_elec_twh=None):
     """G1: anchors reproduced. G2: network annual replacement electricity
-    vs the weekly model's what-if (when supplied). Returns (ok, report)."""
+    vs the weekly model's what-if (when supplied). G5: the three routes'
+    calibrated Carnot fractions are mutually consistent. Returns
+    (ok, report)."""
     rep = {}
     ok = True
     for r, spf in retro["calibration"]["spf_check"].items():
@@ -509,6 +528,28 @@ def gates(retro, weekly_whatif_repl_elec_twh=None):
             "weekly_TWh": round(weekly_whatif_repl_elec_twh, 2),
             "rel_diff": round(d, 4), "pass": d <= 0.03}
         ok = ok and d <= 0.03
+
+    # G5 - CALIBRATION CONSISTENCY. The Carnot fraction is a statement
+    # about MACHINE QUALITY. All three routes use the same class of
+    # vapour-compression plant, so their fractions should agree; what
+    # should differ between routes is the SOURCE TEMPERATURE, which the
+    # Carnot term already carries. A fraction well away from its peers
+    # means an anchor and a source assumption that cannot both be true.
+    # This gate exists because exactly that went unnoticed: the network
+    # route ran at 0.487 against 0.332 and 0.336, a 45% better machine
+    # for a 2 K better source, and nothing in the build compared them.
+    etas = retro["calibration"]["eta"]
+    vals = [v for v in etas.values() if v]
+    if vals:
+        mean = sum(vals) / len(vals)
+        spread = max(abs(v - mean) / mean for v in vals)
+        rep["g5_eta_consistency"] = {
+            "eta": {k: round(v, 5) for k, v in etas.items()},
+            "mean": round(mean, 5),
+            "max_rel_dev": round(spread, 4),
+            "limit": ETA_SPREAD_MAX,
+            "pass": spread <= ETA_SPREAD_MAX}
+        ok = ok and spread <= ETA_SPREAD_MAX
     return ok, rep
 
 
