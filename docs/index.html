@@ -1520,13 +1520,21 @@ fetch('data.json').then(r=>r.json()).then(d=>{
 
       {n:'03', fig: nf(lim.routes.network.share_pct, 0), unit:'%',
        href:'#routes',
-       claim:'Only geothermal networks fit inside the grid Britain already has.',
+       // The number is computed; the sentence describing it must be too.
+       // This went stale once already when the limit moved below 100%.
+       claim: lim.routes.network.share_pct >= 100
+         ? 'Only geothermal networks fit inside the grid Britain already has.'
+         : 'Only geothermal networks come close to fitting inside the grid ' +
+           'Britain already has.',
        qual:'Of all building heat, electrified through networks without ' +
             'exceeding today\u2019s winter capacity \u2014 against ' +
             nf(lim.routes.shallow.share_pct,0) + '% ground source and ' +
             nf(lim.routes.ashp.share_pct,0) + '% air source. ' +
             lim.ratio_vs_air + '\u00d7 the heat for the same capacity. A ' +
-            'peak-capacity test, not an energy test; one winter is one sample.',
+            'peak-capacity test, not an energy test, and it assumes no gas ' +
+            'peaking: a few per cent of heat from top-up boilers would let any ' +
+            'route fit, which is why the durable claim is that geothermal ' +
+            'needs none. One winter is one sample.',
        ev:'the electrification limit'},
 
       {n:'04', fig:'1/' + Math.round(cd.elec_if_air_GWh / cd.elec_if_ground_GWh),
