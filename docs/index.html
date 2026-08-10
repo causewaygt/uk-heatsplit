@@ -747,7 +747,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.0.1';
+const SITE_VERSION = '8.1.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -2759,7 +2759,7 @@ fetch('data.json').then(r=>r.json()).then(d=>{
 
     const cal = WR.calibration, eta = cal.eta;
     const fAt = cal.flow_at || [15, -5];
-    const src = cal.sources || {air_approach: -3, ground_c: 8, network_c: 10};
+    const src = cal.sources || {air_approach: -3, ground_c: 8, network_c: 19.6};
     const flow = t => cal.flow[0] + (cal.flow[1]-cal.flow[0]) *
                       Math.min(1, Math.max(0, (fAt[0]-t)/(fAt[0]-fAt[1])));
     const carnot = (tf, tsrc) => (tf+273.15)/Math.max(5, tf-tsrc);
@@ -2778,14 +2778,30 @@ fetch('data.json').then(r=>r.json()).then(d=>{
         margin:{l:46, r:10, t:8, b:32}}),
       {displayModeBar:false, responsive:true});
 
-    document.getElementById('rt_note').textContent =
-      (sv && sv.basis_short) ? sv.basis_short :
+    // The calibration disclosure runs in BOTH branches. It was written
+    // inside the long branch first, where a payload carrying basis_short
+    // short-circuits past it - the fractions are the point, so they are
+    // appended unconditionally.
+    const rtBase = (sv && sv.basis_short) ? sv.basis_short :
       WR.basis + ' ' + st.basis + (ss ? ' ' + ss.basis : '') +
       (sv ? ' ' + sv.basis + ' ' + sv.displaced_note : '') + ' ' +
       '\u03b7 calibrated so each route ' +
       'integrates to its published SPF anchor (2.80 / 3.24 / 5.0); the ' +
       'air-source defrost band\u2020 is shaped on the monitored fleet, ' +
       'level re-anchored.';
+    document.getElementById('rt_note').textContent = rtBase +
+      ' Sources: air is outdoor less a ' +
+      Math.abs(src.air_approach) + ' K approach, shallow ground ' +
+      src.ground_c + '\u00b0C, network ' + src.network_c + '\u00b0C\u2020 ' +
+      '\u2014 a UTES and intermediate-doublet blend recharged by summer ' +
+      'cooling rejection, not virgin ground, and derived rather than ' +
+      'measured: it is the source at which all three routes share one ' +
+      'Carnot fraction (' +
+      ['ashp','shallow','network'].map(r => (eta[r]||0).toFixed(3)).join(' / ') +
+      '). A fraction is a statement about machine quality, which does not ' +
+      'differ by route; what differs is the source, which the Carnot term ' +
+      'already carries. The build refuses to publish if the three drift ' +
+      'more than 15% apart.';
   })();
 }).catch(()=>{document.getElementById('stamp').textContent='data.json not found — run the workflow once';});
 
