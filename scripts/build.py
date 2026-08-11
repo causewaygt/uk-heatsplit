@@ -39,9 +39,9 @@ import retro                                                  # noqa: E402
 # daily-mean cooling degree days rather than a separate hourly 26 C count.
 
 OUT_PATH = os.path.join(os.path.dirname(__file__), "..", "docs", "data.json")
-WINDOW_DAYS = 365
+WINDOW_DAYS = 730          # 24 months of weekly history
 EST = " \u2020"   # marks a Causeway estimate - see site footnote
-HISTORY_MAX = 60
+HISTORY_MAX = 120         # ~24 months of weeks
 RETRO_FETCHERS = {}   # tests inject {'fetch_temp':..,'fetch_mid':..,'fetch_ci':..}  # weekly entries kept (spec: cap and roll)
 
 
@@ -110,7 +110,17 @@ ANNUAL_TWH = {
 # If the live gas window ever reaches before the first row, extend backwards
 # from Ofgem's historical cap levels before trusting those weeks' bills.
 CAP_HISTORY = [
-    # (period start, gas p/kWh, elec p/kWh)
+    # (period start, gas p/kWh, elec p/kWh) - Ofgem default tariff cap,
+    # direct debit, GB average, incl VAT, from each quarter's own release.
+    # Table extended back to 2024-04-01 on 10 Aug 2026 for the 24-month view.
+    # 2024-04-01 IS THE FLOOR AND IT IS A REAL ONE: the Energy Price Guarantee
+    # ran to 31 March 2024, so before that households did not pay the cap and
+    # "each week priced at its own week's cap" stops being true. Extending
+    # earlier needs a stated convention for the crisis years, not more rows.
+    ("2024-04-01", 6.04, 24.50),
+    ("2024-07-01", 5.48, 22.36),
+    ("2024-10-01", 6.24, 24.50),
+    ("2025-01-01", 6.34, 24.86),
     ("2025-04-01", 6.99, 27.03),
     ("2025-07-01", 6.33, 25.73),
     ("2025-10-01", 6.29, 26.35),
@@ -717,7 +727,10 @@ def main():
         # today is: a fixed 940 days stops covering it after ~19 months.
         _anchor_span = (dt.date.today()
                         - dt.date(ANCHOR_YEAR, 1, 1)).days + 40
-        dd = fetch_degree_days(days=max(940, _anchor_span))
+        # needs WINDOW_DAYS of weeks PLUS 365 before the oldest for the
+        # trailing-12m shape denominator each week is computed against
+        dd = fetch_degree_days(days=max(940, WINDOW_DAYS + 400,
+                                        _anchor_span))
         out["sources"]["degree_days"] = {"status": "ok",
                                          "last_good": dd["dates"][-1]}
     except Exception:
@@ -731,7 +744,7 @@ def main():
             return
 
     try:
-        gas = fetch_gas_demand(days=WINDOW_DAYS + 40)
+        gas = fetch_gas_demand(days=WINDOW_DAYS + 40)   # 770 days
         target = gas["ldz_sum"]
         vals = sorted(target.values())
         print(f"gas diagnostics (LDZ sum): {len(target)} days, "
