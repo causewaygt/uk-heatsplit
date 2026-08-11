@@ -39,7 +39,14 @@ import retro                                                  # noqa: E402
 # daily-mean cooling degree days rather than a separate hourly 26 C count.
 
 OUT_PATH = os.path.join(os.path.dirname(__file__), "..", "docs", "data.json")
+# Weekly HISTORY span. NOT a year - and that distinction bit hard on 11 Aug
+# 2026: raising this 365 -> 730 doubled every quantity that used the
+# regression window as if it were a trailing twelve months. hdd_trailing_12m
+# went 2,017 -> 4,114, the calibrated annual heat went 261.8 -> 531.5 TWh, and
+# the electrification limit HALVED (network 98% -> 49%) because its denominator
+# doubled. Anything annual must use ANNUAL_DAYS, never this constant.
 WINDOW_DAYS = 730          # 24 months of weekly history
+ANNUAL_DAYS = 365          # a year, for every trailing-12-month quantity
 EST = " \u2020"   # marks a Causeway estimate - see site footnote
 HISTORY_MAX = 120         # ~24 months of weeks
 RETRO_FETCHERS = {}   # tests inject {'fetch_temp':..,'fetch_mid':..,'fetch_ci':..}  # weekly entries kept (spec: cap and roll)
@@ -863,7 +870,10 @@ def main():
                    if d_.startswith(_ay))
     _full_year = 366 if ANCHOR_YEAR % 4 == 0 else 365
     _anchor_complete = _anchor_days >= _full_year
-    hdd_12m = sum(hdd_series)
+    # TRAILING TWELVE MONTHS, not the regression window. hdd_series spans
+    # WINDOW_DAYS, which is now two years; summing all of it double-counts
+    # the year and halves every share computed against it.
+    hdd_12m = sum(hdd_series[-ANNUAL_DAYS:])
     anchor_gb = ECUK_UK_GAS_SPACE_HEAT_TWH_2024 * GB_SHARE_OF_UK_GAS_HEAT
     # Refuse to weather-normalise on a truncated reference year: a
     # partial anchor year understates its HDD, inflates the anchor and
@@ -910,7 +920,7 @@ def main():
                  "for domestic shares; services shares at QEP-anchored "
                  "non-domestic rates; oil/bio/network/solid prices are "
                  "estimates" + EST)
-    cdd_12m = sum(cdd_series)
+    cdd_12m = sum(cdd_series[-ANNUAL_DAYS:])   # trailing year, not the window
     r = compute_week(weekly["gas_space_heat_GWh"], weekly["hdd_total"],
                      weekly["cdd_total"], hdd_12m, cdd_12m, p)
     mix, useful = r["mix"], r["useful"]
