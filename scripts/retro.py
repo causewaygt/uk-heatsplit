@@ -913,6 +913,7 @@ def slices(store, nd_daily=None):
         "monthly_calendar": monthly_calendar,
         "stress": stress,
         "stress_summer": stress_summer,
+        "diurnal": diurnal_slope(store),
         # Withdrawn from the page 9 Aug 2026 - hard to read at a glance and
         # not carrying weight in the argument. Still computed and logged
         # every run so the question stays answered and the panel can be
@@ -1167,6 +1168,101 @@ def _elec_limits(store, D, W, S, disp, gross, winter, _iso):
         "capacity, storage or flexibility is credited, and one winter is "
         "one sample.")
     return out
+
+
+def diurnal_slope(store):
+    """Demand response to outdoor temperature, hour by hour, in summer.
+
+    The separation the cooling tiers rest on. Comfort cooling is a DAYTIME
+    load: it peaks with the afternoon and is near-absent at 4am. Process
+    cooling runs all night, and its compressors still work harder as the air
+    warms. So the slope of demand against temperature, taken hour by hour
+    through the summer, splits the two without needing to know either level -
+    the overnight floor is process, the daytime excess above it is comfort.
+
+    Demeaned within (year, month, weekday-class, hour) before fitting, so a
+    hot month that is also a quiet holiday month cannot masquerade as a
+    temperature response. Solar is added back, matching the rest of retro.
+
+    Publishes the profile only. The LEVEL cannot be recovered this way: below
+    about 15 C the response goes flat, because refrigeration plant floats head
+    pressure down to a minimum condensing temperature and data-centre
+    economisers switch to free cooling. That elbow is real and replicates
+    across both summers on record, and it is why no slope-to-level
+    extrapolation appears here.
+    """
+    T = store.get("temp_C") or []
+    D = store.get("demand_GW") or []
+    S = store.get("solar_GW") or []
+    if not T or not D:
+        return None
+    t0 = dt.datetime.fromisoformat(store["start_day"])
+    rows = []
+    for i in range(min(len(T), len(D))):
+        if T[i] is None or D[i] is None:
+            continue
+        ts = t0 + dt.timedelta(hours=i)
+        if ts.month not in (6, 7, 8):
+            continue
+        rows.append((ts, T[i], D[i] + ((S[i] or 0.0) if i < len(S) else 0.0)))
+    if len(rows) < 400:
+        return None
+
+    def fit(sel):
+        cells = {}
+        for r in sel:
+            cells.setdefault((r[0].year, r[0].month,
+                              r[0].weekday() >= 5, r[0].hour), []).append(r)
+        xs, ys = [], []
+        for g in cells.values():
+            if len(g) < 5:
+                continue
+            mt = sum(x[1] for x in g) / len(g)
+            md = sum(x[2] for x in g) / len(g)
+            for x in g:
+                xs.append(x[1] - mt)
+                ys.append(x[2] - md)
+        n = len(xs)
+        if n < 20:
+            return None
+        sxx = sum(x * x for x in xs)
+        if sxx <= 0:
+            return None
+        b = sum(x * y for x, y in zip(xs, ys)) / sxx
+        ss = sum(y * y for y in ys)
+        rs = sum((y - b * x) ** 2 for x, y in zip(xs, ys))
+        return {"slope_GW_per_C": round(b, 3),
+                "r2": round(1 - rs / ss, 2) if ss else 0.0, "n": n}
+
+    prof = []
+    for h in range(24):
+        g = fit([r for r in rows if r[0].hour == h])
+        if g:
+            g["hour"] = h
+            prof.append(g)
+    if len(prof) < 20:
+        return None
+    night = [p["slope_GW_per_C"] for p in prof if p["hour"] <= 5 or p["hour"] >= 22]
+    day = [p["slope_GW_per_C"] for p in prof if 11 <= p["hour"] <= 15]
+    floor = sum(night) / len(night) if night else 0.0
+    peak = max(day) if day else 0.0
+    return {
+        "profile": prof,
+        "night_floor_GW_per_C": round(floor, 3),
+        "day_peak_GW_per_C": round(peak, 3),
+        "comfort_excess_GW_per_C": round(peak - floor, 3),
+        "summer_hours": len(rows),
+        "note": ("Summer weekday and weekend demand regressed on outdoor air "
+                 "temperature, separately for each hour of the day, demeaned "
+                 "within year, month, day type and hour. The overnight floor "
+                 "is cooling that runs regardless of the clock - refrigeration "
+                 "and process plant working harder as the air warms. The "
+                 "daytime excess above it is comfort cooling. Level is NOT "
+                 "inferred from this: below about 15 C the response goes flat "
+                 "as plant hits its minimum condensing temperature and data "
+                 "centres switch to free cooling, so the slope cannot be "
+                 "extrapolated back to a level."),
+    }
 
 
 def system_view(store):
