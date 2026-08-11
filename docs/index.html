@@ -905,7 +905,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.15.0';
+const SITE_VERSION = '8.16.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1469,15 +1469,50 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
             'needs none. One winter is one sample.',
        ev:'the electrification limit'},
 
-      {n:'04', fig:'1/' + Math.round(cd.elec_if_air_GWh / cd.elec_if_ground_GWh),
-       unit:'of the electricity', href:'#coolsection',
-       claim:'The same asset does cooling \u2014 and cooling is the part that grows.',
-       qual:'Meeting the central comfort deficit by ground draws ' +
-            cd.elec_if_ground_GWh + ' GWh against ' + cd.elec_if_air_GWh +
-            ' GWh air-source\u2020. Heat rejected in summer returns in winter ' +
-            'at ' + Math.round(100 * cd.utes.round_trip) + '% round trip. ' +
-            'Fewer than 5% of UK homes have air conditioning today.',
-       ev:'the comfort deficit'},
+      // POINT 04, rebuilt 11 Aug 2026. Was COP 20 over EER 3 - a quotient of
+      // two daggered constants that restated with nothing. Now a like-for-like
+      // whole-building comparison on the site's own route figures, against
+      // BUSINESS AS USUAL like points 01-03 and 05. (Point 06 alone uses an
+      // air-source counterfactual, because zoning is making that the
+      // alternative for new heat networks.) The energy saving is stable across
+      // the heat-to-cool mix - both services improve by a similar multiple -
+      // so it is one number rather than a heating claim with a footnote.
+      (() => {
+        const rr = {};
+        const carb = d.carbon || {};
+        (carb.routes_g_per_useful_kwh || []).forEach(x => {
+          rr[x.route] = x.g_per_useful_kwh; });
+        const BOILER = 0.835, CHILLER = 3.0, SPF = 5.0, GEOCOP = 20.0;
+        const H = 7.0, C = 1.0;                    // UK annual heat:cool mix
+        const eIn = H / BOILER + C / CHILLER;
+        const eGeo = H / SPF + C / GEOCOP;
+        const gasH = rr['Gas boiler'];
+        const geoH = rr['Geothermal heat/cool network'];
+        const ci = carb.grid_ci_g_per_kwh;
+        const cSave = (gasH && geoH && ci)
+          ? Math.round(100 * (1 - (H * geoH + C * ci / GEOCOP) /
+                                  (H * gasH + C * ci / CHILLER)))
+          : null;
+        return {
+          n:'04', fig: Math.round(100 * (1 - eGeo / eIn)), unit:'less energy',
+          href:'#coolsection',
+          claim:'One asset heats and cools the same building \u2014 for a ' +
+                'fraction of the energy.',
+          qual:'A gas boiler and an air-cooled chiller draw ' +
+               (eIn / eGeo).toFixed(1) + ' times the energy of one ambient ' +
+               'loop delivering the same heat and the same cooling\u2020. The ' +
+               'figure barely moves with the mix \u2014 ' +
+               Math.round(100 * (1 - BOILER / SPF)) + '% on heat alone, ' +
+               Math.round(100 * (1 - CHILLER / GEOCOP)) +
+               '% on cooling alone \u2014 because both improve by a similar ' +
+               'multiple, so it holds whatever the building does.' +
+               (cSave ? ' Emissions fall further still, ' + cSave +
+                 '% at today\u2019s grid intensity of ' + ci +
+                 ' g/kWh, because heat swaps combustion for electricity as ' +
+                 'well as efficiency \u2014 and that gap widens every year the ' +
+                 'grid decarbonises, while the gas figure never moves.' : ''),
+          ev:'cooling, and what heat costs'};
+      })(),
 
       {n:'05', fig: uk.share_pct.toFixed(1), unit:'%', href:'#emptybar',
        claim:'Britain is the outlier, not the pioneer.',
