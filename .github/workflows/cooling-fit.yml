@@ -1,0 +1,57 @@
+name: Cooling fit (manual)
+
+# Hand-run analysis, NOT part of the daily build. Trigger it from the Actions
+# tab: pick this workflow, press "Run workflow". It fetches dewpoint from
+# Open-Meteo, runs the cooling regression against the retro store, and prints
+# everything to the run log. Nothing is committed and no site file changes.
+
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Days of history to fetch and fit"
+        required: false
+        default: "400"
+      skip_humidity:
+        description: "Run without humidity (control fit only)"
+        required: false
+        default: "false"
+
+jobs:
+  fit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install requests
+        run: pip install requests
+
+      - name: Psychrometric self-test (no network)
+        run: python3 analysis/fetch_humidity.py --selftest
+
+      - name: Fetch dewpoint and enthalpy days
+        if: ${{ github.event.inputs.skip_humidity != 'true' }}
+        run: |
+          python3 analysis/fetch_humidity.py \
+            --days ${{ github.event.inputs.days }} \
+            --out analysis/humidity.json
+
+      - name: Fit the cooling limb
+        run: |
+          if [ -f analysis/humidity.json ]; then
+            python3 analysis/fit_cooling.py docs/retro.json analysis/humidity.json
+          else
+            python3 analysis/fit_cooling.py docs/retro.json
+          fi
+
+      - name: Keep the humidity series as a downloadable artefact
+        if: ${{ github.event.inputs.skip_humidity != 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: humidity-series
+          path: analysis/humidity.json
+          retention-days: 30
