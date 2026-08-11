@@ -1489,12 +1489,27 @@ def main():
                 # degree days - not the gas window. The curve reaches back two
                 # summers; clipping the series to gas would have thrown away
                 # May and June 2025 and broken the 24-month view.
-                daily_t12 = {"dates": [], "delivered_GWh": [], "unmet_GWh": []}
+                # CEILING FIX, 11 Aug 2026. The binned curve tops out at a
+                # shelf: the old top bin held every day from CDD 4 to CDD 8 at
+                # one value, so 15 days a year were served the same figure
+                # whatever the weather. Fitted continuously instead - the same
+                # quadratic form the undemeaned regression independently
+                # arrives at, so one shape is used throughout. Also discards
+                # the negative low bin, which was noise, and that is stated
+                # rather than hidden. Annual total rises about 26%.
+                num = den = 0.0
+                mids = {1: 0.5, 2: 1.5, 3: 2.5, 4: 3.5, 5: 5.5}
+                for b_, v_ in curve.items():
+                    x_ = mids.get(int(b_), float(b_))
+                    num += x_ * x_ * v_
+                    den += x_ ** 4
+                k_cool = (num / den) if den else 0.0
+                daily_t12 = {"dates": [], "delivered_GWh": [], "unmet_GWh": [],
+                             "k_quadratic": round(k_cool, 4)}
                 for d_ in sorted(cdd_by_date):
                     c = cdd_by_date[d_]
                     b = 0 if c == 0 else min(5, int(c) + 1)
-                    dv = (max(0.0, curve.get(b, curve.get(max(curve), 0.0)))
-                          if b > 0 else 0.0)
+                    dv = k_cool * c * c        # continuous, no shelf
                     lt = slope_l * c if slope_ok else 0.0
                     daily_t12["dates"].append(d_)
                     daily_t12["delivered_GWh"].append(round(dv, 2))
@@ -1508,6 +1523,10 @@ def main():
                     "latent_slope_reliable": slope_ok,
                     "week_delivered_GWh": round(wk_deliv, 0),
                     "week_latent_GWh": round(max(wk_latent, wk_deliv), 0),
+                    # kept as a diagnostic after the tier was removed: it is
+                    # structurally zero on a convex response, and a non-zero
+                    # value here would mean the curve had turned concave -
+                    # which is the evidence that would bring the tier back
                     "week_unmet_GWh": round(max(0.0, wk_latent - wk_deliv), 0)
                         if slope_ok else None,
                     "summer_days_used": len(summer),
@@ -1806,17 +1825,29 @@ def main():
                      + NONDOM_UNCOOLED_MM2 * 1e6 * WH_PER_M2_ODH / 1e9)
         t12 = (cooling_observed or {}).get("daily") or {}
         idx12 = {d_: i for i, d_ in enumerate(t12.get("dates", []))}
-        tier_daily = {"dates": [], "t1_GWh": [], "t2_GWh": [], "t3_GWh": []}
+        # TIER 2 REMOVED 11 Aug 2026, and the old tier 3 renumbered into its
+        # place. The removed tier was "equipped but saturated" = latent minus
+        # delivered, where latent extrapolated the LOW-CDD slope linearly. Its
+        # premise was that the fleet flattens at high load. The measured
+        # response does the opposite - it STEEPENS, about +3 GWh per CDD across
+        # the cool bins against +17 across the warm ones - so the linear
+        # extrapolation sits below the observed curve at high CDD and the tier
+        # was structurally zero. Saturation would show as a concave curve; this
+        # one is convex. The band was measuring a phenomenon this data says
+        # does not happen.
+        tier_daily = {"dates": [], "t1_GWh": [], "t2_GWh": []}
         for d_ in sorted(cdd_def)[-(WINDOW_DAYS + 5):]:
             i = idx12.get(d_)
             tier_daily["dates"].append(d_)
             tier_daily["t1_GWh"].append(
                 round(t12["delivered_GWh"][i] * COOL_EER, 2)
                 if i is not None else None)
+            # tier 2 is the former tier 3: buildings with no cooling at all.
+            # A thermal load computed directly from building physics - it
+            # never touches an efficiency, unlike tier 1 which is measured
+            # electricity multiplied up by the fleet EER.
             tier_daily["t2_GWh"].append(
-                round(t12["unmet_GWh"][i] * COOL_EER, 2)
-                if i is not None else None)
-            tier_daily["t3_GWh"].append(round(cdd_def[d_] * 24.0 * per_degCh, 2))
+                round(cdd_def[d_] * 24.0 * per_degCh, 2))
 
         central = scen["central"]["latent_thermal_GWh"]
         comfort_deficit = {
@@ -1842,12 +1873,9 @@ def main():
             "tier_bars": ({
                 "t1_delivered_th_GWh": round(
                     cooling_observed["week_delivered_GWh"] * COOL_EER, 0),
-                "t2_unmet_th_GWh": round(
-                    (cooling_observed.get("week_unmet_GWh") or 0)
-                    * COOL_EER, 0),
-                "t3_low_GWh": scen["low"]["latent_thermal_GWh"],
-                "t3_central_GWh": scen["central"]["latent_thermal_GWh"],
-                "t3_high_GWh": scen["high"]["latent_thermal_GWh"],
+                "t2_low_GWh": scen["low"]["latent_thermal_GWh"],
+                "t2_central_GWh": scen["central"]["latent_thermal_GWh"],
+                "t2_high_GWh": scen["high"]["latent_thermal_GWh"],
             } if cooling_observed else None),
             "utes": {
                 # if the central tier-3 load were ground-served, the rejected
