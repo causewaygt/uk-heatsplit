@@ -1260,8 +1260,12 @@ def diurnal_slope(store):
                  "and process plant working harder as the air warms. The "
                  "daytime excess above it is comfort cooling. Level is NOT "
                  "inferred from this: below about 15 C the response goes flat "
-                 "as plant hits its minimum condensing temperature and data "
-                 "centres switch to free cooling, so the slope cannot be "
+                 "as plant plausibly reaches its minimum condensing "
+                 "temperature and data centres switch to free cooling. That "
+                 "reading belongs to the NIGHT data only - the daily response "
+                 "curve is convex for a different reason, the extensive "
+                 "margin, which survives dividing out the COP. So the slope "
+                 "cannot be "
                  "extrapolated back to a level."),
     }
 
