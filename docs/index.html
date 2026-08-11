@@ -539,7 +539,7 @@
   <section id="coolsection">
     <h1 class="sect">4. The rising demand for cooling, and geothermal’s role</h1>
 
-    <div class="h2lab" style="margin-top:8px">Cooling day by day <span class="qual">— delivered, wanted, and unserved</span></div>
+    <div class="h2lab" style="margin-top:8px">Cooling day by day <span class="qual">— what is delivered, and what is not</span></div>
     <div class="trendbar" id="tierwin" style="margin:8px 0 2px">
       <button data-tw="28">4W</button>
       <button data-tw="84">12W</button>
@@ -875,7 +875,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.12.0';
+const SITE_VERSION = '8.12.1';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1654,7 +1654,17 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
   // not deliver. Stacked because they are
   // disjoint populations of buildings, not competing estimates of one.
   (() => {
-    const td = (d.comfort_deficit || {}).tier_daily;
+    const td0 = (d.comfort_deficit || {}).tier_daily;
+    // Tier renumber, 11 Aug 2026: the old tier 3 (no equipment) became tier 2
+    // and the old tier 2 (saturated) was removed. A payload built before that
+    // run still carries the comfort deficit in t3_GWh, so read it there when
+    // t2 is absent or empty - otherwise the panel shows a zero band until the
+    // next build.
+    const td = td0 ? Object.assign({}, td0, (function(){
+      const t2 = td0.t2_GWh || [], t3 = td0.t3_GWh || [];
+      const live = t2.some(v => v !== null && v > 0);
+      return live ? {} : (t3.length ? {t2_GWh: t3} : {});
+    })()) : td0;
     const box = document.getElementById('tierdaily');
     const bar = document.getElementById('tierwin');
     if(!td || !td.dates || !td.dates.length){
