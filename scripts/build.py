@@ -862,7 +862,13 @@ def main():
     cdd_series = [dd["cdd"][COOL_BASE][dd_idx[d]] for d in common]
 
     # --- calibration (weather-normalised ECUK anchor) -------------------------
-    annual_space_twh = sum(space_heat) / 1000.0
+    # TRAILING TWELVE MONTHS. space_heat spans the whole regression window,
+    # which is WINDOW_DAYS - two years since 11 Aug 2026 - so summing all of
+    # it doubles the annual figure. This feeds the calibration ratio, the UK
+    # national heat total, and the retro store's space_annual_twh, which is
+    # the DENOMINATOR of the electrification limit: it is why the network
+    # share halved from 98% to 49% on the first 24-month run.
+    annual_space_twh = sum(space_heat[-ANNUAL_DAYS:]) / 1000.0
     hdd_all = dd["hdd"][base]
     _ay = str(ANCHOR_YEAR)
     _anchor_days = sum(1 for d_ in dd["dates"] if d_.startswith(_ay))
@@ -885,6 +891,18 @@ def main():
         print("calibration: anchor year %s incomplete (%d/%d days) - "
               "weather normalisation SKIPPED" % (_ay, _anchor_days,
                                                  _full_year))
+    # GATE. Four test suites passed on both sides of the 11 Aug window change
+    # while every annual figure doubled, because they check structure and
+    # internal consistency, not whether an annual quantity spans a year. GB
+    # heating degree days run roughly 1,700-2,600 on a 15.5-16.5 base; twice a
+    # year lands near 4,100, which is what shipped. Fail loudly instead.
+    if not (1200.0 <= hdd_12m <= 3200.0):
+        raise SystemExit(
+            "calibration: hdd_trailing_12m = %.0f is outside the plausible "
+            "annual band 1200-3200. Almost certainly a window-versus-year "
+            "error: check that every trailing-12-month sum slices "
+            "[-ANNUAL_DAYS:] rather than the whole regression window."
+            % hdd_12m)
     ratio = annual_space_twh / anchor_scaled
     calibration = {
         "model_12m_gas_space_heat_TWh": round(annual_space_twh, 1),
@@ -896,6 +914,7 @@ def main():
         "anchor_year_complete": _anchor_complete,
         "hdd_2024": round(hdd_2024, 1),
         "hdd_trailing_12m": round(hdd_12m, 1),
+        "annual_days_used": ANNUAL_DAYS,
         "anchor_status": ECUK_ANCHOR_STATUS,
         "ratio": round(ratio, 3),
         "within_10pct": abs(ratio - 1.0) <= 0.10,
