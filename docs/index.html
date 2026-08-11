@@ -531,21 +531,24 @@
     <div id="tierlegend"></div>
     <p class="costnote" id="tierdailynote"></p>
 
-    <div class="h2lab" id="diurnallab" style="margin-top:30px" hidden>What is comfort, and what is not <span class="qual">— demand response to temperature, hour by hour</span></div>
-    <div id="diurnal" style="height:260px;margin:8px 0 4px"></div>
-    <p class="costnote" id="diurnalnote"></p>
-
     <div class="h2lab" style="margin-top:30px">The comfort deficit <span class="qual">— buildings with no cooling at all</span></div>
     <div class="billline" id="deficitline"></div>
     <p class="geosub" id="deficitcontext"></p>
     <p class="costnote" id="deficitnote"></p>
 
     <details class="fold" id="fold_cool"><summary>METHOD —
-      <b>the observed response curve, and why the tiers are measured this way</b></summary>
+      <b>how comfort and process cooling are told apart, and how the tiers are measured</b></summary>
     <div class="foldbody">
+    <div class="h2lab" id="diurnallab" style="margin-top:4px" hidden>What is comfort, and what is not <span class="qual">— demand response to temperature, hour by hour</span></div>
+    <div id="diurnal" style="height:260px;margin:8px 0 4px"></div>
+    <p class="costnote" id="diurnalnote"></p>
+    <div class="h2lab" style="margin-top:26px">The observed response curve <span class="qual">— what the equipped fleet draws as it warms</span></div>
     <div class="billline" id="coolobsline"></div>
     <div id="coolcurve" style="width:100%;height:300px"></div>
     <p class="costnote" id="coolobsnote"></p>
+    <div class="h2lab" id="elbowlab" style="margin-top:26px" hidden>The same shape from the other direction <span class="qual">— summer nights, both years, binned by temperature</span></div>
+    <div id="elbow" style="width:100%;height:290px"></div>
+    <p class="costnote" id="elbownote"></p>
     <div id="reconblock" style="display:none">
       <div class="h2lab" style="margin-top:26px">Reconciliation diagnostic <span class="qual">— year-round fit, not yet in the bill</span></div>
       <div class="billline" id="reconline"></div>
@@ -840,7 +843,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.10.0';
+const SITE_VERSION = '8.11.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1686,7 +1689,8 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
             'order <b>26 TWh a year</b>\u2020 of cooling service, running flat all ' +
             'year. <b>Not plotted:</b> at roughly 72 GWh a day it is four times ' +
             'the other three combined and would flatten them. Bottom-up ' +
-            'estimate, not measured from the grid.') +
+            'estimate, not measured from the grid. The separation is evidenced ' +
+            'under METHOD below.') +
         '</div>';
       document.getElementById('tierdailynote').textContent =
         'Thermal GWh a day over ' + (fmtWin[tw] || 'the window') +
@@ -1750,6 +1754,57 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       'response goes flat as plant hits its minimum condensing temperature ' +
       'and data centres switch to free cooling, so the slope cannot be ' +
       'extrapolated back to a level.';
+  })();
+
+  // ---- the night elbow, both summers --------------------------------------
+  // Sits beside the CDD response curve because the two agree from different
+  // directions: the response curve steps +3 GWh per CDD on cool days and +17
+  // on warm ones; the night data shows the same convexity as a break at 15 C.
+  // Two variables, two aggregations, one shape. Published per year so the
+  // replication is visible rather than claimed.
+  (() => {
+    const eb = (d.whatif_routes || {}).night_elbow;
+    const box = document.getElementById('elbow');
+    if(!eb || !eb.years || eb.years.length < 1){
+      if(box) box.style.display = 'none';
+      return;
+    }
+    document.getElementById('elbowlab').hidden = false;
+    const cols = [css('--cool'), css('--ember'), css('--elec')];
+    const traces = eb.years.map((y, i) => ({
+      x: y.bins.map(b=>b.t_C), y: y.bins.map(b=>b.demand_GW),
+      name: 'summer ' + y.year, mode:'markers', type:'scatter',
+      marker:{color:cols[i % cols.length],
+              size:y.bins.map(b=>Math.max(6, Math.min(20, Math.sqrt(b.n)*1.6))),
+              line:{width:1, color:css('--ink')}},
+      hovertemplate:'%{x} \u00b0C<br>%{y:.2f} GW<extra>' + y.year + '</extra>'
+    }));
+    const lo = Math.min(...eb.years.flatMap(y=>y.bins.map(b=>b.t_C)));
+    const hi = Math.max(...eb.years.flatMap(y=>y.bins.map(b=>b.t_C)));
+    traces.push({x:[eb.break_C, eb.break_C],
+      y:[Math.min(...eb.years.flatMap(y=>y.bins.map(b=>b.demand_GW)))-0.4,
+         Math.max(...eb.years.flatMap(y=>y.bins.map(b=>b.demand_GW)))+0.4],
+      mode:'lines', line:{color:css('--ash'), width:2, dash:'dash'},
+      hoverinfo:'skip', showlegend:false});
+    Plotly.newPlot('elbow', traces, {
+      paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
+      font:{family:'Lato', color:css('--muted'), size:12},
+      margin:{l:60,r:16,t:8,b:42},
+      xaxis:{title:'outdoor air temperature (\u00b0C)', gridcolor:css('--line'),
+             range:[lo-1, hi+1]},
+      yaxis:{title:'demand (GW)', gridcolor:css('--line')},
+      legend:{orientation:'h', y:1.18}
+    }, {displayModeBar:false, responsive:true});
+    const fm = v => (v>=0?'+':'\u2212') + Math.abs(v).toFixed(3);
+    document.getElementById('elbownote').textContent =
+      'Below ' + eb.break_C + ' \u00b0C the slope is ' +
+      fm(eb.below.slope_GW_per_C) + ' GW/\u00b0C; above it, ' +
+      fm(eb.above.slope_GW_per_C) + '. ' +
+      eb.years.map(y=>y.year + ' gives ' + fm(y.below.slope_GW_per_C) +
+        ' then ' + fm(y.above.slope_GW_per_C)).join(', and ') +
+      ' \u2014 independently, on ' +
+      eb.years.map(y=>y.hours).reduce((a,b)=>a+b,0) + ' night hours. ' +
+      eb.note;
   })();
 
   function routeBars(el, rows, key, axis){
