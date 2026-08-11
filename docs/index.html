@@ -660,7 +660,13 @@
     <div class="billline" id="deficitline"></div>
     <div id="tierbars" style="margin:14px 0 6px"></div>
     <p class="geosub" id="deficitcontext"></p>
-    <div class="barlabel" style="margin-top:26px" id="tierdailylabel">ALL THREE TIERS, DAY BY DAY — THE LAST TWELVE MONTHS</div>
+    <div class="barlabel" style="margin-top:26px" id="tierdailylabel">ALL THREE TIERS, DAY BY DAY</div>
+    <div class="trendbar" id="tierwin" style="margin:8px 0 2px">
+      <button data-tw="28">4W</button>
+      <button data-tw="84">12W</button>
+      <button data-tw="365" aria-pressed="true">12M</button>
+      <button data-tw="730">24M</button>
+    </div>
     <div id="tierdaily" style="height:300px;margin:10px 0 4px"></div>
     <p class="costnote" id="tierdailynote"></p>
     <div class="barlabel" style="margin-top:22px">THE GEOCOOLING DIVIDEND — SUMMER HEAT BANKED, WINTER HEAT RECOVERED</div>
@@ -802,7 +808,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.6.0';
+const SITE_VERSION = '8.7.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1575,47 +1581,72 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
   (() => {
     const td = (d.comfort_deficit || {}).tier_daily;
     const box = document.getElementById('tierdaily');
+    const bar = document.getElementById('tierwin');
     if(!td || !td.dates || !td.dates.length){
-      box.style.display = 'none';
+      box.style.display = 'none'; bar.style.display = 'none';
       document.getElementById('tierdailylabel').style.display = 'none';
       return;
     }
+    // Same rule as the header toggle: a window button that shows less than it
+    // promises is worse than no button, so hide the ones the record cannot fill.
+    const HAVE = td.dates.length;
+    bar.querySelectorAll('button').forEach(b => {
+      if(+b.dataset.tw > 365 && HAVE < +b.dataset.tw) b.style.display = 'none';
+    });
+
     const has = a => a && a.some(v => v !== null && v > 0);
-    const series = [
-      ['Tier 1 · delivered by equipped stock', td.t1_GWh, css('--cool')],
-      ['Tier 2 · wanted but not delivered',    td.t2_GWh, css('--elec')],
-      ['Tier 3 · no cooling equipment at all', td.t3_GWh, css('--ember')]
-    ].filter(r => has(r[1]));
-    Plotly.newPlot('tierdaily', series.map(r => ({
-      x: td.dates, y: r[1], name: r[0], type: 'bar',
-      marker: {color: r[2], line: {width: 0}},
-      hovertemplate: '%{x}<br>%{y:.1f} GWh thermal<extra>' + r[0] + '</extra>'
-    })), {
-      barmode: 'stack', bargap: 0.05,
-      paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
-      font:{family:'Lato', color:css('--muted'), size:12},
-      margin:{l:60,r:10,t:10,b:40},
-      xaxis:{gridcolor:css('--line'), tickformat:'%b'},
-      yaxis:{title:'GWh thermal per day', gridcolor:css('--line')},
-      legend:{orientation:'h', y:1.18}
-    }, {displayModeBar:false, responsive:true});
+    const fmtWin = {28:'the last 4 weeks', 84:'the last 12 weeks',
+                    365:'the last twelve months', 730:'the last twenty-four months'};
     const tot = a => (a || []).reduce((s_, v) => s_ + (v || 0), 0);
-    const t1 = tot(td.t1_GWh), t2 = tot(td.t2_GWh), t3 = tot(td.t3_GWh);
-    const dropped = ['Tier 1','Tier 2','Tier 3']
-      .filter((_, i) => !has([td.t1_GWh, td.t2_GWh, td.t3_GWh][i]));
-    document.getElementById('tierdailynote').textContent =
-      'Cooling service delivered and wanted, thermal GWh a day over the ' +
-      'trailing twelve months. Tiers 1 and 2 convert observed electricity at ' +
-      'the installed fleet\u2019s efficiency, the same factor the energy bars ' +
-      'use; tier 3 is a thermal load and needs no conversion. Twelve-month ' +
-      'totals: ' +
-      'tier 1 ' + fmt(Math.round(t1)) + ', tier 2 ' + fmt(Math.round(t2)) +
-      ', tier 3 ' + fmt(Math.round(t3)) + ' GWh. The three are disjoint \u2014 ' +
-      'different buildings, not competing estimates \u2014 so they stack. ' +
-      'Tier 3 is the central scenario only; its low and high cases are in the ' +
-      'line above.' +
-      (dropped.length ? ' ' + dropped.join(' and ') + ' not shown: no ' +
-       'positive values on this record.' : '');
+
+    function drawTiers(tw){
+      const n = Math.min(tw, HAVE);
+      const cut = a => (a || []).slice(-n);
+      const dates = cut(td.dates);
+      const series = [
+        ['Tier 1 · delivered by equipped stock', cut(td.t1_GWh), css('--cool')],
+        ['Tier 2 · equipped but saturated',      cut(td.t2_GWh), css('--elec')],
+        ['Tier 3 · no cooling equipment at all', cut(td.t3_GWh), css('--ember')]
+      ].filter(r => has(r[1]));
+      Plotly.newPlot('tierdaily', series.map(r => ({
+        x: dates, y: r[1], name: r[0], type: 'bar',
+        marker: {color: r[2], line: {width: 0}},
+        hovertemplate: '%{x}<br>%{y:.1f} GWh thermal<extra>' + r[0] + '</extra>'
+      })), {
+        barmode: 'stack', bargap: 0.05,
+        paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
+        font:{family:'Lato', color:css('--muted'), size:12},
+        margin:{l:60,r:10,t:10,b:40},
+        xaxis:{gridcolor:css('--line'), tickformat: n > 120 ? '%b' : '%-d %b'},
+        yaxis:{title:'GWh thermal per day', gridcolor:css('--line')},
+        legend:{orientation:'h', y:1.18}
+      }, {displayModeBar:false, responsive:true});
+
+      const t1 = tot(cut(td.t1_GWh)), t2 = tot(cut(td.t2_GWh)),
+            t3 = tot(cut(td.t3_GWh));
+      const dropped = ['Tier 1','Tier 2','Tier 3'].filter((_, i) =>
+        !has([cut(td.t1_GWh), cut(td.t2_GWh), cut(td.t3_GWh)][i]));
+      document.getElementById('tierdailynote').textContent =
+        'Cooling service delivered and wanted, thermal GWh a day over ' +
+        (fmtWin[tw] || 'the window') + '. Tiers 1 and 2 are the SAME buildings ' +
+        '\u2014 what the equipped stock drew, and what it wanted once its ' +
+        'response curve flattens; tier 3 is the buildings with no equipment at ' +
+        'all. Totals over the window: ' + fmt(Math.round(t1)) + ' / ' +
+        fmt(Math.round(t2)) + ' / ' + fmt(Math.round(t3)) + ' GWh. Tiers 1 and ' +
+        '2 convert observed electricity at the installed fleet\u2019s ' +
+        'efficiency, the same factor the energy bars use; tier 3 is a thermal ' +
+        'load and needs no conversion.' +
+        (dropped.length ? ' ' + dropped.join(' and ') + ' not shown: no ' +
+         'positive values in this window.' : '');
+    }
+
+    bar.addEventListener('click', ev => {
+      const b = ev.target.closest('button'); if(!b) return;
+      bar.querySelectorAll('button').forEach(x =>
+        x.setAttribute('aria-pressed', String(x === b)));
+      drawTiers(+b.dataset.tw);
+    });
+    drawTiers(365);
   })();
 
   const hw = (d.geothermal || {}).hardware;
