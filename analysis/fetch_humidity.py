@@ -24,12 +24,36 @@ Requests are chunked by date to stay inside the response cap.
 Attribution: Open-Meteo.com (CC BY 4.0) / ERA5 (Copernicus).
 """
 
+import argparse
 import datetime as dt
+import json
 import math
+import pathlib
+import sys
 import time
+
 import requests
 
-from fetch_degree_days import GB_POINTS, ARCHIVE_URL
+# Same population weights and endpoint as the degree-day series - imported
+# rather than copied, because the whole value of this series is that it is on
+# IDENTICAL weights to the temperature it will be regressed alongside.
+# Searched rather than assumed, so this runs from analysis/, from scripts/, or
+# from the repo root without editing.
+_HERE = pathlib.Path(__file__).resolve().parent
+for _cand in (_HERE, _HERE.parent / "scripts", _HERE / "scripts",
+              _HERE.parent, _HERE.parent.parent / "scripts"):
+    if (_cand / "fetch_degree_days.py").is_file():
+        sys.path.insert(0, str(_cand))
+        break
+else:
+    raise SystemExit(
+        "fetch_humidity: cannot find fetch_degree_days.py. Looked in:\n  "
+        + "\n  ".join(str(c) for c in
+                       (_HERE, _HERE.parent / "scripts", _HERE / "scripts",
+                        _HERE.parent, _HERE.parent.parent / "scripts"))
+        + "\nPut this file in analysis/ with fetch_degree_days.py in scripts/.")
+
+from fetch_degree_days import GB_POINTS, ARCHIVE_URL   # noqa: E402
 
 # Comfort reference for enthalpy days: 22 degC dry bulb at 50% RH is the
 # conventional UK non-domestic summer design condition. Cooling plant works
@@ -149,14 +173,40 @@ def fetch_humidity(days=400):
     return out
 
 
+def _selftest():
+    print("reference state %.1f degC at %d%% RH = %.2f kJ/kg"
+          % (REF_T_C, int(REF_RH * 100), REF_ENTHALPY))
+    print("  %-30s %9s %9s %11s" % ("condition", "w g/kg", "h kJ/kg",
+                                    "enth days"))
+    for t, td, lab in ((15, 12, "mild, damp"), (20, 14, "warm, moderate"),
+                       (25, 17, "hot, humid"), (30, 20, "very hot, humid"),
+                       (30, 12, "very hot, DRY")):
+        print("  %-30s %9.2f %9.2f %11.2f"
+              % (lab, humidity_ratio(td) * 1000, enthalpy_kj_per_kg(t, td),
+                 max(0.0, enthalpy_kj_per_kg(t, td) - REF_ENTHALPY)))
+    gap = enthalpy_kj_per_kg(30, 20) - enthalpy_kj_per_kg(30, 12)
+    print("  the two 30 degC rows are %.1f kJ/kg apart on the same dry bulb - "
+          "degree days cannot tell them apart." % gap)
+
+
 if __name__ == "__main__":
-    print(f"reference state {REF_T_C} degC at {int(REF_RH*100)}% RH "
-          f"= {REF_ENTHALPY:.2f} kJ/kg")
-    for t, td in ((15, 12), (20, 14), (25, 17), (30, 20), (30, 12)):
-        print(f"  {t:2d} degC dry bulb, {td:2d} degC dewpoint -> "
-              f"{enthalpy_kj_per_kg(t, td):6.2f} kJ/kg  "
-              f"(w = {humidity_ratio(td)*1000:5.2f} g/kg)")
-    d = fetch_humidity(days=14)
-    print(f"{len(d['dates'])} days, latest {d['dates'][-1]}, "
-          f"dewpoint {d['dewpoint_mean_C'][-1]} degC, "
-          f"enthalpy days {d['enthalpy_days'][-1]}")
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("--days", type=int, default=400,
+                    help="days of history to fetch (default 400)")
+    ap.add_argument("--out", default="humidity.json",
+                    help="where to write the series (default humidity.json)")
+    ap.add_argument("--selftest", action="store_true",
+                    help="print the psychrometric check and exit, no network")
+    a = ap.parse_args()
+
+    if a.selftest:
+        _selftest()
+        sys.exit(0)
+
+    d = fetch_humidity(days=a.days)
+    with open(a.out, "w") as fh:
+        json.dump(d, fh)
+    print("wrote %s: %d days, %s to %s"
+          % (a.out, len(d["dates"]), d["dates"][0], d["dates"][-1]))
+    print("  latest dewpoint %.1f degC, enthalpy days %.2f"
+          % (d["dewpoint_mean_C"][-1], d["enthalpy_days"][-1]))
