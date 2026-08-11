@@ -618,7 +618,8 @@
     </div>
     <div id="dividend" style="height:280px;margin:10px 0 4px"></div>
     <p class="costnote" id="dividnote"></p>
-    <div id="utesbars" style="margin:14px 0 4px"></div>
+    <div class="h2lab" style="margin-top:26px">And the heat it rejects <span class="qual">— banked in summer, recovered in winter</span></div>
+    <div id="utesbars" style="margin:10px 0 4px"></div>
     <p class="costnote" id="utesnote"></p>
   </section>
 
@@ -904,7 +905,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.14.0';
+const SITE_VERSION = '8.15.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1984,6 +1985,41 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       }, {displayModeBar:false, responsive:true});
       const sum = a => a.reduce((s_, v) => s_ + v, 0);
       const air = sum(serv) / EER, g = sum(geo), sv = sum(saved);
+
+      // Dividend 2, on the same window and the same daily spine. What the
+      // ground loop rejects is the cooling it delivered PLUS the electricity
+      // that drove it - conservation, not an estimate. Every unit of it
+      // arrives in summer, which is why it needs a store at all.
+      const rt = ((d.comfort_deficit || {}).utes || {}).round_trip || 0.70;
+      const banked = sum(serv) + g;
+      const recovered = banked * rt;
+      const el2 = document.getElementById('utesbars');
+      while(el2.firstChild) el2.removeChild(el2.firstChild);
+      const mx2 = banked || 1;
+      [['SUMMER \u00b7 HEAT REJECTED TO STORE', banked, 'geo-s'],
+       ['WINTER \u00b7 RECOVERED FOR HEATING', recovered, 'geo-w']]
+      .forEach(([lab, v, cls]) => {
+        el2.insertAdjacentHTML('beforeend',
+          '<div class="tierrow"><div class="tlabel">' + lab + '</div>' +
+          '<div class="tiertrack"><div class="tfill ' + cls +
+          '" data-w="' + (100 * v / mx2) + '"></div></div>' +
+          '<div class="tval">' + fmt(Math.round(v)) + ' GWh</div></div>');
+      });
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        el2.querySelectorAll('.tfill').forEach(f => {
+          f.style.width = f.dataset.w + '%'; });
+      }));
+      document.getElementById('utesnote').innerHTML =
+        'Over ' + (fmtWin2[dw] || 'the window') + ', that same fifth rejects ' +
+        '<b>' + fmt(Math.round(banked)) + ' GWh</b> of heat \u2014 the cooling ' +
+        'delivered plus the electricity that drove it \u2014 and at a ' +
+        Math.round(rt * 100) + '% round trip <b>' + fmt(Math.round(recovered)) +
+        ' GWh</b> comes back for winter heating (UTES, literature range ' +
+        '50\u201380%\u2020). The timing is the point: comfort cooling rejects ' +
+        'heat ONLY in summer, exactly when nothing wants it, so without a ' +
+        'store every unit is lost \u2014 and an air-source network rejects the ' +
+        'same heat to the air with nowhere to put it. That is the one thing it ' +
+        'structurally cannot do.';
       document.getElementById('dividnote').innerHTML =
         'A fifth of the cooling the equipped stock already delivers, moved to ' +
         'ground: over ' + (fmtWin2[dw] || 'the window') + ' that is <b>' +
@@ -2194,32 +2230,6 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       '\u2013' + eerHi + ' across the plausible stock \u2014 the largest ' +
       'single unverified assumption on this panel.';
 
-    const ut = cd.utes;
-    if(ut){
-      const el2 = document.getElementById('utesbars');
-      const mx2 = ut.summer_banked_GWh || 1;
-      [['SUMMER · HEAT REJECTED TO STORE', ut.summer_banked_GWh, 'geo-s'],
-       ['WINTER · RECOVERED FOR HEATING', ut.winter_recovered_GWh, 'geo-w']]
-      .forEach(([lab, v, cls])=>{
-        el2.insertAdjacentHTML('beforeend',
-          `<div class="tierrow"><div class="tlabel">${lab}</div>` +
-          `<div class="tiertrack"><div class="tfill ${cls}" data-w="${100*v/mx2}"></div></div>` +
-          `<div class="tval">${fmt(v)} GWh</div></div>`);
-      });
-      requestAnimationFrame(()=>requestAnimationFrame(()=>{
-        el2.querySelectorAll('.tfill').forEach(f=>{f.style.width=f.dataset.w+'%';});
-      }));
-      document.getElementById('utesnote').textContent =
-        'And the heat that cooling rejects does not go to the air: it banks ' +
-        'in the aquifer or borehole store. ~' +
-        Math.round(ut.round_trip*100) + '% recovers for winter heating ' +
-        '(UTES round-trip, literature range 50\u201380% \u2020) recovers for ' +
-        'winter heating. The timing is the point: comfort cooling rejects heat ' +
-        'ONLY in summer, exactly when nothing wants it, so without a store ' +
-        'every unit is lost \u2014 and an air-source network rejects the same ' +
-        'heat to the air with nowhere to put it. That is the one thing it ' +
-        'structurally cannot do.';
-    }
     document.getElementById('deficitnote').textContent = cd.note;
   }
 
