@@ -537,8 +537,21 @@
     <p class="costnote" id="deficitnote"></p>
 
     <details class="fold" id="fold_cool"><summary>METHOD —
-      <b>how comfort and process cooling are told apart, and how the tiers are measured</b></summary>
+      <b>what is measured, what is anchored, and what was tested and rejected</b></summary>
     <div class="foldbody">
+    <p class="costnote" style="margin-top:2px">National demand data shows
+      <b>slopes</b>, not levels: a load that does not vary with the weather is
+      indistinguishable from every other constant in the system. So every level
+      on this panel comes from elsewhere — ECUK for comfort cooling,
+      bottom-up counting for process — and the grid data’s job is to
+      test whether those levels behave correctly, not to produce them. The
+      response curve below centres within each month before binning, which
+      removes the level along with the seasonal confound; it therefore recovers
+      about a seventh of the anchored figure and is a lower bound by
+      construction. Modelling the baseline explicitly instead, on undemeaned
+      daily data, recovers <b>74%</b> of the anchor and identifies a balance
+      point of 14.5 °C against the 15.5 °C the building physics gives
+      — two independent methods within a quarter of each other.</p>
     <div class="h2lab" id="diurnallab" style="margin-top:4px" hidden>What is comfort, and what is not <span class="qual">— demand response to temperature, hour by hour</span></div>
     <div id="diurnal" style="height:260px;margin:8px 0 4px"></div>
     <p class="costnote" id="diurnalnote"></p>
@@ -888,7 +901,8 @@ fetch('data.json').then(r=>r.json()).then(d=>{
       ["elec_resistive","Resistive electric","--elec"],
       ["hp_electricity","Heat pumps — electricity","--elec"],
       ["hp_ambient","Heat pumps — ambient heat harvested","--geo"],
-      ["cooling_delivered","Cooling & ventilation delivered","--cool"],
+      ["cooling_delivered","Cooling delivered","--cool"],
+      ["ventilation","Ventilation — air moved, no COP","--ash"],
     ] : null;
     const totalIn = m.total_GWh || 1;
     const totalOut = u ? (u.total_GWh || 1) : 0;
@@ -1677,12 +1691,19 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
         '</b><span style="color:var(--muted)"> \u2014 ' + note + '</span></div></div>';
       document.getElementById('tierlegend').innerHTML =
         '<div style="font-size:13px;line-height:1.5;margin-top:12px">' +
-        key(css('--cool'), 'Tier 1 delivered', t1,
-            'what the equipped fleet actually drew, measured from grid demand') +
+        key(css('--cool'), 'Tier 1 measured response', t1,
+            'the weather-varying slice of the equipped fleet\u2019s draw. This ' +
+            'sits INSIDE the ECUK anchor above, not beside it \u2014 it is ' +
+            'about a seventh of it, because the method centres within each ' +
+            'month and cannot see cooling that runs steadily through July') +
         key(css('--elec'), 'Tier 2 saturated', t2,
-            'the same buildings, wanting more once their response curve flattens') +
+            'the same buildings, wanting more once their response curve ' +
+            'flattens. OUTSIDE the anchor \u2014 official statistics count ' +
+            'consumption, not thwarted want') +
         key(css('--ember'), 'Tier 3 no equipment', t3,
-            'buildings with no cooling at all, central scenario') +
+            'buildings with no cooling at all, central scenario. Also OUTSIDE ' +
+            'the anchor \u2014 a building that consumes nothing cannot be ' +
+            'counted by a consumption survey') +
         key('transparent;border:1px dashed ' + css('--ash'),
             'Tier 0 process cooling', null,
             'data centres, cold stores, retail and food refrigeration \u2014 of ' +
@@ -1804,7 +1825,13 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
         ' then ' + fm(y.above.slope_GW_per_C)).join(', and ') +
       ' \u2014 independently, on ' +
       eb.years.map(y=>y.hours).reduce((a,b)=>a+b,0) + ' night hours. ' +
-      eb.note;
+      eb.note + ' The bend in the DAILY response curve above is a different ' +
+      'thing and is mostly LOAD, not plant: dividing out the falling COP ' +
+      'leaves the convexity almost intact. It is the extensive margin \u2014 ' +
+      'each building is a step, and the fleet is the integral of those steps. ' +
+      'Tested: adding moist-air enthalpy days to the daily regression moves ' +
+      'the quadratic term by +7%, when latent load would have made it fall, ' +
+      'and adds 0.0001 to R\u00b2. Humidity is a published null here.';
   })();
 
   function routeBars(el, rows, key, axis){
@@ -1980,13 +2007,22 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       '(central ' + c.dwellings_M + 'M) · latent need ~<b>' +
       fmt(lo.latent_thermal_GWh) + '–' + fmt(hi.latent_thermal_GWh) +
       ' GWh</b> of cooling that no equipment exists to deliver';
+    const fx = (d.weekly_useful || {}).factors || {};
+    const eerLo = (fx.cool_eer_range || [2.5, 4.0])[0];
+    const eerHi = (fx.cool_eer_range || [2.5, 4.0])[1];
     document.getElementById('deficitcontext').innerHTML =
-      'Serving the central load would draw ~<b style="color:' + css('--geo') +
-      '">' + cd.elec_if_ground_GWh + ' GWh</b> of electricity via passive ' +
-      'ground cooling vs ~<b>' + cd.elec_if_air_GWh + ' GWh</b> via ' +
-      'air-source compressors. Context: ' + cd.context.ac_penetration_note +
-      ' · ' + cd.context.hospitals_note + ' · ' + cd.context.health_note +
-      ' · ' + cd.context.productivity_note + '.';
+      'Serving the central load would draw ~' + cd.elec_if_ground_GWh +
+      ' GWh of electricity via passive ground cooling vs ~' +
+      cd.elec_if_air_GWh + ' GWh via air-source compressors. ' +
+      'Context: ' + cd.context.ac_penetration_note +
+      ' \u00b7 ' + cd.context.hospitals_note +
+      ' \u00b7 ' + cd.context.health_note +
+      ' \u00b7 ' + cd.context.productivity_note + '. ' +
+      'Cooling service throughout is electricity times a fleet efficiency of ' +
+      (fx.cool_eer || 3.0).toFixed(1) + ', which is a range of ' + eerLo +
+      '\u2013' + eerHi + ' across the plausible stock \u2014 the largest ' +
+      'single unverified assumption on this panel.';
+
     const ut = cd.utes;
     if(ut){
       const el2 = document.getElementById('utesbars');
