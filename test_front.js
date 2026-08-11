@@ -33,13 +33,13 @@ setTimeout(() => {
   console.log("frontispiece");
 
   // --- masthead
-  chk("brand reads UK Heat Shift",
-      /UK Heat\s+Shift/.test(doc.querySelector(".brand").textContent),
+  chk("brand reads UK Heat Split",
+      /UK Heat\s+Split/.test(doc.querySelector(".brand").textContent),
       doc.querySelector(".brand").textContent.trim());
-  chk("only Shift is italic",
-      doc.querySelector(".brand i").textContent.trim() === "Shift");
+  chk("only Split is italic",
+      doc.querySelector(".brand i").textContent.trim() === "Split");
   chk("standfirst present and full width",
-      /strategic case for GW-scale geothermal heating and cooling in the UK/i
+      /A live estimate of the energy behind Britain\u2019s building heat and cooling/i
         .test(doc.querySelector(".standfirst")
                  .textContent.replace(/\s+/g, " ").trim()),
       doc.querySelector(".standfirst").textContent.replace(/\s+/g, " ").trim());
