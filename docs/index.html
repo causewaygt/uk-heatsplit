@@ -32,7 +32,7 @@
   /* same size as the "The starting point" h1 below - the two headings the
      reader meets first should sit at the same rank; weight is what
      separates the title from the claim it makes */
-  .standfirst{font-size:clamp(26px,5vw,40px);line-height:1.12;color:var(--paper);
+  .standfirst{font-size:24pt;line-height:1.15;color:var(--paper);
               font-weight:400;padding:16px 0 2px;max-width:none}
   /* ---- frontispiece: the case in six figures ------------------------- */
   .front{margin-top:30px;border-top:1px solid var(--geo);
@@ -111,7 +111,7 @@
   @media (max-width:720px){.tickbox{width:100%}.ticker{max-width:none}}
   .stamp{font-family:"IBM Plex Mono";font-size:12px;color:var(--muted)}
   .hero{padding:44px 0 8px}
-  h1{font-family:Lato;font-weight:900;font-size:clamp(26px,5vw,40px);line-height:1.12}
+  h1{font-family:Lato;font-weight:900;font-size:24pt;line-height:1.15}
   h1 .ember{color:var(--ember)} h1 .cool{color:var(--cool)}
   /* numbered section titles - h1 face, stepped down from the hero, and
      deliberately NOT the uppercase h2 treatment used inside sections */
@@ -235,7 +235,14 @@
   .combline{font-family:"IBM Plex Mono";font-size:13px;color:var(--muted);margin:10px 0 36px}
   .combline b{color:var(--ember)}
   section{border-top:1px solid var(--line);padding:34px 0}
-  h2{font-family:Lato;font-weight:700;font-size:19px;margin-bottom:14px;text-transform:uppercase;letter-spacing:.03em}
+  h2{font-family:Lato;font-weight:700;font-size:14.5px;margin-bottom:14px;
+     text-transform:uppercase;letter-spacing:.05em}
+  /* section sub-headings: same face as h2, used where a label sits over a
+     chart or a control row rather than opening a block of prose */
+  .h2lab{font-family:Lato;font-weight:700;font-size:14.5px;letter-spacing:.05em;
+         text-transform:uppercase;color:var(--paper);margin:26px 0 6px}
+  .h2lab .qual{font-weight:400;text-transform:none;letter-spacing:0;
+               color:var(--muted);font-size:13px}
   #ts{width:100%;height:340px}
   .burnbar{margin:18px 0 6px;height:36px;display:flex;border-radius:4px;overflow:hidden;
            border:1px solid var(--line)}
@@ -351,15 +358,19 @@
            onerror="this.style.display='none';this.nextElementSibling.style.display='inline'">
       <span class="wordmark" style="display:none">CAUSEWAY<em>ENERGIES</em></span>
     </a>
-    <div class="brand">UK Heat <i>Shift</i></div>
+    <div class="brand">UK Heat <i>Split</i></div>
   </div>
   <div class="tickbox">
     <div class="ticker" id="ticker"></div>
     <div class="stamp" id="stamp">loading…</div>
   </div>
 </div>
-<div class="wrap"><p class="standfirst">The strategic case for GW-scale
-  geothermal heating and cooling in the UK</p></div>
+<div class="wrap"><p class="standfirst">A live estimate of the energy behind
+  Britain’s building heat and cooling, by source — and how much can be
+  saved when geothermal is adopted.</p>
+  <p class="sub" style="max-width:74ch">Gas space heating is estimated live from
+  grid data; other sources are official annual figures shaped by this week’s
+  weather. Estimates, not measurements.</p></div>
 </header>
 
 <div class="wrap">
@@ -376,8 +387,8 @@
     <h1 id="startline" tabindex="-1">1. The starting point — how Britain
       <span class="ember">heated</span> and <span class="cool">cooled</span>
       itself <span id="startwin">in the last week</span>.</h1>
-    <div class="trendctl" id="trendctl" style="justify-content:flex-start;margin-top:14px" hidden>
-      <span>TREND — LIVE WEEKS</span>
+    <div class="h2lab" id="displaylab" hidden>Display</div>
+    <div class="trendctl" id="trendctl" style="justify-content:flex-start;margin-top:2px" hidden>
       <button data-win="2" aria-pressed="true">1w</button>
       <button data-win="5">4w</button>
       <button data-win="13">12w</button>
@@ -422,6 +433,7 @@
     <div class="context" id="peakctx" style="margin-top:14px"></div>
   </div>
   <div class="hero">
+    <div class="h2lab" style="margin-top:34px">The energy balance</div>
     <div class="barlabel" id="balancesection">ENERGY IN — fuel &amp; electricity purchased<span id="barwin"></span></div>
     <div class="barrow">
       <div class="btot" id="tot_in">—</div>
@@ -475,7 +487,8 @@
     hour by hour across the last twelve months. Where the heat comes from
     decides how much electricity Britain has to find on its coldest
     hour.</p>
-    <div class="trendctl" style="margin-top:4px">
+    <div class="h2lab">View</div>
+    <div class="trendctl" style="margin-top:2px">
       <span>VIEW</span>
       <button data-rt="h" aria-pressed="true">Hourly · 7d</button>
       <button data-rt="d">Daily · 90d</button>
@@ -484,46 +497,30 @@
     </div>
     <div id="rt_main" style="width:100%;height:340px;margin-top:10px"></div>
 
-    <div class="barlabel">THE COLDEST HOUR — EXTRA ELECTRICITY THE FIFTH WOULD NEED</div>
+    <div class="h2lab">The coldest hour <span class="qual">— extra electricity the fifth would need</span></div>
     <div class="statrow" id="rt_winter"></div>
     <div id="rt_winbars" style="width:100%;height:300px;margin-top:12px"></div>
-    <div class="barlabel" id="rt_bindlbl" hidden style="margin-top:16px">THE TIGHTEST HOUR OF THE YEAR — WHAT BRITAIN'S POWER STATIONS WOULD HAVE TO COVER†</div>
+    <div class="h2lab" id="rt_bindlbl" hidden style="margin-top:16px">The tightest hour of the year <span class="qual">— what Britain’s power stations would have to cover†</span></div>
     <div class="statrow" id="rt_bind"></div>
     <div id="rt_bindbars" style="width:100%;height:300px;margin-top:12px" hidden></div>
-    <div class="barlabel" id="rt_limlbl" hidden style="margin-top:22px">HOW FAR COULD BRITAIN ELECTRIFY ITS HEAT INSIDE TODAY'S FLEET?†</div>
+    <div class="h2lab" id="rt_limlbl" hidden style="margin-top:22px">How far could Britain electrify its heat inside today’s fleet? <span class="qual">— †</span></div>
     <div class="statrow" id="rt_lim"></div>
     <div id="rt_limbars" style="width:100%;height:320px;margin-top:12px" hidden></div>
     <p class="costnote" id="rt_limnote"></p>
-    <div class="barlabel" style="margin-top:16px">THE HOTTEST HOUR — COOLING, AND WHAT DOUBLING IT WOULD COST†</div>
+    <div class="h2lab" style="margin-top:16px">The hottest hour <span class="qual">— cooling, and what doubling it would cost†</span></div>
     <div class="statrow" id="rt_summer"></div>
     <div id="rt_sumbars" style="width:100%;height:300px;margin-top:12px" hidden></div>
-    <div class="barlabel" id="rt_wklbl" style="margin-top:20px">THE WORST WEEK — FROZEN EXHIBIT</div>
+    <div class="h2lab" id="rt_wklbl" style="margin-top:20px">The tightest week of the year</div>
     <div id="rt_worst" style="width:100%;height:320px;margin-top:8px"></div>
-    <div class="barlabel" style="margin-top:20px">COP: HOW MUCH HEAT EACH ROUTE GETS PER UNIT OF ELECTRICITY, BY TEMPERATURE</div>
+    <div class="h2lab" style="margin-top:20px">Coefficient of performance <span class="qual">— how much heat each route gets per unit of electricity, by temperature</span></div>
     <div id="rt_cop" style="width:100%;height:260px;margin-top:8px"></div>
     <p class="costnote" id="rt_note"></p>
   </section>
 
   <section id="coolsection">
     <h1 class="sect">4. The rising demand for cooling, and geothermal’s role</h1>
-    <div class="barlabel">TIER 1 &amp; 2 — WHAT THE EQUIPPED FLEET DELIVERS</div>
-    <div class="billline" id="coolobsline"></div>
-    <details class="fold" id="fold_cool"><summary>EVIDENCE —
-      <b>the observed response curve and the reconciliation diagnostic</b></summary>
-    <div class="foldbody">
-    <div id="coolcurve" style="width:100%;height:300px"></div>
-    <p class="costnote" id="coolobsnote"></p>
-    <div id="reconblock" style="display:none">
-      <div class="barlabel" style="margin-top:26px">RECONCILIATION DIAGNOSTIC — YEAR-ROUND FIT (not yet in the bill)</div>
-      <div class="billline" id="reconline"></div>
-      <p class="costnote" id="reconnote"></p>
-    </div>
-    </div></details>
-    <div class="barlabel" style="margin-top:26px">TIER 3 — THE COMFORT DEFICIT: BUILDINGS WITH NO COOLING AT ALL</div>
-    <div class="billline" id="deficitline"></div>
-    <div id="tierbars" style="margin:14px 0 6px"></div>
-    <p class="geosub" id="deficitcontext"></p>
-    <div class="barlabel" style="margin-top:26px" id="tierdailylabel">ALL THREE TIERS, DAY BY DAY</div>
+
+    <div class="h2lab" style="margin-top:8px">Cooling day by day <span class="qual">— delivered, wanted, and unserved</span></div>
     <div class="trendbar" id="tierwin" style="margin:8px 0 2px">
       <button data-tw="28">4W</button>
       <button data-tw="84">12W</button>
@@ -531,11 +528,30 @@
       <button data-tw="730">24M</button>
     </div>
     <div id="tierdaily" style="height:300px;margin:10px 0 4px"></div>
+    <div id="tierlegend"></div>
     <p class="costnote" id="tierdailynote"></p>
-    <div class="barlabel" style="margin-top:22px">THE GEOCOOLING DIVIDEND — SUMMER HEAT BANKED, WINTER HEAT RECOVERED</div>
+
+    <div class="h2lab" style="margin-top:30px">The comfort deficit <span class="qual">— buildings with no cooling at all</span></div>
+    <div class="billline" id="deficitline"></div>
+    <p class="geosub" id="deficitcontext"></p>
+    <p class="costnote" id="deficitnote"></p>
+
+    <details class="fold" id="fold_cool"><summary>METHOD —
+      <b>the observed response curve, and why the tiers are measured this way</b></summary>
+    <div class="foldbody">
+    <div class="billline" id="coolobsline"></div>
+    <div id="coolcurve" style="width:100%;height:300px"></div>
+    <p class="costnote" id="coolobsnote"></p>
+    <div id="reconblock" style="display:none">
+      <div class="h2lab" style="margin-top:26px">Reconciliation diagnostic <span class="qual">— year-round fit, not yet in the bill</span></div>
+      <div class="billline" id="reconline"></div>
+      <p class="costnote" id="reconnote"></p>
+    </div>
+    </div></details>
+
+    <div class="h2lab" style="margin-top:30px">The geocooling dividend <span class="qual">— summer heat banked, winter heat recovered</span></div>
     <div id="utesbars" style="margin:10px 0 4px"></div>
     <p class="costnote" id="utesnote"></p>
-    <p class="costnote" id="deficitnote"></p>
   </section>
 
   <section id="geosection">
@@ -820,7 +836,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.8.0';
+const SITE_VERSION = '8.9.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1603,7 +1619,6 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
     const bar = document.getElementById('tierwin');
     if(!td || !td.dates || !td.dates.length){
       box.style.display = 'none'; bar.style.display = 'none';
-      document.getElementById('tierdailylabel').style.display = 'none';
       return;
     }
     // Same rule as the header toggle: a window button that shows less than it
@@ -1645,16 +1660,35 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
             t3 = tot(cut(td.t3_GWh));
       const dropped = ['Tier 1','Tier 2','Tier 3'].filter((_, i) =>
         !has([cut(td.t1_GWh), cut(td.t2_GWh), cut(td.t3_GWh)][i]));
+      // The legend carries the explanation, so the note beneath stays short.
+      // Tier 0 is named here and deliberately NOT plotted - see its entry.
+      const key = (c, name, val, note) =>
+        '<div style="display:flex;gap:9px;align-items:flex-start;margin-bottom:7px">' +
+        '<span style="flex:none;width:10px;height:10px;border-radius:2px;' +
+        'margin-top:5px;background:' + c + '"></span><div><b>' + name +
+        (val != null ? ' \u00b7 ' + fmt(Math.round(val)) + ' GWh' : '') +
+        '</b><span style="color:var(--muted)"> \u2014 ' + note + '</span></div></div>';
+      document.getElementById('tierlegend').innerHTML =
+        '<div style="font-size:13px;line-height:1.5;margin-top:12px">' +
+        key(css('--cool'), 'Tier 1 delivered', t1,
+            'what the equipped fleet actually drew, measured from grid demand') +
+        key(css('--elec'), 'Tier 2 saturated', t2,
+            'the same buildings, wanting more once their response curve flattens') +
+        key(css('--ember'), 'Tier 3 no equipment', t3,
+            'buildings with no cooling at all, central scenario') +
+        key('transparent;border:1px dashed ' + css('--ash'),
+            'Tier 0 process cooling', null,
+            'data centres, cold stores, retail and food refrigeration \u2014 of ' +
+            'order <b>26 TWh a year</b>\u2020 of cooling service, running flat all ' +
+            'year. <b>Not plotted:</b> at roughly 72 GWh a day it is four times ' +
+            'the other three combined and would flatten them. Bottom-up ' +
+            'estimate, not measured from the grid.') +
+        '</div>';
       document.getElementById('tierdailynote').textContent =
-        'Cooling service delivered and wanted, thermal GWh a day over ' +
-        (fmtWin[tw] || 'the window') + '. Tiers 1 and 2 are the SAME buildings ' +
-        '\u2014 what the equipped stock drew, and what it wanted once its ' +
-        'response curve flattens; tier 3 is the buildings with no equipment at ' +
-        'all. Totals over the window: ' + fmt(Math.round(t1)) + ' / ' +
-        fmt(Math.round(t2)) + ' / ' + fmt(Math.round(t3)) + ' GWh. Tiers 1 and ' +
-        '2 convert observed electricity at the installed fleet\u2019s ' +
-        'efficiency, the same factor the energy bars use; tier 3 is a thermal ' +
-        'load and needs no conversion.' +
+        'Thermal GWh a day over ' + (fmtWin[tw] || 'the window') +
+        '. Tiers 1 and 2 convert observed electricity at the installed ' +
+        'fleet\u2019s efficiency, the same factor the energy bars use; tier 3 is ' +
+        'a thermal load and needs no conversion.' +
         (dropped.length ? ' ' + dropped.join(' and ') + ' not shown: no ' +
          'positive values in this window.' : '');
     }
@@ -1848,26 +1882,6 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       'air-source compressors. Context: ' + cd.context.ac_penetration_note +
       ' · ' + cd.context.hospitals_note + ' · ' + cd.context.health_note +
       ' · ' + cd.context.productivity_note + '.';
-    const tb = cd.tier_bars;
-    if(tb){
-      const rows = [
-        ['TIER 1 · DELIVERED (equipped fleet)', tb.t1_delivered_th_GWh, 't1', ''],
-        ['TIER 2 · EQUIPPED BUT UNMET', tb.t2_unmet_th_GWh, 't2', ''],
-        ['TIER 3 · NO EQUIPMENT AT ALL', tb.t3_central_GWh, 't3',
-         ' (' + fmt(tb.t3_low_GWh) + '–' + fmt(tb.t3_high_GWh) + ')'],
-      ];
-      const mx = Math.max(tb.t1_delivered_th_GWh, tb.t3_high_GWh, 1);
-      const el = document.getElementById('tierbars');
-      rows.forEach(([lab, v, cls, extra])=>{
-        el.insertAdjacentHTML('beforeend',
-          `<div class="tierrow"><div class="tlabel">${lab}</div>` +
-          `<div class="tiertrack"><div class="tfill ${cls}" data-w="${100*v/mx}"></div></div>` +
-          `<div class="tval">${fmt(v)}${extra} GWh</div></div>`);
-      });
-      requestAnimationFrame(()=>requestAnimationFrame(()=>{
-        el.querySelectorAll('.tfill').forEach(f=>{f.style.width=f.dataset.w+'%';});
-      }));
-    }
     const ut = cd.utes;
     if(ut){
       const el2 = document.getElementById('utesbars');
@@ -2628,14 +2642,14 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       const t1 = new Date(t0.getTime() + 167*3600e3);
       const f = d => d.toLocaleDateString('en-GB',
         {day:'numeric', month:'short', timeZone:'UTC'});
-      document.getElementById('rt_wklbl').textContent =
+      // heading face, with the dates and the qualifier in the lighter run-on
+      document.getElementById('rt_wklbl').innerHTML =
         (WR.system && WR.binding_week
-          ? 'THE TIGHTEST WEEK OF THE YEAR \u2014 ' + f(t0).toUpperCase()
-            + ' TO ' + f(t1).toUpperCase() + ' \u00b7 THE SEVEN DAYS '
-            + 'AROUND THAT HOUR'
-          : 'THE WORST WEEK UNDER THE CEILING \u2014 ' + f(t0).toUpperCase()
-            + ' TO ' + f(t1).toUpperCase() + ' \u00b7 THE ROLLING 168 HOURS '
-            + 'OF MAXIMUM HEAT, EMPIRICALLY LOCATED (NOT A CALENDAR WEEK)');
+          ? 'The tightest week of the year<span class="qual"> \u2014 ' + f(t0)
+            + ' to ' + f(t1) + ' \u00b7 the seven days around that hour</span>'
+          : 'The worst week under the ceiling<span class="qual"> \u2014 ' + f(t0)
+            + ' to ' + f(t1) + ' \u00b7 the rolling 168 hours of maximum heat, '
+            + 'empirically located, not a calendar week</span>');
     })();
 
     function drawMain(mode){
