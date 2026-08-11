@@ -379,6 +379,7 @@
       <button data-win="5">4w</button>
       <button data-win="13">12w</button>
       <button data-win="53">12m</button>
+      <button data-win="105">24m</button>
       <span id="trendspan"></span>
     </div>
     <p class="sub">A weekly estimate of the energy behind Britain's building heat and
@@ -801,7 +802,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.5.1';
+const SITE_VERSION = '8.6.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -2026,7 +2027,8 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       const sumN = {5: 4, 13: 12, 53: 52}[win];
       const rows = hist.slice(-sumN), n = rows.length;
       const label = 'over the last ' + {5:'4 weeks',13:'12 weeks',
-                                        53:'12 months'}[win]
+                                        53:'12 months',
+                                        105:'24 months'}[win]
                     + (n < sumN ? ' (' + n + ' live wks)' : '');
       const S  = k => rows.reduce((a,e) => a + (e[k] || 0), 0);
       const SW = k => rows.reduce((a,e) => a + ((e.whatif||{})[k] || 0), 0);
@@ -2196,11 +2198,20 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
     // The heading names the window the reader is looking at. Window values
     // are weeks+1 - the trend needs a prior point to measure change from.
     const START_WIN = {2:'in the last week', 5:'in the last 4 weeks',
-                       13:'in the last 12 weeks', 53:'in the last 12 months'};
+                       13:'in the last 12 weeks', 53:'in the last 12 months',
+                       105:'in the last 24 months'};
     function setStartWin(w){
       const el = document.getElementById('startwin');
       if(el) el.textContent = START_WIN[w] || 'in the last week';
     }
+    // The 24-month button appears only once the record can fill it. Until the
+    // back-cast lands it would label ~59 weeks as two years, which is the one
+    // way a window toggle can lie. Self-correcting: it shows up on its own.
+    const WEEKS_ON_RECORD = ((d.history || []).length) || 0;
+    ctl.querySelectorAll('button').forEach(b => {
+      const need = +b.dataset.win - 1;
+      if(need > 53 && WEEKS_ON_RECORD < need) b.style.display = 'none';
+    });
     let win = 2;
     setStartWin(win);
     ctl.querySelectorAll('button').forEach(b => {
