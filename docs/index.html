@@ -531,6 +531,10 @@
     <div id="tierlegend"></div>
     <p class="costnote" id="tierdailynote"></p>
 
+    <div class="h2lab" id="diurnallab" style="margin-top:30px" hidden>What is comfort, and what is not <span class="qual">— demand response to temperature, hour by hour</span></div>
+    <div id="diurnal" style="height:260px;margin:8px 0 4px"></div>
+    <p class="costnote" id="diurnalnote"></p>
+
     <div class="h2lab" style="margin-top:30px">The comfort deficit <span class="qual">— buildings with no cooling at all</span></div>
     <div class="billline" id="deficitline"></div>
     <p class="geosub" id="deficitcontext"></p>
@@ -576,6 +580,16 @@
         <h2 style="margin-top:26px;font-size:16px">The same fleets, calibrated — share of each country's own buildings heat</h2>
         <div id="emptysharesplot" style="width:100%;height:240px;margin-top:10px"></div>
         <p class="costnote" id="emptybarnote"></p>
+    </div>
+    <p class="geosub" style="margin-top:16px">Geothermal heat is steady,
+      local, combustion-free — and the same boreholes and aquifers that heat in
+      winter cool in summer, rejecting heat to ~12°C ground instead of 30°C
+      summer air. Active ground-source cooling beats air-cooled chillers on
+      efficiency; passive borehole cooling (circulation only, no compressor)
+      can deliver cooling at COPs of 15–30. Solid bars are estimated actuals;
+      hatched bars are third-party forecasts and ambitions, each tagged with
+      its source. Forecast bars are heat only — no published UK geothermal
+      cooling forecast exists to cite.</p>
   </section>
 
   <section>
@@ -715,16 +729,6 @@
         </div>
 
       </div>
-      <p class="geosub" style="margin-top:16px">Geothermal heat is steady,
-        local, combustion-free — and the same boreholes and aquifers that heat in
-        winter cool in summer, rejecting heat to ~12°C ground instead of 30°C
-        summer air. Active ground-source cooling beats air-cooled chillers on
-        efficiency; passive borehole cooling (circulation only, no compressor)
-        can deliver cooling at COPs of 15–30. Solid bars are estimated actuals;
-        hatched bars are third-party forecasts and ambitions, each tagged with
-        its source. Forecast bars are heat only — no published UK geothermal
-        cooling forecast exists to cite.</p>
-    </div>
   </section>
 
   <h1 class="sect" style="margin-top:44px">Footnotes</h1>
@@ -836,7 +840,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.9.0';
+const SITE_VERSION = '8.10.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1700,6 +1704,52 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       drawTiers(+b.dataset.tw);
     });
     drawTiers(365);
+  })();
+
+  // ---- what is comfort and what is not ------------------------------------
+  // The separation the tiers rest on. Comfort cooling peaks with the afternoon
+  // and is near-absent at 4am; process cooling runs all night and its
+  // compressors still work harder as the air warms. So the slope of demand
+  // against temperature, hour by hour, splits them without knowing either
+  // level. Deliberately NOT extrapolated to a level - see the note.
+  (() => {
+    const dn = (d.whatif_routes || {}).diurnal;
+    const box = document.getElementById('diurnal');
+    if(!dn || !dn.profile || !dn.profile.length){
+      if(box) box.style.display = 'none';
+      return;
+    }
+    document.getElementById('diurnallab').hidden = false;
+    const hrs = dn.profile.map(p => String(p.hour).padStart(2,'0') + ':00');
+    const flo = dn.night_floor_GW_per_C;
+    Plotly.newPlot('diurnal', [
+      {x:hrs, y:dn.profile.map(p=>Math.min(p.slope_GW_per_C, flo)),
+       type:'bar', name:'runs all night \u2014 process',
+       marker:{color:css('--ash')}, hovertemplate:'%{x}<extra>process floor</extra>'},
+      {x:hrs, y:dn.profile.map(p=>Math.max(0, p.slope_GW_per_C - flo)),
+       type:'bar', name:'daytime excess \u2014 comfort',
+       marker:{color:css('--cool')},
+       hovertemplate:'%{x}<br>+%{y:.3f} GW/\u00b0C above the floor<extra></extra>'}
+    ], {
+      barmode:'stack', bargap:0.15,
+      paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
+      font:{family:'Lato', color:css('--muted'), size:12},
+      margin:{l:60,r:16,t:8,b:40},
+      xaxis:{gridcolor:css('--line'), tickangle:0, dtick:2},
+      yaxis:{title:'GW per \u00b0C', gridcolor:css('--line'), zeroline:false},
+      legend:{orientation:'h', y:1.2}
+    }, {displayModeBar:false, responsive:true});
+    document.getElementById('diurnalnote').textContent =
+      'Summer demand regressed on outdoor air temperature, separately for each ' +
+      'hour, over ' + fmt(dn.summer_hours) + ' hours and demeaned within year, ' +
+      'month, day type and hour. The floor of ' + dn.night_floor_GW_per_C +
+      ' GW/\u00b0C runs at 4am when no one is cooling an office \u2014 that is ' +
+      'refrigeration and process plant working harder as the air warms, and it ' +
+      'is what tier 0 consists of. The ' + dn.comfort_excess_GW_per_C +
+      ' GW/\u00b0C peak above it is comfort. ' + 'Level is not inferred from this: below about 15 \u00b0C the ' +
+      'response goes flat as plant hits its minimum condensing temperature ' +
+      'and data centres switch to free cooling, so the slope cannot be ' +
+      'extrapolated back to a level.';
   })();
 
   function routeBars(el, rows, key, axis){
