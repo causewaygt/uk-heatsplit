@@ -1391,7 +1391,22 @@ def main():
                     wk_deliv += max(0.0, curve.get(
                         b, curve.get(max(curve), 0.0))) if b > 0 else 0.0
                     wk_latent += slope_l * c if slope_ok else 0.0
+                # Daily tier 1 and 2 across the whole record, so the three
+                # tiers can be drawn as a stacked column per day rather than
+                # as one week's snapshot. Electricity GWh; the panel converts
+                # to thermal with the same EER the tier bars use.
+                daily_t12 = {"dates": [], "delivered_GWh": [], "unmet_GWh": []}
+                for d_ in common:
+                    c = dd["cdd"][COOL_BASE][dd_idx[d_]]
+                    b = 0 if c == 0 else min(5, int(c) + 1)
+                    dv = (max(0.0, curve.get(b, curve.get(max(curve), 0.0)))
+                          if b > 0 else 0.0)
+                    lt = slope_l * c if slope_ok else 0.0
+                    daily_t12["dates"].append(d_)
+                    daily_t12["delivered_GWh"].append(round(dv, 2))
+                    daily_t12["unmet_GWh"].append(round(max(0.0, lt - dv), 2))
                 cooling_observed = {
+                    "daily": daily_t12,
                     "response_curve_GWh_per_day": curve,
                     "bin_days": {str(b): bin_n.get(b, 0)
                                  for b in sorted(bin_mean)},
@@ -1637,7 +1652,15 @@ def main():
                                    #   other (BEES floor areas x † fractions)
     WH_PER_M2_ODH = 3.0            # † Wh thermal per m2 per degC.h
     GROUND_COOL_COP = 20.0         # passive/free ground cooling †
-    AIR_COOL_EER = 3.5             # typical air-con delivery
+    # Two different efficiencies, for two different questions. COOL_EER (3.0,
+    # module constant) is the INSTALLED FLEET - old and new kit, well and
+    # badly maintained - and is what the rest of the site converts delivered
+    # cooling at. AIR_COOL_EER is what a modern air-source unit would deliver,
+    # and belongs only in the counterfactual: what serving the DEFICIT would
+    # cost if it were met by new compressors. Corrected 10 Aug 2026 - tiers 1
+    # and 2 had been converting the installed fleet at 3.5, which put them
+    # about 17% above the same quantity in the energy bars.
+    AIR_COOL_EER = 3.5             # new air-source kit, counterfactual only
 
     comfort_deficit = None
     try:
@@ -1672,9 +1695,30 @@ def main():
                 "dwellings_M": round(n_dw / 1e6, 1),
                 "latent_thermal_GWh": round(dom_gwh + nd_gwh, 0),
             }
+        # Tier 3 per day on the same base, so all three tiers can be drawn
+        # as one stacked column per day. Thermal GWh, central scenario.
+        f_c = F_OVERHEAT["central"]
+        n_dw_c = UK_DWELLINGS_M * 1e6 * f_c * (1 - AC_PENETRATION)
+        per_degCh = (n_dw_c * KWH_PER_DWELLING_ODH / 1e6
+                     + NONDOM_UNCOOLED_MM2 * 1e6 * WH_PER_M2_ODH / 1e9)
+        t12 = (cooling_observed or {}).get("daily") or {}
+        idx12 = {d_: i for i, d_ in enumerate(t12.get("dates", []))}
+        tier_daily = {"dates": [], "t1_GWh": [], "t2_GWh": [], "t3_GWh": []}
+        for d_ in sorted(cdd_def)[-365:]:
+            i = idx12.get(d_)
+            tier_daily["dates"].append(d_)
+            tier_daily["t1_GWh"].append(
+                round(t12["delivered_GWh"][i] * COOL_EER, 2)
+                if i is not None else None)
+            tier_daily["t2_GWh"].append(
+                round(t12["unmet_GWh"][i] * COOL_EER, 2)
+                if i is not None else None)
+            tier_daily["t3_GWh"].append(round(cdd_def[d_] * 24.0 * per_degCh, 2))
+
         central = scen["central"]["latent_thermal_GWh"]
         comfort_deficit = {
             "cdh_week_degC_h": odh_week,
+            "tier_daily": tier_daily,
             "threshold_c": float(base_used),
             "basis": "cooling degree-hours on the daily mean of "
                      "population-weighted outdoor air, base %s C" % base_used,
@@ -1694,10 +1738,10 @@ def main():
             },
             "tier_bars": ({
                 "t1_delivered_th_GWh": round(
-                    cooling_observed["week_delivered_GWh"] * AIR_COOL_EER, 0),
+                    cooling_observed["week_delivered_GWh"] * COOL_EER, 0),
                 "t2_unmet_th_GWh": round(
                     (cooling_observed.get("week_unmet_GWh") or 0)
-                    * AIR_COOL_EER, 0),
+                    * COOL_EER, 0),
                 "t3_low_GWh": scen["low"]["latent_thermal_GWh"],
                 "t3_central_GWh": scen["central"]["latent_thermal_GWh"],
                 "t3_high_GWh": scen["high"]["latent_thermal_GWh"],
