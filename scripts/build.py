@@ -1463,7 +1463,16 @@ def main():
                              "Flattening at high CDD indicates capacity and "
                              "behavioural saturation. Latent demand "
                              "extrapolates the low-CDD slope linearly" + EST +
-                             ". Not yet used in the bill or carbon figures, "
+                             " - and the response is measurably NOT linear: "
+                             "it steps about +3 GWh per CDD across the cool "
+                             "bins against +17 across the warm ones, and the "
+                             "same convexity shows in the night data as a "
+                             "break near 15 degC, where refrigeration plant "
+                             "reaches its minimum condensing temperature. So "
+                             "tier 2 is the least certain figure on this "
+                             "panel, and a linear extrapolation is the wrong "
+                             "instrument for it. Not yet used in the bill or "
+                             "carbon figures, "
                              "which remain ECUK-anchored pending a full "
                              "summer of reconciliation."),
                 }

@@ -914,6 +914,7 @@ def slices(store, nd_daily=None):
         "stress": stress,
         "stress_summer": stress_summer,
         "diurnal": diurnal_slope(store),
+        "night_elbow": night_elbow(store),
         # Withdrawn from the page 9 Aug 2026 - hard to read at a glance and
         # not carrying weight in the argument. Still computed and logged
         # every run so the question stays answered and the panel can be
@@ -1262,6 +1263,104 @@ def diurnal_slope(store):
                  "as plant hits its minimum condensing temperature and data "
                  "centres switch to free cooling, so the slope cannot be "
                  "extrapolated back to a level."),
+    }
+
+
+def night_elbow(store):
+    """Summer-night demand against outdoor temperature, binned, by year.
+
+    The companion to diurnal_slope. Taking only the night hours removes
+    comfort cooling, so what is left is the process fleet responding to
+    ambient. The response is NOT linear: below about 15 C it is flat, because
+    refrigeration plant floats head pressure down only to a minimum condensing
+    temperature and data-centre economisers switch to free cooling. Above it
+    the slope is steep.
+
+    Published per year so the replication is visible rather than asserted -
+    the elbow appears independently in each summer on record. The same
+    convexity is already present in the CDD response curve that produces tiers
+    1 and 2, arrived at from a different variable and a different aggregation,
+    which is why the two charts sit together.
+
+    A level is NOT derivable from this. The flat segment is a floor whose
+    height is exactly the quantity aggregate demand cannot see.
+    """
+    T = store.get("temp_C") or []
+    D = store.get("demand_GW") or []
+    S = store.get("solar_GW") or []
+    if not T or not D:
+        return None
+    t0 = dt.datetime.fromisoformat(store["start_day"])
+    rows = []
+    for i in range(min(len(T), len(D))):
+        if T[i] is None or D[i] is None:
+            continue
+        ts = t0 + dt.timedelta(hours=i)
+        if ts.month not in (5, 6, 7, 8, 9) or not (1 <= ts.hour <= 5):
+            continue
+        rows.append((ts, T[i], D[i] + ((S[i] or 0.0) if i < len(S) else 0.0)))
+    if len(rows) < 200:
+        return None
+
+    def prep(sel):
+        cells = {}
+        for r in sel:
+            cells.setdefault((r[0].year, r[0].month,
+                              r[0].weekday() >= 5, r[0].hour), []).append(r)
+        gm = sum(r[2] for r in sel) / len(sel)
+        out = []
+        for g in cells.values():
+            if len(g) < 5:
+                continue
+            md = sum(x[2] for x in g) / len(g)
+            for x in g:
+                out.append((x[1], x[2] - md + gm))
+        return out
+
+    def seg(pts, lo, hi):
+        sel = [p for p in pts if lo <= p[0] < hi]
+        if len(sel) < 30:
+            return None
+        mx = sum(p[0] for p in sel) / len(sel)
+        my = sum(p[1] for p in sel) / len(sel)
+        sxx = sum((p[0] - mx) ** 2 for p in sel)
+        if sxx <= 0:
+            return None
+        b = sum((p[0] - mx) * (p[1] - my) for p in sel) / sxx
+        return {"slope_GW_per_C": round(b, 3), "n": len(sel)}
+
+    BREAK = 15.0
+    years = []
+    for yr in sorted({r[0].year for r in rows}):
+        sel = [r for r in rows if r[0].year == yr]
+        if len(sel) < 120:
+            continue
+        pts = prep(sel)
+        bins = {}
+        for t, v in pts:
+            bins.setdefault(int(round(t)), []).append(v)
+        series = [{"t_C": k, "demand_GW": round(sum(v) / len(v), 2), "n": len(v)}
+                  for k, v in sorted(bins.items()) if len(v) >= 5]
+        years.append({"year": yr, "bins": series,
+                      "below": seg(pts, -5, BREAK), "above": seg(pts, BREAK, 40),
+                      "hours": len(sel)})
+    if not years:
+        return None
+    allpts = prep(rows)
+    return {
+        "break_C": BREAK,
+        "years": years,
+        "below": seg(allpts, -5, BREAK),
+        "above": seg(allpts, BREAK, 40),
+        "note": ("Summer-night demand, 01:00-05:00, May to September, demeaned "
+                 "within year, month, day type and hour. Night hours carry no "
+                 "comfort cooling, so the response is the process fleet meeting "
+                 "a warmer condenser. It is not a straight line: below about "
+                 "15 degC it is flat, because plant floats head pressure only "
+                 "to a minimum condensing temperature and data centres switch "
+                 "to free cooling. The elbow appears independently in each "
+                 "summer on record. No level can be read off it - the flat "
+                 "segment is a floor whose height aggregate demand cannot see."),
     }
 
 
