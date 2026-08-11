@@ -10,6 +10,7 @@
 const { JSDOM } = require("jsdom");
 const fs = require("fs");
 const html = fs.readFileSync("docs/index.html", "utf8");
+const raw = html;
 const data = JSON.parse(fs.readFileSync("docs/data.json", "utf8"));
 
 const dom = new JSDOM(html, { runScripts: "outside-only", pretendToBeVisual: true });
@@ -33,6 +34,27 @@ setTimeout(() => {
   console.log("frontispiece");
 
   // --- masthead
+  // STRUCTURAL GATE. `node --check` on the extracted script proves the script
+  // parses - it does NOT prove the file is well formed. A failed string
+  // replacement once wrote 1,341 characters of JavaScript in front of the
+  // doctype, which rendered as visible text at the top of the live page while
+  // every syntax check passed. Check the shape of the document itself.
+  chk("nothing before the doctype",
+      /^\s*<!DOCTYPE html>/i.test(raw),
+      JSON.stringify(raw.slice(0, 60)));
+  // Count ALL script openers, including <script src=...> and <script data-...>,
+  // not just the bare form - three tags here: plotly, the inline block, and
+  // the analytics tag.
+  chk("script tags balance",
+      (raw.match(/<script\b/g) || []).length ===
+      (raw.match(/<\/script>/g) || []).length,
+      "open " + (raw.match(/<script\b/g) || []).length +
+      " close " + (raw.match(/<\/script>/g) || []).length);
+  chk("exactly one inline script block",
+      (raw.match(/<script>/g) || []).length === 1);
+  chk("no javascript leaking into the markup",
+      !/^[^<]*key\(css\(/m.test(raw.split("<body>")[0]));
+
   chk("brand reads UK Heat Split",
       /UK Heat\s+Split/.test(doc.querySelector(".brand").textContent),
       doc.querySelector(".brand").textContent.trim());
