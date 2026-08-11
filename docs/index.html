@@ -1,3 +1,22 @@
+        key(css('--cool'), 'Tier 1 measured response', t1,
+            'the weather-varying slice of the equipped fleet\u2019s draw \u2014 ' +
+            'measured electricity, multiplied up by the fleet efficiency. This ' +
+            'sits INSIDE the ECUK anchor above, not beside it: the method ' +
+            'centres within each month and cannot see cooling that runs ' +
+            'steadily through July') +
+        key(css('--ember'), 'Tier 2 no equipment', t2,
+            'buildings with no cooling at all, central scenario \u2014 a ' +
+            'thermal load computed from building physics, so unlike tier 1 it ' +
+            'never touches an efficiency. OUTSIDE the anchor: a building that ' +
+            'consumes nothing cannot be counted by a consumption survey') +
+        key('transparent;border:1px dashed ' + css('--ash'),
+            'Tier 0 process cooling', null,
+            'data centres, cold stores, retail and food refrigeration \u2014 of ' +
+            'order <b>26 TWh a year</b>\u2020 of cooling service, running flat all ' +
+            'year. <b>Not plotted:</b> at roughly 72 GWh a day it is several ' +
+            'times the tiers above and would flatten them. Bottom-up ' +
+            'estimate, not measured from the grid. The separation is evidenced ' +
+            'under METHOD below.') +
 <!DOCTYPE html>
 <html lang="en-GB">
 <head>
@@ -856,7 +875,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.11.0';
+const SITE_VERSION = '8.12.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1632,7 +1651,7 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
   // ---- all three cooling tiers, daily, trailing twelve months -------------
   // The tier bars above are one week. This is the shape of the year: tier 1
   // is what the equipped stock actually drew, tier 2 what it wanted and could
-  // not deliver, tier 3 the unequipped remainder. Stacked because they are
+  // not deliver. Stacked because they are
   // disjoint populations of buildings, not competing estimates of one.
   (() => {
     const td = (d.comfort_deficit || {}).tier_daily;
@@ -1660,8 +1679,7 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       const dates = cut(td.dates);
       const series = [
         ['Tier 1 · delivered by equipped stock', cut(td.t1_GWh), css('--cool')],
-        ['Tier 2 · equipped but saturated',      cut(td.t2_GWh), css('--elec')],
-        ['Tier 3 · no cooling equipment at all', cut(td.t3_GWh), css('--ember')]
+        ['Tier 2 · no cooling equipment at all', cut(td.t2_GWh), css('--ember')]
       ].filter(r => has(r[1]));
       Plotly.newPlot('tierdaily', series.map(r => ({
         x: dates, y: r[1], name: r[0], type: 'bar',
@@ -1677,10 +1695,9 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
         legend:{orientation:'h', y:1.18}
       }, {displayModeBar:false, responsive:true});
 
-      const t1 = tot(cut(td.t1_GWh)), t2 = tot(cut(td.t2_GWh)),
-            t3 = tot(cut(td.t3_GWh));
-      const dropped = ['Tier 1','Tier 2','Tier 3'].filter((_, i) =>
-        !has([cut(td.t1_GWh), cut(td.t2_GWh), cut(td.t3_GWh)][i]));
+      const t1 = tot(cut(td.t1_GWh)), t2 = tot(cut(td.t2_GWh));
+      const dropped = ['Tier 1','Tier 2'].filter((_, i) =>
+        !has([cut(td.t1_GWh), cut(td.t2_GWh)][i]));
       // The legend carries the explanation, so the note beneath stays short.
       // Tier 0 is named here and deliberately NOT plotted - see its entry.
       const key = (c, name, val, note) =>
@@ -1696,14 +1713,11 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
             'sits INSIDE the ECUK anchor above, not beside it \u2014 it is ' +
             'about a seventh of it, because the method centres within each ' +
             'month and cannot see cooling that runs steadily through July') +
-        key(css('--elec'), 'Tier 2 saturated', t2,
-            'the same buildings, wanting more once their response curve ' +
-            'flattens. OUTSIDE the anchor \u2014 official statistics count ' +
-            'consumption, not thwarted want') +
-        key(css('--ember'), 'Tier 3 no equipment', t3,
-            'buildings with no cooling at all, central scenario. Also OUTSIDE ' +
-            'the anchor \u2014 a building that consumes nothing cannot be ' +
-            'counted by a consumption survey') +
+        key(css('--ember'), 'Tier 2 no equipment', t2,
+            'buildings with no cooling at all, central scenario \u2014 a ' +
+            'thermal load computed from building physics, so unlike tier 1 it ' +
+            'never touches an efficiency. OUTSIDE the anchor: a building that ' +
+            'consumes nothing cannot be counted by a consumption survey') +
         key('transparent;border:1px dashed ' + css('--ash'),
             'Tier 0 process cooling', null,
             'data centres, cold stores, retail and food refrigeration \u2014 of ' +
@@ -1715,9 +1729,11 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
         '</div>';
       document.getElementById('tierdailynote').textContent =
         'Thermal GWh a day over ' + (fmtWin[tw] || 'the window') +
-        '. Tiers 1 and 2 convert observed electricity at the installed ' +
-        'fleet\u2019s efficiency, the same factor the energy bars use; tier 3 is ' +
-        'a thermal load and needs no conversion.' +
+        '. Tier 1 converts observed electricity at the installed fleet\u2019s ' +
+        'efficiency, the same factor the energy bars use; tier 2 is a thermal ' +
+        'load and needs no conversion. A third tier, equipped-but-saturated, ' +
+        'was removed on 11 Aug 2026: its premise was that the fleet flattens ' +
+        'at high load, and the measured response steepens instead.' +
         (dropped.length ? ' ' + dropped.join(' and ') + ' not shown: no ' +
          'positive values in this window.' : '');
     }
