@@ -1794,26 +1794,17 @@ def main():
                 "winter_recovered_GWh": round(
                     central * (1 + 1 / GROUND_COOL_COP) * 0.7, 0),
             },
-            "note": ("The observed curve above only sees buildings that have "
-                     "cooling. This tier estimates the sweltering remainder: "
-                     "cooling degree-hours on the daily mean of "
-                     "population-weighted outdoor air above a " +
-                     base_used + " degC base (no "
-                     "occupancy model" + EST + ") x the unequipped stock at "
-                     "risk (low: EHS 11% self-reported; central 25%" + EST +
-                     "; high: CCC over-half-at-risk) x per-dwelling and "
-                     "per-m2 thermal response" + EST + ". The base is "
-                     "derived from the 2017 Energy Follow-Up Survey "
-                     "indoor/outdoor regression, not from CIBSE's 26 degC, "
-                     "which is an INDOOR operative criterion (TM59 Criterion "
-                     "B, bedrooms, 1% of night hours) and had been misapplied "
-                     "to outdoor air - that understated this tier about "
-                     "five-fold. A night-time urban heat island uplift is "
-                     "still not in the numbers and would add 10-20% more"
-                     + EST + ". Meeting the "
-                     "central load via passive ground cooling would draw "
-                     "~1/6 the electricity of air-source compressors - and "
-                     "the rejected heat recharges the ground for winter."),
+            "note": ("Cooling degree-hours on the daily mean of "
+                     "population-weighted outdoor air above a " + base_used +
+                     " degC base, x the unequipped stock at risk (low: EHS "
+                     "11%; central 25%" + EST + "; high: CCC over-half-at-risk) "
+                     "x a per-dwelling and per-m2 thermal response" + EST +
+                     ". The base comes from the 2017 Energy Follow-Up Survey "
+                     "indoor/outdoor regression, NOT from CIBSE's 26 degC, "
+                     "which is an indoor criterion and had been misapplied to "
+                     "outdoor air - that understated this tier about "
+                     "five-fold. A night-time urban heat island uplift would "
+                     "add 10-20% more and is not in the numbers" + EST + "."),
         }
     except Exception:
         traceback.print_exc()
