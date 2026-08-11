@@ -905,7 +905,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.16.0';
+const SITE_VERSION = '8.17.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1494,23 +1494,20 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
                                   (H * gasH + C * ci / CHILLER)))
           : null;
         return {
-          n:'04', fig: Math.round(100 * (1 - eGeo / eIn)), unit:'less energy',
+          n:'04', fig: Math.round(100 * (1 - eGeo / eIn)) + '%',
+          unit:'less energy',
           href:'#coolsection',
           claim:'One asset heats and cools the same building \u2014 for a ' +
                 'fraction of the energy.',
           qual:'A gas boiler and an air-cooled chiller draw ' +
-               (eIn / eGeo).toFixed(1) + ' times the energy of one ambient ' +
-               'loop delivering the same heat and the same cooling\u2020. The ' +
-               'figure barely moves with the mix \u2014 ' +
-               Math.round(100 * (1 - BOILER / SPF)) + '% on heat alone, ' +
-               Math.round(100 * (1 - CHILLER / GEOCOP)) +
-               '% on cooling alone \u2014 because both improve by a similar ' +
-               'multiple, so it holds whatever the building does.' +
-               (cSave ? ' Emissions fall further still, ' + cSave +
-                 '% at today\u2019s grid intensity of ' + ci +
-                 ' g/kWh, because heat swaps combustion for electricity as ' +
-                 'well as efficiency \u2014 and that gap widens every year the ' +
-                 'grid decarbonises, while the gas figure never moves.' : ''),
+               (eIn / eGeo).toFixed(1) + '\u00d7 the energy of one ambient ' +
+               'loop delivering the same heat and the same cooling\u2020 \u2014 ' +
+               Math.round(100 * (1 - BOILER / SPF)) + '% on heat, ' +
+               Math.round(100 * (1 - CHILLER / GEOCOP)) + '% on cooling, so ' +
+               'it holds whatever the building does.' +
+               (cSave ? ' Emissions fall ' + cSave + '% at today\u2019s ' +
+                 ci + ' g/kWh \u2014 and that gap widens as the grid ' +
+                 'decarbonises, while gas never moves.' : ''),
           ev:'cooling, and what heat costs'};
       })(),
 
