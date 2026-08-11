@@ -1,22 +1,3 @@
-        key(css('--cool'), 'Tier 1 measured response', t1,
-            'the weather-varying slice of the equipped fleet\u2019s draw \u2014 ' +
-            'measured electricity, multiplied up by the fleet efficiency. This ' +
-            'sits INSIDE the ECUK anchor above, not beside it: the method ' +
-            'centres within each month and cannot see cooling that runs ' +
-            'steadily through July') +
-        key(css('--ember'), 'Tier 2 no equipment', t2,
-            'buildings with no cooling at all, central scenario \u2014 a ' +
-            'thermal load computed from building physics, so unlike tier 1 it ' +
-            'never touches an efficiency. OUTSIDE the anchor: a building that ' +
-            'consumes nothing cannot be counted by a consumption survey') +
-        key('transparent;border:1px dashed ' + css('--ash'),
-            'Tier 0 process cooling', null,
-            'data centres, cold stores, retail and food refrigeration \u2014 of ' +
-            'order <b>26 TWh a year</b>\u2020 of cooling service, running flat all ' +
-            'year. <b>Not plotted:</b> at roughly 72 GWh a day it is several ' +
-            'times the tiers above and would flatten them. Bottom-up ' +
-            'estimate, not measured from the grid. The separation is evidenced ' +
-            'under METHOD below.') +
 <!DOCTYPE html>
 <html lang="en-GB">
 <head>
@@ -556,21 +537,38 @@
     <p class="costnote" id="deficitnote"></p>
 
     <details class="fold" id="fold_cool"><summary>METHOD —
-      <b>what is measured, what is anchored, and what was tested and rejected</b></summary>
+      <b>what is anchored, what is measured, and what was tested and rejected</b></summary>
     <div class="foldbody">
-    <p class="costnote" style="margin-top:2px">National demand data shows
-      <b>slopes</b>, not levels: a load that does not vary with the weather is
-      indistinguishable from every other constant in the system. So every level
-      on this panel comes from elsewhere — ECUK for comfort cooling,
-      bottom-up counting for process — and the grid data’s job is to
-      test whether those levels behave correctly, not to produce them. The
-      response curve below centres within each month before binning, which
-      removes the level along with the seasonal confound; it therefore recovers
-      about a seventh of the anchored figure and is a lower bound by
-      construction. Modelling the baseline explicitly instead, on undemeaned
-      daily data, recovers <b>74%</b> of the anchor and identifies a balance
-      point of 14.5 °C against the 15.5 °C the building physics gives
-      — two independent methods within a quarter of each other.</p>
+
+    <p class="costnote" style="margin-top:2px"><b>One principle.</b> National
+      demand data shows <b>slopes</b>, not levels. A load that does not vary
+      with the weather is indistinguishable from every other constant in the
+      system, so no amount of grid data can size it. Every level on this panel
+      therefore comes from elsewhere — official statistics for comfort
+      cooling, bottom-up counting for process — and the grid’s job is
+      to test whether those levels behave as they should, not to produce
+      them.</p>
+
+    <div class="h2lab" style="margin-top:24px">The anchor <span class="qual">— and why it is split</span></div>
+    <p class="costnote" id="methanchor"></p>
+
+    <div class="h2lab" style="margin-top:24px">Two estimators, and why they disagree <span class="qual">— a factor of five, for a reason</span></div>
+    <p class="costnote">The response curve below centres each day within its
+      own month and day type before fitting. That removes the holiday and
+      seasonal confound — August demand is depressed exactly when it is
+      hottest — but it removes the <b>level</b> along with it, because the
+      monthly mean contains most of the cooling. So the curve recovers about a
+      <b>seventh</b> of the anchored figure and is a lower bound by
+      construction, not a contradiction of it.
+      Modelling the baseline explicitly instead — constant, day type,
+      holidays, a heating limb and a convex cooling limb, fitted on undemeaned
+      daily data — keeps the intercept, and recovers <b>74%</b> of the
+      anchor with a balance point of <b>14.5 °C</b> against the
+      <b>15.5 °C</b> the building physics gives. Two independent routes
+      within a quarter of each other. The gap is the honest uncertainty: it
+      could be the anchor running high, the fit running low, or the shape being
+      wrong, and 400 days cannot tell them apart.</p>
+
     <div class="h2lab" id="diurnallab" style="margin-top:4px" hidden>What is comfort, and what is not <span class="qual">— demand response to temperature, hour by hour</span></div>
     <div id="diurnal" style="height:260px;margin:8px 0 4px"></div>
     <p class="costnote" id="diurnalnote"></p>
@@ -586,6 +584,29 @@
       <div class="billline" id="reconline"></div>
       <p class="costnote" id="reconnote"></p>
     </div>
+    <div class="h2lab" style="margin-top:26px">Tested and rejected <span class="qual">— three things that did not survive</span></div>
+    <p class="costnote"><b>Slope to level.</b> Refrigeration power is
+      proportional to the lift, so a measured slope of demand against ambient
+      should integrate to a level without needing the intercept. It does not
+      work: below about 15 °C the night response goes flat, so the line
+      that would be extrapolated back does not exist. The method was withdrawn
+      rather than published.<br><br>
+      <b>An equipped-but-saturated tier.</b> Latent demand minus delivered,
+      where latent extrapolated the low-CDD slope linearly. Its premise was
+      that the fleet flattens at high load. The measured response
+      <b>steepens</b> — about +3 GWh per CDD across the cool bins against
+      +17 across the warm ones — so the tier was structurally zero.
+      Saturation would show as a concave curve; this one is convex. Removed
+      11 Aug 2026, with the computation kept as a diagnostic: a non-zero value
+      would mean the curve had turned concave, which is the evidence that would
+      bring it back.<br><br>
+      <b>Humidity.</b> Latent load rises about 7% per kelvin, so moist-air
+      enthalpy days were a plausible explanation for the convexity. Fetched,
+      fitted and rejected: dewpoint adds 0.0014 to R² and enthalpy days
+      add 0.0001, against 0.046 for bank holidays. The quadratic term moved
+      <b>+7%</b> when latent load would have made it fall. The bend is the
+      extensive margin — each building is a step, and the fleet is the
+      integral of those steps.</p>
     </div></details>
 
     <div class="h2lab" style="margin-top:30px">The geocooling dividend <span class="qual">— summer heat banked, winter heat recovered</span></div>
@@ -875,7 +896,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.12.1';
+const SITE_VERSION = '8.13.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1613,25 +1634,34 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
 
   const co = d.cooling_observed;
   if(co && co.response_curve_GWh_per_day){
+    // The latent-demand line and the "unmet" figure came off with the
+    // saturated tier on 11 Aug 2026. Its slope was fitted through the low
+    // bins, one of which is negative noise, so it extrapolated DOWNWARD -
+    // negative cooling demand at high CDD - while the observed response
+    // climbed away from it. The gap ran the wrong way and the tier it fed was
+    // structurally zero. The computation survives in the payload as a
+    // diagnostic: a non-zero unmet figure would mean the curve had turned
+    // concave, which is the evidence that would bring the tier back.
     document.getElementById('coolobsline').innerHTML =
       'This week (observed basis): cooling delivered ~<b>' +
       fmt(co.week_delivered_GWh) + ' GWh</b> of electricity' +
-      (co.latent_slope_reliable
-        ? ' · latent demand ~' + fmt(co.week_latent_GWh) +
-          ' GWh · unmet ~<b style="color:' + css('--cool') + '">' +
-          fmt(co.week_unmet_GWh) + ' GWh</b>'
-        : ' · latent-demand slope not yet reliably identified from this sample');
+      (co.daily && co.daily.k_quadratic
+        ? ' \u00b7 fitted continuously at ' + co.daily.k_quadratic +
+          ' \u00d7 CDD\u00b2, so the hottest days are no longer capped by a ' +
+          'top bin'
+        : '');
     const bins = Object.keys(co.response_curve_GWh_per_day).map(Number).sort((a,b)=>a-b);
     const x = bins.map(b => b - 0.5);
     const y = bins.map(b => co.response_curve_GWh_per_day[b]);
-    const xl = [0, Math.max(...x)];
-    const yl = xl.map(v => v * co.latent_slope_GWh_per_CDD);
+    const kq = (co.daily || {}).k_quadratic;
+    const xf = [];
+    for(let v = 0; v <= Math.max(...x) + 0.5; v += 0.25) xf.push(v);
     Plotly.newPlot('coolcurve', [
-      {x: xl, y: yl, name: 'Latent demand (linear)', mode: 'lines',
-       line: {color: css('--muted'), dash: 'dot', width: 1.5}},
-      {x: x, y: y, name: 'Observed response', mode: 'lines+markers',
-       line: {color: css('--cool'), width: 2.5},
-       marker: {size: 8, color: css('--cool')}}
+      {x: x, y: y, name: 'Observed bin means', mode: 'markers',
+       marker: {size: 9, color: css('--cool')}},
+      ...(kq ? [{x: xf, y: xf.map(v => kq * v * v),
+        name: 'Fitted \u2014 ' + kq + ' \u00d7 CDD\u00b2', mode: 'lines',
+        line: {color: css('--cool'), width: 2.5}}] : [])
     ], {
       paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
       font:{family:'Lato', color:css('--muted'), size:12},
@@ -1798,9 +1828,11 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       'refrigeration and process plant working harder as the air warms, and it ' +
       'is what tier 0 consists of. The ' + dn.comfort_excess_GW_per_C +
       ' GW/\u00b0C peak above it is comfort. ' + 'Level is not inferred from this: below about 15 \u00b0C the ' +
-      'response goes flat as plant hits its minimum condensing temperature ' +
-      'and data centres switch to free cooling, so the slope cannot be ' +
-      'extrapolated back to a level.';
+      'response goes flat, so the slope cannot be extrapolated back to a ' +
+      'level. That flattening is a NIGHT-DATA finding, where comfort cooling ' +
+      'is absent and plant behaviour plausibly explains it. It does not ' +
+      'transfer to the daily response curve below, whose convexity survives ' +
+      'dividing out the COP and is therefore load, not plant.';
   })();
 
   // ---- the night elbow, both summers --------------------------------------
@@ -1858,6 +1890,39 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       'Tested: adding moist-air enthalpy days to the daily regression moves ' +
       'the quadratic term by +7%, when latent load would have made it fall, ' +
       'and adds 0.0001 to R\u00b2. Humidity is a published null here.';
+  })();
+
+  // The method fold's anchor paragraph, written from the payload so the split
+  // and the base cannot drift from what build.py actually used.
+  (() => {
+    const el = document.getElementById('methanchor');
+    if(!el) return;
+    const f = (d.weekly_useful || {}).factors || {};
+    const vs = Math.round(100 * (f.vent_share || 0.54));
+    const cs = Math.round(100 * (f.cool_share || 0.46));
+    const base = f.cool_base_C || 15.5;
+    const eer = (f.cool_eer || 3.0).toFixed(1);
+    const lo = (f.cool_eer_range || [2.5, 4.0])[0];
+    const hi = (f.cool_eer_range || [2.5, 4.0])[1];
+    el.innerHTML =
+      'ECUK\u2019s services end-use table publishes <b>cooling and ventilation ' +
+      'as one line</b>. BEES, the survey that split is built from, reports the ' +
+      'components separately \u2014 fans against space cooling and ' +
+      'humidification \u2014 which gives <b>' + vs + '% ventilation to ' + cs +
+      '% cooling</b>. US CBECS, which separates the two natively, gives 56:44 ' +
+      'from a much hotter climate. ' +
+      '<b>Ventilation has no COP:</b> fans move air, not heat, and fan work ' +
+      'dissipates as heat inside the space, so if anything it is a cooling ' +
+      'load rather than an output. It is reported as its own service and is ' +
+      'not in the cooling figure \u2014 a correction that reduced cooling ' +
+      'delivered by about a third on 11 Aug 2026. ' +
+      'The cooling half is shaped by degree days above <b>' + base +
+      ' \u00b0C</b>, the balance point at which comfort cooling begins in ' +
+      'buildings with high internal gains \u2014 not the Met Office 22 \u00b0C ' +
+      'climate convention, which would understate operation badly. Converting ' +
+      'that electricity to service uses a fleet efficiency of <b>' + eer +
+      '</b>, plausibly ' + lo + '\u2013' + hi + ' across the stock, and that ' +
+      'range is the largest single unverified assumption on this panel.';
   })();
 
   function routeBars(el, rows, key, axis){
