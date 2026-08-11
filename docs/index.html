@@ -567,30 +567,8 @@
         <p class="fixed" id="fixed"></p>
         <p class="note" id="switch"></p>
         <p class="caveat" id="caveat"></p>
-
-        <!-- ANNEX A: the financing question, both sides -->
-        <div class="block">
-          <h3>Who pays for it, and what that costs</h3>
-          <p class="sub" id="finsub"></p>
-          <p class="sub" id="finassume"></p>
-
-          <div class="scales">
-            <div class="pan cost">
-              <div class="lab">What private capital costs</div>
-              <div class="fig" id="fin_cost">—</div>
-              <p id="fin_cost_p"></p>
-            </div>
-            <div class="pan buys">
-              <div class="lab">What it buys</div>
-              <div class="fig" id="fin_buys">—</div>
-              <p id="fin_buys_p"></p>
-            </div>
-          </div>
-
-          <p class="note" id="fin_verdict"></p>
-          <p class="caveat" id="declare"></p>
-          <p class="caveat" id="devex"></p>
-        </div>
+        <p class="caveat" id="whopays"></p>
+        <p class="caveat" id="devex"></p>
 
         <!-- RISK -->
         <div class="block">
@@ -681,6 +659,9 @@
     <div class="billline" id="deficitline"></div>
     <div id="tierbars" style="margin:14px 0 6px"></div>
     <p class="geosub" id="deficitcontext"></p>
+    <div class="barlabel" style="margin-top:26px" id="tierdailylabel">ALL THREE TIERS, DAY BY DAY — THE LAST TWELVE MONTHS</div>
+    <div id="tierdaily" style="height:300px;margin:10px 0 4px"></div>
+    <p class="costnote" id="tierdailynote"></p>
     <div class="barlabel" style="margin-top:22px">THE GEOCOOLING DIVIDEND — SUMMER HEAT BANKED, WINTER HEAT RECOVERED</div>
     <div id="utesbars" style="margin:10px 0 4px"></div>
     <p class="costnote" id="utesnote"></p>
@@ -820,7 +801,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.2.2';
+const SITE_VERSION = '8.5.1';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1062,54 +1043,21 @@ fetch('data.json').then(r=>r.json()).then(d=>{
   // leaves the peak COP untouched.
   const CF={spf:2.90, peak:1.85};
   const GEO={spf:5.00, peak:3.55, src:19.6};
-  const PEAK_TH=32.1;                 // GW thermal peak for the programme
+  // The increment is bought by the kW, so it scales with what the plant is RATED
+// at - not with what the ground delivers, since a shortfall is capacity paid
+// for and not received. The lever is quoted at the reference sizing because
+// that is where its source anchor sits: the doublet class is priced at
+// 5,400-6,000 equivalent full-load hours, which at this programme's 31% load
+// factor is about half the winter peak.
+const REF_SIZING=50;
+const capNow=()=>S.cap*(S.sizing/REF_SIZING);
+const PEAK_TH=32.1;                 // GW thermal peak for the programme
   const TS1_STORE_L_PER_KW=75;        // draft TS1 1.7.15 minimum
   // share of annual heat served, from the programme's own duration curve.
   // Runs down to 15% of peak so a large subsurface shortfall still bites.
   const SERVED={15:0.388,20:0.490,25:0.585,30:0.671,40:0.811,50:0.907,
                 60:0.963,70:0.987,80:0.996,90:0.999,100:1.0};
-  // financing
-  const GILT=3.6, TENOR=25, NET_CAPITAL=110;
-  // Resource risk insurance. GEORISK (Horizon 2020, EGEC) compared 21 European
-  // schemes; funds operate in France, Germany, Iceland, the Netherlands, Denmark
-  // and Switzerland. France is the usable benchmark - fees around 3% of drilling
-  // cost today, moving to 5-10% under the new three-zone scheme, with coverage
-  // held at 90%. German PRIVATE cover at a 30% minimum was itself a barrier to
-  // the market forming, so mutual and public funds are what function at scale.
-  // The literature splits the risk as the panel needs: SHORT-TERM, failing to
-  // find a resource after drilling, which is pre-FID and excluded here; and
-  // LONG-TERM depletion until exploitation is unprofitable, which is the
-  // subsurface shortfall lever.
-  const COVERAGE=0.90, PREMIUM_RATE=0.06;
-  // Fixed and stated rather than offered as sliders: three assumptions a reader
-  // can disagree with in words, but which do not need dragging to be understood.
-  const R_GEO=0.110, R_NET=0.060;
-// Contingency is expressed on CAPITAL, which is how a sponsor carries it -
-// not as a share of the optimism bias, which is a different and smaller
-// quantity. At a 50% bias, 20% of capital is 40% of the bias.
-// It sits on the WHOLE build, matching the exposure it is netted against.
-// Netting a geothermal-only contingency off a programme-wide exposure would
-// count the network sponsor's own contingency as zero, and flatter the case
-// by about GBP 22bn on an omission rather than an argument.
-const CONTINGENCY=0.20;
-  // The increment is bought by the kW, so it scales with what the plant is RATED
-  // at - not with what the ground delivers, since a shortfall is capacity paid
-  // for and not received. The lever is quoted at the reference sizing because
-  // that is where its source anchor sits: the doublet class is priced at
-  // 5,400-6,000 equivalent full-load hours, which at this programme's 31% load
-  // factor is about half the winter peak.
-  const REF_SIZING=50;
-  const capNow=()=>S.cap*(S.sizing/REF_SIZING);
-  // Subsurface performance risk, expressed the way it actually shows up in
-  // operation: as CAPACITY not delivered. It lumps the failure modes together
-  // rather than modelling each - a failed well, insufficient recharge, a store
-  // driven warm by
-  // too much reinjection, or a round-trip efficiency below design all end in the
-  // same place, which is a plant that cannot deliver its rated output. The
-  // shortfall is made up by the top-up gas boilers already in the design, so it
-  // shows as less heat electrified and less peak avoided, not as a lower COP.
-  // The counterfactual has no equivalent: the atmosphere does not run down.
-  let S={cap:14, ob:50, pk:75, sizing:50, loss:10, };
+    let S={cap:14, ob:50, pk:75, sizing:50, loss:10, };
 
   const at=(a,y)=>{
     if(y<=YR[0]) return a[0];
@@ -1134,8 +1082,7 @@ const CONTINGENCY=0.20;
     }
     return 1.0;
   }
-  const ann=(r,n)=>(1-Math.pow(1+r,-n))/r;
-
+  
   // Peaking applies to BOTH routes, so gas covers the same share of heat either
   // way and cancels; only the electrified remainder differs by source.
   const effSizing=()=>S.sizing*(1-S.loss/100);   // rated size less the shortfall
@@ -1144,12 +1091,6 @@ const CONTINGENCY=0.20;
   const avoidedGW =()=>PEAK_TH*(effSizing()/100)*(1/CF.peak-1/GEO.peak);
   const storeM3   =()=>PEAK_TH*(S.sizing/100)*1e6*TS1_STORE_L_PER_KW/1000;
 
-  // Benefits at a stated shortfall, so the cost of the shortfall itself can be
-  // priced. Called twice: once at the chosen setting for the appraisal, once at
-  // zero to value what a shortfall would destroy.
-  function appraiseAt(loss){
-    const keep=S.loss; S.loss=loss; const r=appraise(); S.loss=keep; return r;
-  }
   function appraise(){
     let en=0,ca=0,aq=0,pk=0;
     for(let t=1;t<=HORIZON;t++){
@@ -1165,55 +1106,13 @@ const CONTINGENCY=0.20;
     const ben=en+ca+aq+pk;
     return {en,ca,aq,pk,ben,cost,bcr:ben/cost,npsv:ben-cost};
   }
-  // Green Book Annex A: discount the COSTS of each option at the risk-free gilt
-  // rate to compare total exchequer cost. The premium is what private capital
-  // costs against public borrowing - and the Treasury's own test is whether risk
-  // transfer and delivery efficiencies outweigh it. So both sides.
-  function financing(){
-    const tot=capNow()+NET_CAPITAL;
-    const rg=R_GEO, rn=R_NET, g=GILT/100;
-    const blend=(capNow()*rg+NET_CAPITAL*rn)/tot;
-    const mult=r=>ann(g,TENOR)/ann(r,TENOR);
-    const prem_fin=tot*(mult(blend)-1);
-    // Optimism bias and the overrun a contractor absorbs are the SAME quantity
-    // seen from two sides - using different numbers for them was an
-    // inconsistency. A fixed price does not shift all of it, though: the
-    // contractor prices the expected value in, so what transfer removes is
-    // nearer the variance. Hence the transfer fraction.
-    // CONSTRUCTION. Optimism bias is the uplift from a naive estimate to an
-    // unbiased expectation. On a megaproject a sponsor builds contingency into
-    // the SANCTIONED cost up front - that part is paid whoever builds it and is
-    // not transferred. Only the residual tail moves to a fixed-price contractor.
-    const exposure=tot*(S.ob/100);
-    const sanctioned=tot*CONTINGENCY;
-    // UPPER BOUND. A fixed-price contract transfers construction risk, but a
-  // PUBLIC sponsor can let one too - Annex A compares private finance against
-  // public borrowing, not against cost-plus procurement. So only part of this
-  // tail is private finance's to claim, and the panel says so rather than
-  // putting an unsourced fraction on it.
-  const construction=Math.max(0,exposure-sanctioned);
-
-    // SUBSURFACE. Priced the way the market prices it: a premium on the
-    // subsurface capital buying cover against the resource underdelivering.
-    // What transfer is worth is the exposure covered, net of what the cover cost.
-    const geoExposure=Math.max(0, appraiseAt(0).ben - appraiseAt(S.loss).ben);
-    const premium=capNow()*PREMIUM_RATE;
-    const geoCovered=geoExposure*COVERAGE;
-    const geological=geoCovered-premium;
-    const transferred=construction+geological;
-    return {tot,blend,mult:mult(blend),mGeo:mult(rg),mNet:mult(rn),
-            premium:prem_fin,construction,geological,transferred,
-            exposure,sanctioned,geoExposure,geoCovered,insPremium:premium,
-            net:transferred-prem_fin};
-  }
-
   const el=id=>document.getElementById(id);
   const gbp=n=>Math.abs(n)<0.1?'\u00a3'+Math.round(n*1000)+'m'
               :'\u00a3'+(Math.abs(n)<10?n.toFixed(1):Math.round(n))+'bn';
   const pc=n=>(100*n).toFixed(1)+'%';
 
   function render(){
-    const a=appraise(), f=financing();
+    const a=appraise();
 
     el('plain').innerHTML='In plain terms: about <b>\u00a3'+a.bcr.toFixed(2)+
       ' of public benefit for every \u00a31 spent</b>, over sixty years, on the ' +
@@ -1299,71 +1198,25 @@ const CONTINGENCY=0.20;
       'Green Book\u2019s own definition also takes in unmonetisable effects, risk ' +
       'and distribution, and no calculator settles those.';
 
-    // ---- Annex A, both sides -------------------------------------------------
-    el('finassume').innerHTML=
-      'Three assumptions are fixed here rather than offered as sliders, because ' +
-      'they are things to disagree with in words rather than drag: a <b>'+
-      (100*R_GEO).toFixed(1)+'%</b> real return on the geothermal slice, which ' +
-      'carries construction and resource risk; <b>'+(100*R_NET).toFixed(1)+
-      '%</b> on the network, contracted and long-lived, against the <b>5.23%</b> ' +
-      'Ofgem allowed on regulated equity at RIIO-ED2; and a <b>'+
-      Math.round(100*CONTINGENCY)+'%</b> contingency on capital carried in the ' +
-      'sanctioned cost \u2014 our own rate for geothermal scope, applied across ' +
-      'the programme because it is netted against a programme-wide exposure, ' +
-      'and the network scope carries its own. A percentage is an inside-view ' +
-      'instrument \u2014 the right one is a reference class of completed ' +
-      'schemes, and no UK dataset for heat network outturn yet exists. That is ' +
-      'the third ask below.';
-    el('finsub').textContent=
-      'Green Book Annex A requires the costs of a private finance option to be ' +
-      'discounted at a risk-free gilt rate alongside the main appraisal, so the ' +
-      'exchequer can see what private capital costs against borrowing. The test ' +
-      'it sets is not whether the premium exists but whether risk transfer and ' +
-      'delivery efficiencies outweigh it. Both sides are below.';
-    el('fin_cost').textContent='\u00d7'+f.mult.toFixed(2)+'  \u00b7  '+gbp(f.premium);
-    el('fin_cost_p').innerHTML='Financing the '+gbp(f.tot)+' programme at a '+
-      pc(f.blend)+' blended real return costs the exchequer '+gbp(f.premium)+
-      ' more in present value than borrowing at a '+GILT.toFixed(1)+
-      '% gilt. The geothermal slice carries the higher multiple \u2014 \u00d7'+
-      f.mGeo.toFixed(2)+' against \u00d7'+f.mNet.toFixed(2)+
-      ' for the network \u2014 because it carries the higher risk. Infrastructure ' +
-      'capital takes the whole asset rather than the slice, so the blend is what ' +
-      'is actually paid.';
-    el('fin_buys').textContent=gbp(f.transferred);
-    el('fin_buys_p').innerHTML=
-      '<b>Construction '+gbp(f.construction)+', an upper bound.</b> A '+S.ob+
-      '% optimism bias on '+gbp(f.tot)+' is '+gbp(f.exposure)+' of exposure; a '+
-      Math.round(100*CONTINGENCY)+'% capital contingency carries '+
-      gbp(f.sanctioned)+', leaving a tail a fixed price moves. Public ' +
-      'procurement can let a fixed price too, so only part of this is private ' +
-      'finance\u2019s to claim.' +
-      '<br><br><b>Subsurface '+gbp(f.geological)+'.</b> A '+S.loss+
-      '% shortfall destroys '+gbp(f.geoExposure)+'; cover at '+
-      Math.round(100*COVERAGE)+'% is worth '+gbp(f.geoCovered)+' and costs '+
-      gbp(f.insPremium)+' at the French 6% benchmark.';
-  const net=f.net;
-    el('fin_verdict').innerHTML= net>=0
-      ? 'At these settings the risk transferred exceeds the premium by <b>'+
-        gbp(net)+'</b>, and private finance is the better value option on the ' +
-        'Annex A test. A close-run judgement, and the buys side is an upper ' +
-        'bound \u2014 which is why Annex A requires it to be presented rather ' +
-        'than assumed.'
-      : 'At these settings the premium exceeds the risk transferred by <b>'+
-        gbp(-net)+'</b>, and public borrowing is the better value option on the ' +
-        'Annex A test. A close-run judgement, and the buys side is an upper ' +
-        'bound \u2014 which is why Annex A requires it to be presented rather ' +
-        'than assumed.';
-    el('declare').textContent=
-      'Causeway Energies develops geothermal networks and would be among the ' +
-      'investors, so this block is published against interest.';
+    el('whopays').textContent=
+      'Who pays for it: heat networks are commercial assets funded by heat ' +
+      'sales, so the capital is raised against tariff revenue rather than paid ' +
+      'from tax, and the exchequer\u2019s exposure is the grant where revenue ' +
+      'falls short. The Green Book\u2019s Annex A test of private finance ' +
+      'against public borrowing applies at scheme level, where a public sponsor ' +
+      'is choosing how to fund its own network \u2014 not to a programme ' +
+      'government is enabling rather than procuring. Causeway Energies develops ' +
+      'geothermal networks, so this panel is published against interest.';
     el('devex').textContent=
-      'Pre-FID development capital is excluded from all of the above. Resource ' +
-      'assessment, seismic, exploration drilling and permits would be of order ' +
-      '15\u201320% of construction cost \u2014 '+gbp(f.tot*0.15)+' to '+
-      gbp(f.tot*0.20)+' \u2014 and are taken by a developer at a development ' +
-      'return, not by infrastructure capital at financial close. The success rate ' +
-      'of prospects reaching close, not the percentage spent, is what sets its ' +
-      'true cost.';
+      'Pre-FID development capital is excluded from the figures above. Resource ' +
+      'assessment, seismic, exploration drilling and permits sit outside the ' +
+      'increment and are taken by a developer at a development return, not by ' +
+      'infrastructure capital at financial close. In more mature European ' +
+      'geothermal sectors that exposure is underwritten by shared instruments ' +
+      'rather than carried alone \u2014 the Netherlands, France, Germany, ' +
+      'Denmark, Iceland and Switzerland all operate national resource risk ' +
+      'funds, and the UK has none. The success rate of prospects reaching ' +
+      'close, not the percentage spent, is what sets its true cost.';
   }
   ['cap','ob','pk','sizing','loss',].forEach(k=>{
     el('lv_'+k).addEventListener('input',e=>{ S[k]=+e.target.value; render(); });
@@ -1371,19 +1224,17 @@ const CONTINGENCY=0.20;
 
     box.style.display = 'block';
     render();
-    // the frontispiece reads the panel rather than carrying its own copy
     // The frontispiece reads THIS rather than carrying its own arithmetic, so
     // point 06 and the panel cannot disagree. compute() returns the flat shape
-    // the frontispiece quotes; appraise() and financing() are the full objects.
+    // the frontispiece quotes; appraise() is the full object.
     window.capitalModel = {
       compute: () => {
-        const a = appraise(), f = financing();
+        const a = appraise();
         return {bcr:a.bcr, ben:a.ben, cost:a.cost, npsv:a.npsv,
                 en:a.en, pk:a.pk, ca:a.ca, aq:a.aq,
-                premium:f.premium, transferred:f.transferred, net:f.net,
                 twh:avoidedTWh(), gw:avoidedGW()};
       },
-      appraise, financing, S, avoidedTWh, avoidedGW, servedNow, capNow};
+      appraise, S, avoidedTWh, avoidedGW, servedNow, capNow};
   })();
 
   // ---- back-to nav ------------------------------------------------------
@@ -1715,6 +1566,57 @@ const CONTINGENCY=0.20;
     document.getElementById('coolcurve').style.display = 'none';
   }
 
+  // ---- all three cooling tiers, daily, trailing twelve months -------------
+  // The tier bars above are one week. This is the shape of the year: tier 1
+  // is what the equipped stock actually drew, tier 2 what it wanted and could
+  // not deliver, tier 3 the unequipped remainder. Stacked because they are
+  // disjoint populations of buildings, not competing estimates of one.
+  (() => {
+    const td = (d.comfort_deficit || {}).tier_daily;
+    const box = document.getElementById('tierdaily');
+    if(!td || !td.dates || !td.dates.length){
+      box.style.display = 'none';
+      document.getElementById('tierdailylabel').style.display = 'none';
+      return;
+    }
+    const has = a => a && a.some(v => v !== null && v > 0);
+    const series = [
+      ['Tier 1 · delivered by equipped stock', td.t1_GWh, css('--cool')],
+      ['Tier 2 · wanted but not delivered',    td.t2_GWh, css('--elec')],
+      ['Tier 3 · no cooling equipment at all', td.t3_GWh, css('--ember')]
+    ].filter(r => has(r[1]));
+    Plotly.newPlot('tierdaily', series.map(r => ({
+      x: td.dates, y: r[1], name: r[0], type: 'bar',
+      marker: {color: r[2], line: {width: 0}},
+      hovertemplate: '%{x}<br>%{y:.1f} GWh thermal<extra>' + r[0] + '</extra>'
+    })), {
+      barmode: 'stack', bargap: 0.05,
+      paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
+      font:{family:'Lato', color:css('--muted'), size:12},
+      margin:{l:60,r:10,t:10,b:40},
+      xaxis:{gridcolor:css('--line'), tickformat:'%b'},
+      yaxis:{title:'GWh thermal per day', gridcolor:css('--line')},
+      legend:{orientation:'h', y:1.18}
+    }, {displayModeBar:false, responsive:true});
+    const tot = a => (a || []).reduce((s_, v) => s_ + (v || 0), 0);
+    const t1 = tot(td.t1_GWh), t2 = tot(td.t2_GWh), t3 = tot(td.t3_GWh);
+    const dropped = ['Tier 1','Tier 2','Tier 3']
+      .filter((_, i) => !has([td.t1_GWh, td.t2_GWh, td.t3_GWh][i]));
+    document.getElementById('tierdailynote').textContent =
+      'Cooling service delivered and wanted, thermal GWh a day over the ' +
+      'trailing twelve months. Tiers 1 and 2 convert observed electricity at ' +
+      'the installed fleet\u2019s efficiency, the same factor the energy bars ' +
+      'use; tier 3 is a thermal load and needs no conversion. Twelve-month ' +
+      'totals: ' +
+      'tier 1 ' + fmt(Math.round(t1)) + ', tier 2 ' + fmt(Math.round(t2)) +
+      ', tier 3 ' + fmt(Math.round(t3)) + ' GWh. The three are disjoint \u2014 ' +
+      'different buildings, not competing estimates \u2014 so they stack. ' +
+      'Tier 3 is the central scenario only; its low and high cases are in the ' +
+      'line above.' +
+      (dropped.length ? ' ' + dropped.join(' and ') + ' not shown: no ' +
+       'positive values on this record.' : '');
+  })();
+
   const hw = (d.geothermal || {}).hardware;
   if(hw && hw.whatif_MWth){
     document.getElementById('emptybar').style.display = '';
@@ -1856,8 +1758,13 @@ const CONTINGENCY=0.20;
   if(cd && cd.scenarios){
     const c = cd.scenarios.central, lo = cd.scenarios.low, hi = cd.scenarios.high;
     document.getElementById('deficitline').innerHTML =
-      'This week: <b>' + cd.odh26_week_degC_h + ' °C·h</b> above the ' +
-      cd.threshold_c + '°C comfort threshold · <b>' + lo.dwellings_M + '–' +
+      // Key renamed 10 Aug 2026 when the tier moved from an hourly count above
+      // 26 °C to cooling degree-hours on the daily mean. index.html deploys on
+      // a Pages push while data.json only changes at the daily build, so this
+      // reads either until the next run has landed.
+      'This week: <b>' + (cd.cdh_week_degC_h ?? cd.odh26_week_degC_h) +
+      ' °C·h</b> above a <b>' + cd.threshold_c + '°C</b> daily-mean outdoor ' +
+      'base · <b>' + lo.dwellings_M + '–' +
       hi.dwellings_M + ' million homes</b> overheating with no cooling ' +
       '(central ' + c.dwellings_M + 'M) · latent need ~<b>' +
       fmt(lo.latent_thermal_GWh) + '–' + fmt(hi.latent_thermal_GWh) +
