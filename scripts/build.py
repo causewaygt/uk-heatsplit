@@ -744,7 +744,25 @@ def main():
             return
 
     try:
-        gas = fetch_gas_demand(days=WINDOW_DAYS + 40)   # 770 days
+        # The National Gas API rejects a date range this long with a 400 -
+        # found on the first 24-month run, 10 Aug 2026. Until fetch_gas
+        # chunks by date, ask for the long window and fall back rather than
+        # throw: a hard failure here freezes the whole weekly panel on stale
+        # gas, which is far worse than a shorter history.
+        gas = None
+        for _span in (WINDOW_DAYS + 40, 405):
+            try:
+                gas = fetch_gas_demand(days=_span)
+                if _span != WINDOW_DAYS + 40:
+                    print("gas: %d-day request refused, served %d days instead "
+                          "- history will build to what the feed allows"
+                          % (WINDOW_DAYS + 40, _span))
+                break
+            except Exception as _e:
+                if _span == 405:
+                    raise
+                print("gas: %d-day request failed (%s), retrying shorter"
+                      % (_span, type(_e).__name__))
         target = gas["ldz_sum"]
         vals = sorted(target.values())
         print(f"gas diagnostics (LDZ sum): {len(target)} days, "

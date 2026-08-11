@@ -7,7 +7,12 @@ Two things fetched daily:
   temperature slope is not contaminated by CCGT dispatch.
 
 LDZ publications are self-discovered from the catalogue. Requests are chunked
-to respect the ~3,600-record cap. Units auto-detected (kWh / GWh / mcm).
+in BOTH dimensions to respect the ~3,600-record cap: records returned are
+publications x days, so a chunk of 8 publications over 770 days is 6,160 and
+the API answers 400. Found on the first 24-month run, 10 Aug 2026 - the
+publication chunking had been in place from the start, the date chunking had
+not, and it only bit once the window went past ~450 days.
+Units auto-detected (kWh / GWh / mcm).
 """
 
 import datetime as dt
@@ -28,7 +33,9 @@ LDZ_PATTERN = re.compile(
     r"^Demand, Actual (NDM|DM), LDZ\(([A-Z]{2})\), D\+1$")
 
 MCM_TO_GWH = 11.056
-CHUNK = 8  # publications per request
+CHUNK = 8            # publications per request
+MAX_RECORDS = 3500   # API cap is ~3,600 records per call; leave margin
+DAY_CHUNK = max(1, MAX_RECORDS // CHUNK)   # days per request, 437
 
 
 def _harvest(node, found):
@@ -104,16 +111,29 @@ def fetch_gas_demand(days=400):
     start = end - dt.timedelta(days=days)
 
     all_ids = [nts_id] + [pid for pid, _ in ldz_pubs]
+
+    # Date windows, so publications x days stays under the record cap.
+    spans, w0 = [], start
+    while w0 <= end:
+        w1 = min(end, w0 + dt.timedelta(days=DAY_CHUNK - 1))
+        spans.append((w0, w1))
+        w0 = w1 + dt.timedelta(days=1)
+    if len(spans) > 1:
+        print(f"gas: {days} days requested, split into {len(spans)} windows "
+              f"of up to {DAY_CHUNK} days ({CHUNK} publications x {DAY_CHUNK} "
+              f"= {CHUNK * DAY_CHUNK} records, cap ~3,600)")
+
     raw = {}  # pid -> {date: value}
-    for i in range(0, len(all_ids), CHUNK):
-        for block in _post_gasday(all_ids[i:i + CHUNK], start, end):
-            pid = block.get("publicationId")
-            recs = raw.setdefault(pid, {})
-            for rec in block.get("publications", []):
-                try:
-                    recs[rec.get("applicableFor")] = float(rec.get("value"))
-                except (TypeError, ValueError):
-                    continue
+    for w_start, w_end in spans:
+        for i in range(0, len(all_ids), CHUNK):
+            for block in _post_gasday(all_ids[i:i + CHUNK], w_start, w_end):
+                pid = block.get("publicationId")
+                recs = raw.setdefault(pid, {})
+                for rec in block.get("publications", []):
+                    try:
+                        recs[rec.get("applicableFor")] = float(rec.get("value"))
+                    except (TypeError, ValueError):
+                        continue
 
     nts = _autoscale(raw.get(nts_id, {}), "NTS total")
 
