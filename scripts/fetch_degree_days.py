@@ -30,7 +30,12 @@ HDD_BASES = [14.5, 15.5, 16.5]
 # CDD base (Met Office UKCP18) and is retained; 20.0 added 10 Aug 2026 for the
 # comfort-deficit tier. Note CDD is CONVEX in base, so these cannot be
 # interpolated - averaging 18 and 22 overstates the 20 figure by about 39%.
-CDD_BASES = [18.0, 20.0, 22.0]
+# 15.5 is the comfort-cooling balance point and drives the site's cooling
+# shape; 18.0 is retained for the observed-response diagnostics that were
+# built on it; 20.0 is the comfort-deficit base; 22.0 is the Met Office
+# climate convention, kept for comparison. CDD is CONVEX in base, so these
+# cannot be interpolated - averaging two of them overstates the middle.
+CDD_BASES = [15.5, 18.0, 20.0, 22.0]
 
 ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
 

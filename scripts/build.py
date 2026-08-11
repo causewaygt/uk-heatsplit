@@ -57,7 +57,17 @@ def _recency(status, last_good, lag_ok_days=7):
         except ValueError:
             pass
     return status
-COOL_BASE = "18.0"
+# Cooling shape base, on the DAILY MEAN. Moved 18.0 -> 15.5 on 11 Aug 2026.
+# 15.5 degC is the balance point at which comfort cooling begins in UK
+# non-domestic buildings - the temperature at which internal and solar gains
+# offset losses at the cooling setpoint. High internal gains put it well below
+# any climate-comparison convention: the Met Office 22 degC CDD base is a
+# climate statistic, not a building balance point, and would understate
+# operation badly. 15.5 is the traditional UK degree-day base, is what CIBSE
+# TM46 applies across all sectors, and is corroborated by an undemeaned
+# regression of GB daily demand which puts the best-fit balance point at
+# 14.5 degC. Band 12-18 degC.
+COOL_BASE = "15.5"
 # Base for the tier-3 comfort deficit, on the DAILY MEAN. Corrected 10 Aug
 # 2026: the deficit previously counted hours of outdoor air above 26 C, but
 # 26 C is CIBSE's INDOOR operative criterion (TM59 Criterion B, bedrooms, 1%
@@ -198,7 +208,31 @@ HP_ELEC_TWH = 2.0   # hydronic-domestic subset consistent with the ECUK
                     # fleet - different basis. Reconcile at the ECUK 2026
                     # re-anchor, not before.
 HP_SPF = 2.8
+# ECUK U5 "cooling and ventilation" is a MERGED line. BEES (DECC/BEIS, the
+# survey ECUK's services end-use split is built from) reports its components
+# separately: fans 6,030 GWh of electricity against space cooling 5,090 plus
+# humidification 130. That is 54% ventilation to 46% cooling, and it replaces
+# the undocumented 50/50 this file carried until 11 Aug 2026.
+# Cross-check: US CBECS 2018 separates the two and gives ventilation 18% of
+# commercial electricity against cooling 14% - a 56:44 ratio, from a much
+# hotter climate, which is close enough to be reassuring about the shape.
+VENT_SHARE = 0.54
+COOL_SHARE = 0.46
+
+# Ventilation has NO COP. Fans move air, not heat - there is no thermodynamic
+# multiplication to have, and fan work dissipates as heat INSIDE the space, so
+# if anything it is a cooling load rather than a cooling output. It is
+# therefore reported as its own service and kept OUT of cooling_delivered,
+# which from 11 Aug 2026 means cooling service only.
 COOL_EER = 3.0
+# The fleet-average seasonal ratio of cooling delivered to electricity drawn,
+# across every system type, vintage and control regime in the UK non-domestic
+# stock. NOT a machine rating. Bounded 2.5-4.0: legacy oversized plant runs
+# nearer 2, modern commissioned VRF nearer 4.5, and BEES excludes fan energy
+# from its space-cooling line so the boundary here is chiller-plus-condenser
+# rather than whole-system. Published as a range on the panel; the largest
+# single unverified assumption left in the cooling chain.
+COOL_EER_RANGE = (2.5, 4.0)
 HP_FLAT_SHARE = 0.15   # HP hot-water runs year-round (assumption)
 
 GSHP_SPF = 3.24   # Energy Systems Catapult in-situ GSHP average
@@ -288,9 +322,13 @@ def compute_week(gas_space_wk, hdd_wk, cdd_wk, hdd_12m, cdd_12m, p):
     hp_heat_wk = hp_elec_wk * HP_SPF
     hp_ambient_wk = hp_heat_wk - hp_elec_wk
 
-    cool_flat = A["cooling_vent"] * 0.5 * f_flat          # ventilation, flat
-    cool_shaped = A["cooling_vent"] * 0.5 * f_c           # true cooling
-    cool_useful = cool_flat * 1.0 + cool_shaped * COOL_EER
+    # Ventilation runs whenever buildings are occupied and does not respond to
+    # temperature, so it takes the flat shape. Cooling is weather-driven and
+    # takes the cooling shape.
+    vent_elec = A["cooling_vent"] * VENT_SHARE * f_flat
+    cool_elec = A["cooling_vent"] * COOL_SHARE * f_c
+    vent_useful = vent_elec * 1.0        # air movement, no COP - see above
+    cool_useful = cool_elec * COOL_EER   # cooling service only
 
     useful = {
         "gas_space": round(mix["gas_space"] * EFF["gas"], 0),
@@ -303,6 +341,7 @@ def compute_week(gas_space_wk, hdd_wk, cdd_wk, hdd_12m, cdd_12m, p):
         "hp_electricity": round(hp_elec_wk, 0),
         "hp_ambient": round(hp_ambient_wk, 0),
         "cooling_delivered": round(cool_useful, 0),
+        "ventilation": round(vent_useful, 0),
     }
     wasted = round(
         (mix["gas_space"] + mix["gas_dhw"]) * (1 - EFF["gas"])
@@ -362,12 +401,13 @@ def compute_week(gas_space_wk, hdd_wk, cdd_wk, hdd_12m, cdd_12m, p):
              + useful["elec_resistive"] * INDIG["elec"]
              + useful["hp_electricity"] * INDIG["elec"]
              + useful["hp_ambient"] * 1.0
-             + useful["cooling_delivered"] * INDIG["elec"])
+             + useful["cooling_delivered"] * INDIG["elec"]
+             + useful["ventilation"] * INDIG["elec"])
     useful_total = (useful["gas_space"] + useful["gas_dhw"] + useful["oil"]
                     + useful["bio_other"] + useful["solid"]
                     + useful["heat_networks"] + useful["elec_resistive"]
                     + useful["hp_electricity"] + useful["hp_ambient"]
-                    + useful["cooling_delivered"])
+                    + useful["cooling_delivered"] + useful["ventilation"])
     indig_services_now = (round(100.0 * e_now / useful_total, 1)
                           if useful_total else None)
 
@@ -400,6 +440,9 @@ def compute_week(gas_space_wk, hdd_wk, cdd_wk, hdd_12m, cdd_12m, p):
                      + useful["bio_other"] + useful["solid"]
                      + useful["heat_networks"] + useful["elec_resistive"]
                      + useful["hp_electricity"] + useful["hp_ambient"])
+    # Cooling only. Ventilation is a delivered service and is in useful_total
+    # and the indigenous share, but geothermal does not replace fans and fan
+    # energy is not cooling - so it is absent from the what-if by design.
     cool_services = useful["cooling_delivered"]
     kept = {k: useful[k] * (1 - R) for k in
             ("gas_space", "gas_dhw", "oil", "bio_other", "solid",
@@ -896,7 +939,20 @@ def main():
         "factors": {"boiler_gas": EFF["gas"], "oil": EFF["oil"],
                     "bio": EFF["bio"], "solid": EFF["solid"],
                     "hp_spf": HP_SPF, "hp_elec_TWh_yr": HP_ELEC_TWH,
-                    "cool_eer": COOL_EER},
+                    "cool_eer": COOL_EER,
+                    "cool_eer_range": list(COOL_EER_RANGE),
+                    "vent_share": VENT_SHARE,
+                    "cool_share": COOL_SHARE,
+                    "cool_base_C": float(COOL_BASE),
+                    "split_source": (
+                        "BEES (DECC/BEIS, fieldwork 2014-15) reports the "
+                        "components ECUK merges: fans 6,030 GWh of electricity "
+                        "against space cooling 5,090 plus humidification 130, "
+                        "so 54% ventilation to 46% cooling. US CBECS 2018, "
+                        "which separates the two natively, gives 56:44 from a "
+                        "hotter climate. Ventilation has no COP - fans move "
+                        "air, not heat - so it is reported as its own service "
+                        "and is NOT in cooling delivered."),},
         "note": ("Useful basis: combustion derated by in-situ efficiencies; "
                  "heat pumps multiplied by SPF with ambient harvest shown "
                  "separately; cooling multiplied by EER on the weather-driven "
