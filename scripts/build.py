@@ -1365,7 +1365,10 @@ def main():
     elec = None   # also read by the reconciliation diagnostic below
     try:
         this_year = dt.date.today().year
-        elec = fetch_daily_underlying_demand([this_year - 1, this_year])
+        # three calendar years: the curve only needs two summers, but the
+        # daily tier series behind the 24-month view needs the days as well
+        elec = fetch_daily_underlying_demand(
+            [this_year - 2, this_year - 1, this_year])
         out["sources"]["electricity"] = {
             "status": _recency("ok", max(elec), lag_ok_days=7),
             "last_good": max(elec),
@@ -1426,9 +1429,13 @@ def main():
                 # tiers can be drawn as a stacked column per day rather than
                 # as one week's snapshot. Electricity GWh; the panel converts
                 # to thermal with the same EER the tier bars use.
+                # Spans the CURVE's own day set - NESO demand intersected with
+                # degree days - not the gas window. The curve reaches back two
+                # summers; clipping the series to gas would have thrown away
+                # May and June 2025 and broken the 24-month view.
                 daily_t12 = {"dates": [], "delivered_GWh": [], "unmet_GWh": []}
-                for d_ in common:
-                    c = dd["cdd"][COOL_BASE][dd_idx[d_]]
+                for d_ in sorted(cdd_by_date):
+                    c = cdd_by_date[d_]
                     b = 0 if c == 0 else min(5, int(c) + 1)
                     dv = (max(0.0, curve.get(b, curve.get(max(curve), 0.0)))
                           if b > 0 else 0.0)
@@ -1735,7 +1742,7 @@ def main():
         t12 = (cooling_observed or {}).get("daily") or {}
         idx12 = {d_: i for i, d_ in enumerate(t12.get("dates", []))}
         tier_daily = {"dates": [], "t1_GWh": [], "t2_GWh": [], "t3_GWh": []}
-        for d_ in sorted(cdd_def)[-365:]:
+        for d_ in sorted(cdd_def)[-(WINDOW_DAYS + 5):]:
             i = idx12.get(d_)
             tier_daily["dates"].append(d_)
             tier_daily["t1_GWh"].append(
