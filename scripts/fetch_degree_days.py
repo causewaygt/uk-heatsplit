@@ -26,7 +26,11 @@ GB_POINTS = [
 NI_POINT = ("Belfast", 54.60, -5.93)
 
 HDD_BASES = [14.5, 15.5, 16.5]
-CDD_BASES = [18.0, 22.0]   # 18.0 used for UK cooling shape; 22.0 retained
+# 18.0 drives the UK cooling shape; 22.0 is the conventional UK commercial
+# CDD base (Met Office UKCP18) and is retained; 20.0 added 10 Aug 2026 for the
+# comfort-deficit tier. Note CDD is CONVEX in base, so these cannot be
+# interpolated - averaging 18 and 22 overstates the 20 figure by about 39%.
+CDD_BASES = [18.0, 20.0, 22.0]
 
 ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
 

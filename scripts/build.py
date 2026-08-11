@@ -35,7 +35,8 @@ from fetch_prices import fetch_gas_sap, fetch_elec_mid        # noqa: E402
 from fetch_carbon import fetch_carbon_intensity               # noqa: E402
 from fetch_electricity import fetch_daily_underlying_demand   # noqa: E402
 import retro                                                  # noqa: E402
-from fetch_odh import fetch_odh                               # noqa: E402
+# fetch_odh retired 10 Aug 2026 - the comfort deficit now reads the site's own
+# daily-mean cooling degree days rather than a separate hourly 26 C count.
 
 OUT_PATH = os.path.join(os.path.dirname(__file__), "..", "docs", "data.json")
 WINDOW_DAYS = 365
@@ -57,6 +58,28 @@ def _recency(status, last_good, lag_ok_days=7):
             pass
     return status
 COOL_BASE = "18.0"
+# Base for the tier-3 comfort deficit, on the DAILY MEAN. Corrected 10 Aug
+# 2026: the deficit previously counted hours of outdoor air above 26 C, but
+# 26 C is CIBSE's INDOOR operative criterion (TM59 Criterion B, bedrooms, 1%
+# of night hours) and is not an outdoor trigger. Applied to outdoor air it
+# found 197 hours a year where the standard fails a bedroom at 33 hours
+# indoors, so the deficit was understated roughly five-fold.
+# 20 C is derived from the 2017 Energy Follow-Up Survey temperature
+# sensitivity regression (Loughborough for DESNZ, 2024): indoor rises ~0.48 C
+# per 1 C outdoor in bedrooms on a two-day mean of daily maxima, with a
+# one-to-two day thermal-mass lag, so bedrooms begin breaching 26 C indoors
+# when outdoor daily means reach roughly 19-22 C. Band 18-22 C.
+# NOT YET IN THE NUMBERS: a night-time urban heat island uplift. Bedroom
+# overheating is a night phenomenon and city night minima run 3-4 C above
+# their surroundings, which a population-weighted ERA5 series does not
+# resolve; on this record that would add a further 10-20%.
+# NO FALLBACK BASE. 18 and 22 are the band ENDS, not substitutes for the
+# centre: on a mild week base 22 returns exactly zero degree-days while base
+# 18 returns 238 degree-hours, so falling back to either misrepresents rather
+# than degrades. If the base is missing the tier goes unavailable and the
+# previous value stands, which is the site's existing pattern and makes the
+# one-line addition to fetch_degree_days unmissable.
+DEFICIT_BASE = "20.0"
 
 ECUK_UK_GAS_SPACE_HEAT_TWH_2024 = 258.1
 GB_SHARE_OF_UK_GAS_HEAT = 0.985   # NI excluded from GB LDZ; estimate
@@ -1618,11 +1641,27 @@ def main():
 
     comfort_deficit = None
     try:
-        odh = fetch_odh(days=14)
-        odh_days = sorted(odh["daily"])[-7:]
-        odh_week = round(sum(odh["daily"][d_] for d_ in odh_days), 1)
-        out["sources"]["overheating"] = {"status": "ok",
-                                         "last_good": odh_days[-1]}
+        # Degree-hours from the site's own daily-mean cooling degree days -
+        # the same temperature spine every other panel uses - rather than a
+        # separate hourly threshold count. One basis, one series.
+        base_used = DEFICIT_BASE
+        # Prefer the published series, but derive it from the daily means if
+        # the base is not in CDD_BASES - so trimming that list cannot silently
+        # remove a panel, and the base and its reasoning live in one place.
+        if base_used in dd["cdd"]:
+            cdd_def = dict(zip(dd["dates"], dd["cdd"][base_used]))
+        else:
+            b = float(base_used)
+            cdd_def = {d_: max(0.0, t - b)
+                       for d_, t in zip(dd["dates"], dd["gb_mean_temp"])}
+            print("comfort deficit: base %s not in CDD_BASES, derived from "
+                  "daily means" % base_used)
+        def_days = sorted(cdd_def)[-7:]
+        odh_week = round(sum(cdd_def[d_] for d_ in def_days) * 24.0, 1)
+        out["sources"]["overheating"] = {
+            "status": "ok",
+            "last_good": def_days[-1] if def_days else None,
+            "base_c": float(base_used)}
         scen = {}
         for name, f in F_OVERHEAT.items():
             n_dw = UK_DWELLINGS_M * 1e6 * f * (1 - AC_PENETRATION)
@@ -1635,8 +1674,10 @@ def main():
             }
         central = scen["central"]["latent_thermal_GWh"]
         comfort_deficit = {
-            "odh26_week_degC_h": odh_week,
-            "threshold_c": odh["threshold_c"],
+            "cdh_week_degC_h": odh_week,
+            "threshold_c": float(base_used),
+            "basis": "cooling degree-hours on the daily mean of "
+                     "population-weighted outdoor air, base %s C" % base_used,
             "scenarios": scen,
             "elec_if_ground_GWh": round(central / GROUND_COOL_COP, 1),
             "elec_if_air_GWh": round(central / AIR_COOL_EER, 1),
@@ -1673,12 +1714,21 @@ def main():
             },
             "note": ("The observed curve above only sees buildings that have "
                      "cooling. This tier estimates the sweltering remainder: "
-                     "overheating-degree-hours above the CIBSE 26 degC "
-                     "threshold (population-weighted, all hours - no "
+                     "cooling degree-hours on the daily mean of "
+                     "population-weighted outdoor air above a " +
+                     base_used + " degC base (no "
                      "occupancy model" + EST + ") x the unequipped stock at "
                      "risk (low: EHS 11% self-reported; central 25%" + EST +
                      "; high: CCC over-half-at-risk) x per-dwelling and "
-                     "per-m2 thermal response" + EST + ". Meeting the "
+                     "per-m2 thermal response" + EST + ". The base is "
+                     "derived from the 2017 Energy Follow-Up Survey "
+                     "indoor/outdoor regression, not from CIBSE's 26 degC, "
+                     "which is an INDOOR operative criterion (TM59 Criterion "
+                     "B, bedrooms, 1% of night hours) and had been misapplied "
+                     "to outdoor air - that understated this tier about "
+                     "five-fold. A night-time urban heat island uplift is "
+                     "still not in the numbers and would add 10-20% more"
+                     + EST + ". Meeting the "
                      "central load via passive ground cooling would draw "
                      "~1/6 the electricity of air-source compressors - and "
                      "the rejected heat recharges the ground for winter."),
