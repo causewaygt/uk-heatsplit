@@ -303,7 +303,8 @@
   .ok{background:var(--geo)} .stale{background:var(--ember)} .lag{background:#d9a514}
   .method p{color:var(--muted);font-size:16px;line-height:1.6;margin-bottom:12px}
   .method b{color:var(--paper);font-weight:500}
-  footer{padding:26px 0 48px;color:var(--muted);font-size:12.5px;border-top:1px solid var(--line)}
+  footer{padding:26px 0 calc(120px + env(safe-area-inset-bottom,0px));
+         color:var(--muted);font-size:12.5px;border-top:1px solid var(--line)}
   @media (prefers-reduced-motion:reduce){.mixbar .seg,.burnbar .seg{transition:none}}
 
   /* ---- value for money panel (merged 10 Aug 2026) ---- */
@@ -547,8 +548,12 @@
     <h1 class="sect">2. What Britain’s heat costs and emits</h1>
     <h2>What it costs</h2>
     <div class="billline" id="billline"></div>
-    <div class="h2lab" id="hplab" hidden>What heat costs to make <span class="qual">— by route, wholesale commodity</span></div>
-    <div class="trendbar" id="hpwin" style="margin:8px 0 2px">
+    <div class="h2lab" id="hplab" hidden>What heat costs to make <span class="qual" id="hpbasislbl">— by route, wholesale commodity</span></div>
+    <div class="trendbar" id="hpbasis" style="margin:8px 0 2px">
+      <button data-hb="wholesale" aria-pressed="true">WHOLESALE</button>
+      <button data-hb="retail">AT THE METER</button>
+    </div>
+    <div class="trendbar" id="hpwin" style="margin:6px 0 2px">
       <button data-hw="28">4W</button>
       <button data-hw="84">12W</button>
       <button data-hw="365" aria-pressed="true">12M</button>
@@ -959,7 +964,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.27.3';
+const SITE_VERSION = '8.28.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -2241,11 +2246,20 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
                   shallow:css('--cool'), network:css('--geo')};
     const fmtW = {28:'four weeks', 84:'twelve weeks', 365:'twelve months',
                   730:'twenty-four months'};
+    // Two bases, one chart. Wholesale isolates the fuel and the efficiency;
+    // retail is what a household actually pays and includes the policy and
+    // network costs that fall on electricity far harder than on gas. The
+    // distance between the two IS the argument, so both have to be reachable.
+    let BASIS = 'wholesale';
+    const bbar = document.getElementById('hpbasis');
+    if(!hp.retail) bbar.style.display = 'none';
+    const src = k => (BASIS === 'retail' && hp.retail)
+                     ? (hp.retail[k] || []) : (hp.routes[k] || []);
     function draw(w){
       const n = Math.min(w, HAVE);
       const x = hp.dates.slice(-n);
-      const tr = KEYS.map(k => ({
-        x: x, y: hp.routes[k].slice(-n), name: NAME[k], mode:'lines',
+      const tr = KEYS.filter(k => src(k).length).map(k => ({
+        x: x, y: src(k).slice(-n), name: NAME[k], mode:'lines',
         connectgaps: false,
         line:{color:COL[k], width: k === 'gas' ? 2.8 : 2.2},
         hovertemplate:'%{x}<br>\u00a3%{y:.1f}/MWh<extra>' + NAME[k] + '</extra>'
@@ -2259,7 +2273,8 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
                gridcolor:css('--line'), rangemode:'tozero'},
         legend:{orientation:'h', y:1.02, yanchor:'bottom'}
       }, {displayModeBar:false, responsive:true});
-      const last = i => hp.routes[i][hp.routes[i].length - 1];
+      const last = i => { const a = src(i).filter(v => v != null);
+                          return a.length ? a[a.length - 1] : 0; };
       const mean = a => a.slice(-n).reduce((s_,v)=>s_+v,0) / n;
       const prem = 100 * (mean(hp.elec_heat_wtd_gbp_mwh) /
                           mean(hp.elec_flat_gbp_mwh) - 1);
@@ -2279,17 +2294,37 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
             'they do. '
           : '<b>Gas is not on this chart yet:</b> the daily price series is ' +
             'fetched by the build, so the line appears after the next run. ') +
-        'Wholesale commodity only: at the meter the gap is far smaller, ' +
-        'because policy and network costs land on electricity rather than ' +
-        'gas. On this window a heat pump would pay ' +
+        (BASIS === 'retail'
+          ? 'This is the retail basis: the Ofgem cap in force on each date, ' +
+            'which steps at each quarter rather than moving with the market, ' +
+            'and includes network, policy and supply costs. The gap is far ' +
+            'smaller here than on wholesale, because those costs land on ' +
+            'electricity rather than gas. '
+          : 'Wholesale commodity only: at the meter the gap is far smaller, ' +
+            'because policy and network costs land on electricity rather ' +
+            'than gas. ') +
+        'On this window a heat pump would pay ' +
         prem.toFixed(1) + '% more than the flat mean plotted here, because ' +
         'its load sits on the morning and evening peaks\u2020.';
     }
+    let WIN = 365;
     bar.addEventListener('click', ev => {
       const b = ev.target.closest('button'); if(!b) return;
       bar.querySelectorAll('button').forEach(x =>
         x.setAttribute('aria-pressed', String(x === b)));
-      draw(+b.dataset.hw);
+      WIN = +b.dataset.hw;
+      draw(WIN);
+    });
+    bbar.addEventListener('click', ev => {
+      const b = ev.target.closest('button'); if(!b) return;
+      bbar.querySelectorAll('button').forEach(x =>
+        x.setAttribute('aria-pressed', String(x === b)));
+      BASIS = b.dataset.hb;
+      document.getElementById('hpbasislbl').textContent =
+        BASIS === 'retail'
+          ? '\u2014 by route, at the meter on the Ofgem cap'
+          : '\u2014 by route, wholesale commodity';
+      draw(WIN);
     });
     draw(365);
   })();
