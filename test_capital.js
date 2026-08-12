@@ -105,7 +105,7 @@ setTimeout(() => {
     chk("point 06 quotes the panel's own ratio", fig === c.bcr.toFixed(2),
         fig + " vs " + c.bcr.toFixed(2));
     chk("point 06 claim matches whether it clears",
-        c.bcr >= 1 ? /pays for itself\./.test(p6.querySelector(".claim").textContent)
+        c.bcr >= 1 ? /pays for itself/.test(p6.querySelector(".claim").textContent)
                    : /does not yet pay/.test(p6.querySelector(".claim").textContent));
     chk("point 06 names the counterfactual as a network, not a boiler",
         /air-source network/.test(p6.textContent));

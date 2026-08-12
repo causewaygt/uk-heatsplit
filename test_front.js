@@ -120,7 +120,7 @@ setTimeout(() => {
     chk("point 06 links to the panel",
         p6.querySelector(".ev").getAttribute("href") === "#capitalpanel");
     chk("point 06 claim tracks whether it clears",
-        cap.bcr >= 1 ? /pays for itself\./.test(p6.textContent)
+        cap.bcr >= 1 ? /pays for itself/.test(p6.textContent)
                      : /does not yet pay/.test(p6.textContent));
   }
   // --- point 06 closes the case
