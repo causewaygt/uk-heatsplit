@@ -667,7 +667,7 @@ def hourly_cooling_elec(temps, cooling):
     return flat_h, shaped
 
 
-def slices(store, nd_daily=None, sap_series=None):
+def slices(store, nd_daily=None, sap_series=None, retail_series=None):
     """Everything Phase C renders, from the stored year.
     nd_daily: {date_iso: observed GB daily demand GWh} for the ceilings
     (daily-average basis, stated - hourly observed demand is not a feed
@@ -953,7 +953,8 @@ def slices(store, nd_daily=None, sap_series=None):
         "worst_week": worst_week,
         "binding_week": binding_week,
         "daily_90": daily,
-        "heat_price": heat_price_series(store, sap_series=sap_series),
+        "heat_price": heat_price_series(store, sap_series=sap_series,
+                                        retail_series=retail_series),
         "monthly_13": monthly,
         "monthly_calendar": monthly_calendar,
         "stress": stress,
@@ -1429,7 +1430,8 @@ def night_elbow(store):
     }
 
 
-def heat_price_series(store, sap_series=None, eff_gas=0.835,
+def heat_price_series(store, sap_series=None, retail_series=None,
+                      eff_gas=0.835,
                       spf=(("ashp", 2.80), ("shallow", 3.24),
                            ("network", 5.00))):
     """Daily commodity cost of DELIVERED heat, by route, on both bases.
@@ -1486,6 +1488,16 @@ def heat_price_series(store, sap_series=None, eff_gas=0.835,
             for d_ in out["dates"]]
         out["gas_days"] = sum(1 for v in out["routes"]["gas"] if v is not None)
         out["gas_publication"] = sap_series.get("publication")
+    # Retail, aligned to the same dates. The cap is a step function, so this
+    # is flat between quarters by design rather than by failure.
+    if retail_series and retail_series.get("dates"):
+        idx = {d_: i for i, d_ in enumerate(retail_series["dates"])}
+        out["retail"] = {}
+        for k in ("gas", "ashp", "shallow", "network"):
+            src = retail_series.get(k) or []
+            out["retail"][k] = [
+                (src[idx[d_]] if d_ in idx and idx[d_] < len(src) else None)
+                for d_ in out["dates"]]
     out["note"] = (
         "Commodity cost of DELIVERED heat: the daily electricity index "
         "divided by each route's seasonal factor. The flat mean is what the "

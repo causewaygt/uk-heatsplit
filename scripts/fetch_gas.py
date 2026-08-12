@@ -18,6 +18,8 @@ Units auto-detected (kWh / GWh / mcm).
 import datetime as dt
 import json
 import re
+import time
+
 import requests
 
 BASE = "https://api.nationalgas.com/operationaldata/v1"
@@ -69,6 +71,39 @@ def _autoscale(values_by_date, label):
     return {d: round(v * factor, 1) for d, v in values_by_date.items()}
 
 
+_CATALOGUE = None
+
+
+def _catalogue():
+    """The publication catalogue, fetched at most once per run.
+
+    Two GETs to this endpoint in one run is not reliable: the demand path
+    fetched it and got the full list, the SAP call asked again moments later
+    and got zero publications. Whether that is rate limiting or a cache miss
+    at their end does not matter - one fetch, shared, removes the question.
+    A retry is kept because the single remaining call is now load-bearing.
+    """
+    global _CATALOGUE
+    if _CATALOGUE is not None:
+        return _CATALOGUE
+    last = None
+    for attempt in range(3):
+        try:
+            r = requests.get(CATALOGUE_URL, timeout=60)
+            r.raise_for_status()
+            found = []
+            _harvest(r.json(), found)
+            found = sorted(set(found))
+            if found:
+                _CATALOGUE = found
+                return _CATALOGUE
+            last = RuntimeError("catalogue returned 0 publications")
+        except Exception as e:
+            last = e
+        time.sleep(5 * (attempt + 1))
+    raise last or RuntimeError("catalogue unavailable")
+
+
 def _post_gasday(pub_ids, start, end):
     r = requests.post(GASDAY_URL, json={
         "fromDate": start.isoformat(), "toDate": end.isoformat(),
@@ -80,11 +115,7 @@ def _post_gasday(pub_ids, start, end):
 
 
 def fetch_gas_demand(days=400):
-    r = requests.get(CATALOGUE_URL, timeout=60)
-    r.raise_for_status()
-    catalogue = []
-    _harvest(r.json(), catalogue)
-    catalogue = sorted(set(catalogue))
+    catalogue = _catalogue()
     by_name = {name: pid for pid, name in catalogue}
 
     nts_id = nts_name = None
@@ -179,14 +210,7 @@ def fetch_gas_sap_series(days=800):
     rather than filled: a gas price is a published outcome, and inventing one
     would put a fabricated number on a price chart.
     """
-    # _harvest appends (id, name) TUPLES to a LIST - it does not build a dict.
-    # Getting that wrong cost a run: the first version passed a dict and
-    # called .items() on it, which raised AttributeError and lost the series
-    # silently behind the try/except in build.py.
-    cat = requests.get(CATALOGUE_URL, timeout=60)
-    cat.raise_for_status()
-    found = []
-    _harvest(cat.json(), found)
+    found = _catalogue()
     pub_id = pub_name = None
     for want in SAP_PREFERRED_NAMES:
         for pid, name in found:

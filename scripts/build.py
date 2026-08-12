@@ -2198,6 +2198,32 @@ def main():
         # The gas line on the heat-price chart needs a SERIES, not today's
         # single SAP. Fetched here and handed to the retro slice so the four
         # routes are drawn on one basis from one place.
+        # RETAIL BASIS for the price chart. The cap in force on each date,
+        # per useful kWh, so a reader can switch between "which fuel is
+        # cheaper to make heat from" and "what would I pay". A step function
+        # by construction - cap periods, not a market.
+        _retail_series = None
+        try:
+            _rd = (rstore or {}).get("start_day")
+            if _rd:
+                _n = (rstore["n_hours"] // 24)
+                _dates = [(dt.date.fromisoformat(_rd) + dt.timedelta(days=i))
+                          .isoformat() for i in range(_n)]
+                _retail_series = {"dates": _dates, "gas": [], "ashp": [],
+                                  "shallow": [], "network": []}
+                for _d in _dates:
+                    _p, _ = cap_prices(_d)
+                    _retail_series["gas"].append(
+                        round(_p["gas"] / EFF["gas"] * 10.0, 2))
+                    _retail_series["ashp"].append(
+                        round(_p["elec"] / ASHP_SPF * 10.0, 2))
+                    _retail_series["shallow"].append(
+                        round(_p["elec"] / GSHP_SPF * 10.0, 2))
+                    _retail_series["network"].append(
+                        round(_p["elec"] / GEO_NETWORK_SCOP * 10.0, 2))
+        except Exception:
+            traceback.print_exc()
+
         _sap_series = None
         try:
             _sap_series = fetch_gas_sap_series(days=RETRO_SPAN_DAYS)
@@ -2208,7 +2234,8 @@ def main():
             print("gas SAP series unavailable - gas line will be absent")
             traceback.print_exc()
         out["whatif_routes"] = retro.slices(rstore, nd_daily=nd_daily,
-                                            sap_series=_sap_series)
+                                            sap_series=_sap_series,
+                                            retail_series=_retail_series)
         st = out["whatif_routes"]["stress"]
         print("retro stress: worst hour", st["worst_hour"],
               "heat", st["worst_hour_heat_GWh"], "GWh at",
