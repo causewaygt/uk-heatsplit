@@ -74,11 +74,27 @@ setTimeout(() => {
   // Pinned so a refactor cannot quietly move what the frontispiece quotes.
   reset();
   const c = M.compute();
-  chk("default benefit-cost ratio is 2.05", near(c.bcr, 2.05, 0.02), c.bcr.toFixed(3));
-  chk("default net present social value is about +19bn", near(c.npsv, 19, 1),
+  // Defaults moved 12 Aug 2026 when the cooling lever landed at 30% of
+  // connections. At zero cooling the case is the old one, 2.05 - and the
+  // check below pins that too, so the cooling contribution stays visible
+  // rather than being absorbed into a new baseline.
+  chk("default benefit-cost ratio is 2.53", near(c.bcr, 2.53, 0.02), c.bcr.toFixed(3));
+  chk("default net present social value is about +30bn", near(c.npsv, 30, 1),
       c.npsv.toFixed(1));
-  chk("default social cost is about 18bn", near(c.cost, 18, 1), c.cost.toFixed(1));
-  chk("five levers, no more", D.querySelectorAll("#capitalpanel input[type=range]").length === 5);
+  chk("default social cost is about 19bn", near(c.cost, 19, 1), c.cost.toFixed(1));
+  chk("six levers, no more", D.querySelectorAll("#capitalpanel input[type=range]").length === 6);
+  // The cooling lever must be able to go to zero and leave the heat case
+  // standing on its own. A lever that improves both sides of the ratio at
+  // once has to be removable, or a reader cannot tell what it is worth.
+  (() => {
+    const lv = D.getElementById("lv_cool");
+    if(!lv){ chk("cooling lever exists", false); return; }
+    lv.value = 0; lv.dispatchEvent(new w.Event("input"));
+    const zero = w.capitalModel.compute();
+    chk("at zero cooling the heat case stands alone at 2.05",
+        near(zero.bcr, 2.05, 0.02), zero.bcr.toFixed(3));
+    lv.value = 30; lv.dispatchEvent(new w.Event("input"));
+  })();
 
   // ---- panel and frontispiece cannot disagree ---------------------------
   const p6 = [...D.querySelectorAll(".pt")].find(p => {
@@ -116,21 +132,6 @@ setTimeout(() => {
   chk("sizing is not a free lunch - the ratio falls as it rises",
       small.bcr > large.bcr, small.bcr.toFixed(2) + " > " + large.bcr.toFixed(2));
 
-  // ---- Annex A: both sides, and both responsive -------------------------
-  reset();
-  const f = M.financing();
-  chk("the premium is priced against the gilt, not the hurdle", f.premium > 0);
-  chk("what it buys splits into construction and subsurface",
-      f.construction > 0 && typeof f.geological === "number");
-  chk("construction risk is the larger term", f.construction > f.geological);
-  reset(); set("ob", 20);  const buysLow  = M.financing().transferred;
-  reset(); set("ob", 66);  const buysHigh = M.financing().transferred;
-  chk("optimism bias drives BOTH sides of the Annex A test", buysHigh > buysLow,
-      buysLow.toFixed(1) + " -> " + buysHigh.toFixed(1));
-  reset(); set("loss", 40);
-  chk("a shortfall raises the geological risk transferred",
-      M.financing().geological > f.geological);
-
   // ---- coherence across the whole lever space ---------------------------
   reset();
   let bad = null;
@@ -152,8 +153,14 @@ setTimeout(() => {
   for (const [what, re] of [
     ["it is published against interest", /published against interest/],
     ["pre-FID development capital is excluded", /Pre-FID development capital is excluded/],
+    ["the European risk funds are named, and the UK gap", /the UK has none/],
     ["the TS1 sizing basis is cited", /TS1 requirement 1\.7\.15/],
-    ["the Annex A test is named as two-sided", /risk transfer and delivery efficiencies outweigh/],
+    // The financing sub-panel came out on 10 Aug 2026: Annex A compares
+    // EXCHEQUER costs, and a heat network is a commercial asset funded by heat
+    // sales, so the test does not bite at programme level. What replaced it is
+    // one paragraph saying so - and saying where the test does apply.
+    ["who pays is answered, not performed", /funded by heat sales/],
+    ["Annex A is placed at scheme level, not here", /applies at scheme level/],
     ["the counterfactual's provenance is on the face", /Electrification of Heat, 742 monitored units/],
     ["the peak claim is flagged as model-derived", /model of instantaneous performance, not a field trial/],
     ["the reference-class gap is stated", /no UK dataset/]
