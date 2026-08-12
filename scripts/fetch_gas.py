@@ -179,25 +179,31 @@ def fetch_gas_sap_series(days=800):
     rather than filled: a gas price is a published outcome, and inventing one
     would put a fabricated number on a price chart.
     """
+    # _harvest appends (id, name) TUPLES to a LIST - it does not build a dict.
+    # Getting that wrong cost a run: the first version passed a dict and
+    # called .items() on it, which raised AttributeError and lost the series
+    # silently behind the try/except in build.py.
     cat = requests.get(CATALOGUE_URL, timeout=60)
     cat.raise_for_status()
-    found = {}
+    found = []
     _harvest(cat.json(), found)
-    pub_id = None
+    pub_id = pub_name = None
     for want in SAP_PREFERRED_NAMES:
-        for name, pid in found.items():
+        for pid, name in found:
             if name.strip().lower() == want.lower():
                 pub_id, pub_name = pid, name
                 break
         if pub_id:
             break
-    if not pub_id:                       # name may drift; match loosely
-        for name, pid in found.items():
-            if "sap" in name.lower() and "actual" in name.lower():
+    if not pub_id:                       # the name may drift; match loosely
+        for pid, name in found:
+            low = name.lower()
+            if "sap" in low and "actual" in low:
                 pub_id, pub_name = pid, name
                 break
     if not pub_id:
-        print("gas SAP series: no SAP publication found in the catalogue")
+        print("gas SAP series: no SAP publication in the catalogue (%d "
+              "publications seen)" % len(found))
         return None
 
     end = dt.date.today() - dt.timedelta(days=1)
@@ -208,15 +214,16 @@ def fetch_gas_sap_series(days=800):
     while w0 <= end:
         w1 = min(end, w0 + dt.timedelta(days=DAY_CHUNK - 1))
         for block in _post_gasday([pub_id], w0, w1):
-            for row in (block.get("data") or []):
-                d_ = (row.get("applicableFor") or row.get("applicableAt")
-                      or "")[:10]
-                v = row.get("value")
-                if d_ and v is not None:
-                    try:
-                        by_date[d_] = float(v)
-                    except (TypeError, ValueError):
-                        pass
+            # rows live under "publications", the same key the demand path
+            # uses - NOT "data", which was the first guess and returned none
+            for rec in block.get("publications", []):
+                d_ = (rec.get("applicableFor") or "")[:10]
+                try:
+                    v = float(rec.get("value"))
+                except (TypeError, ValueError):
+                    continue
+                if d_:
+                    by_date[d_] = v
         spans += 1
         w0 = w1 + dt.timedelta(days=1)
 

@@ -2202,8 +2202,11 @@ def main():
         try:
             _sap_series = fetch_gas_sap_series(days=RETRO_SPAN_DAYS)
         except Exception as _e:
-            print("gas SAP series unavailable (%s) - gas line will be absent"
-                  % type(_e).__name__)
+            # A bare exception name hid a plain coding error for a whole run.
+            # Print the traceback: a feed being down and a bug in the caller
+            # look identical from the outside and need different fixes.
+            print("gas SAP series unavailable - gas line will be absent")
+            traceback.print_exc()
         out["whatif_routes"] = retro.slices(rstore, nd_daily=nd_daily,
                                             sap_series=_sap_series)
         st = out["whatif_routes"]["stress"]
