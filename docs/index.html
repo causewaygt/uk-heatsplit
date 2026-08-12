@@ -130,8 +130,12 @@
            padding-right:6px}
   @media (max-width:760px){.statrow{grid-template-columns:1fr 1fr}}
   @media (max-width:400px){.statrow{grid-template-columns:1fr}}
-  .stat .fig{font-family:"IBM Plex Mono";font-size:clamp(24px,4vw,38px);font-weight:500}
-  .stat .cap{font-size:13.5px;line-height:1.42;color:var(--muted);margin-top:3px;max-width:30ch}
+  .stat .fig{font-family:"IBM Plex Mono";font-size:clamp(24px,4vw,38px);font-weight:500;
+             line-height:1.12;white-space:nowrap}
+  /* The year rides with the hour rather than wrapping onto its own line,
+     which was pushing the caption a full line clear of the figure. */
+  .stat .fig small{font-size:.44em;letter-spacing:.02em;color:var(--muted)}
+  .stat .cap{font-size:13.5px;line-height:1.42;color:var(--muted);margin-top:2px;max-width:30ch}
   .trendctl{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:16px;
             font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.05em;color:var(--muted);flex-wrap:wrap}
   .trendctl button{font:11px "IBM Plex Mono";letter-spacing:.05em;color:var(--muted);
@@ -329,12 +333,12 @@
   #capitalpanel .lever label b{color:var(--paper);font-weight:600}
   #capitalpanel .lever input{width:100%;margin-top:8px;accent-color:var(--geo)}
   #capitalpanel .lever .hint{font-size:11.5px;line-height:1.4;color:var(--ash);margin-top:6px}
-  #capitalpanel .fixed{margin-top:20px;font-size:12.5px;line-height:1.55;color:var(--ash);
+  #capitalpanel .fixed{margin-top:20px;font-size:13.5px;line-height:1.6;color:var(--muted);
          border-left:2px solid var(--line);padding-left:14px}
-  #capitalpanel .note{font-size:13px;line-height:1.55;margin-top:20px;background:var(--surface);
-        border-radius:6px;padding:14px 16px}
+  #capitalpanel .note{font-size:13.5px;line-height:1.6;margin-top:20px;background:var(--surface);
+        border-radius:6px;padding:14px 16px;color:var(--muted)}
   #capitalpanel .note b{color:var(--geo)}
-  #capitalpanel .caveat{font-size:12.5px;line-height:1.5;color:var(--ash);margin-top:16px}
+  #capitalpanel .caveat{font-size:13.5px;line-height:1.6;color:var(--muted);margin-top:16px}
   #capitalpanel .block{margin-top:30px;border-top:1px solid var(--line);padding-top:22px}
   #capitalpanel .scales{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:16px}
   #capitalpanel .pan{border:1px solid var(--line);border-radius:6px;padding:14px 16px}
@@ -382,12 +386,81 @@
 
 <div class="wrap">
   <section class="front" id="front" tabindex="-1" hidden>
-    <div class="frontlead">The case in six figures</div>
+    <div class="frontlead">The case for geothermal in six figures</div>
     <p class="frontsub">Every number here is computed from the live estimate
       below and restates with it. Daggers mark figures resting on Causeway
       judgement rather than a published source.</p>
     <div class="points" id="points"></div>
     <p class="frontfoot" id="frontfoot"></p>
+
+    <details class="fold" id="fold_start"><summary>METHOD —
+      <b>where every number on this page comes from, and what it cannot see</b></summary>
+    <div class="foldbody">
+    <h2>The gas engine room: daily gas to buildings vs the heating signal</h2>
+    <div id="ts"></div>
+    <div class="burnbar" id="burnbar" aria-label="This week's buildings gas split"></div>
+    <div class="legend">
+      <span><span class="key" style="background:var(--ember)"></span><b>Space heating</b> (useful)</span>
+      <span><span class="key" style="background:repeating-linear-gradient(135deg,#b83f1e 0 4px,#7e2c15 4px 8px)"></span><b>Wasted at the boiler</b> (~15–17.5%)</span>
+      <span><span class="key" style="background:var(--ash)"></span><b>Non-weather gas to buildings</b> (hot water, cooking, industry on the distribution network)</span>
+    </div>
+    <h2>Method &amp; caveats</h2>
+    <p class="geosub" style="margin-bottom:10px">Full technical methodology, with equations, figures and a complete bibliography: <a href="uk-heatsplit-methodology.pdf" style="color:var(--geo)">UK Heat Split: data sources and estimation methodology (PDF)</a>.</p>
+    <p style="color:var(--geo);font-size:15px;line-height:1.6">† Current
+      Causeway Energies estimate – challenge and input welcome at
+      <a href="mailto:contact@causewaygt.com" style="color:var(--geo)">contact@causewaygt.com</a>.</p>
+    <p><b>Gas (live).</b> Daily gas offtake to Britain's local distribution zones
+      (LDZ — the network serving homes and most businesses) is regressed against
+      population-weighted GB heating degree days (ERA5 reanalysis via Open-Meteo).
+      The temperature-sensitive component is attributed to space heating.
+      Directly-connected power stations are excluded. Approach follows the
+      published Watson/Sansom method. Current fit: <span id="fit">—</span>.</p>
+    <p><b>Everything else (shaped annual).</b> Oil, electric heating, bioenergy,
+      heat networks, solid fuel and cooling take their annual levels from the
+      DESNZ ECUK 2025 End Use tables (calendar 2024) and are distributed across
+      the year by heating/cooling degree days. They do not respond to live grid
+      data. Cooling is the weakest element: the ECUK figure combines cooling and
+      ventilation, split here 50% flat / 50% weather-shaped by assumption, and UK
+      cooling demand is poorly measured. Electric heating counts the electricity
+      into heat pumps, not the ambient heat they harvest — so the useful heat
+      delivered by heat pumps is understated for now.</p>
+    <p><b>The two bars.</b> The top bar is final energy — fuel and electricity
+      purchased. The bottom bar is useful heat and cooling delivered: combustion
+      derated by measured in-situ efficiencies (gas 83.5%, oil 82%, bio 70%,
+      solid 55% — the last three are estimates), heat networks shown at delivered
+      heat, resistive electric at 100%, heat pumps multiplied by a blended SPF of
+      2.8 (Energy Systems Catapult field data) with the harvested ambient heat
+      shown in teal, and the weather-driven half of cooling multiplied by an
+      assumed EER of 3. Heat-pump electricity is the ECUK 2025 domestic figure
+      (2.0 TWh, 2024); non-domestic heat pumps are not yet counted, so the teal
+      segment is understated.</p>
+    <p><b>Known biases.</b> Hot-water heating is treated as flat but is mildly
+      seasonal (colder mains water in winter), so gas space heating carries a
+      small upward bias. The boiler-waste band uses in-situ UK boiler efficiency
+      measurements (82.5–85%), not nameplate values.</p>
+    <p><b>Geothermal panel.</b> Today's heat figure is anchored on the EGEC
+      2025 UK Country Update (1,430 GWhth/yr from ~55,210 GSHP units,
+      847–861 MWth installed — a 2023 estimate from sales data; the
+      Environment Agency's 2024 review suggests only ~30–38k of those units
+      may be operational, hence the 1.4–2.0 range) plus ~0.07 TWh/yr from
+      mine-water, deep and open-loop district schemes. No national metering
+      or single register of ground-source systems exists; cooling is anchored
+      only on 11 ATES systems (~8 MWth cold) and historic Southampton data.
+      Forward bars are third-party pathways (CCC, Project InnerSpace/REA/ARUP)
+      or explicitly flagged Causeway derivations, not predictions. The 2031
+      bar carries a range of roughly 3.5–6 TWh/yr. If the NI DfE licensing
+      proposals (consultation to 7 Aug 2026; heat below 100&nbsp;m depth)
+      proceed, the resulting register with published system performance would
+      be the UK's first mandatory geothermal data source — this panel is
+      designed to ingest it from ~2027.</p>
+    <p><b>Northern Ireland.</b> NI is not on the GB network shown here. NI heating
+      is estimated annually from subnational consumption statistics scaled by NI
+      degree days.</p>
+    <p id="trendpara" style="display:none"><b>Trends.</b> <span id="trendnote">—</span></p>
+    <p><b>Indigenous share &amp; 20% what-if.</b> <span id="indignote">—</span></p>
+    <p><b>Calibration.</b> <span id="calib">—</span></p>
+    <div class="status" id="status"></div>
+    </div></details>
   </section>
 
   <div class="hero">
@@ -440,7 +513,7 @@
     <div class="context" id="peakctx" style="margin-top:14px"></div>
   </div>
   <div class="hero">
-    <div class="h2lab" style="margin-top:34px">The energy balance</div>
+    <div class="h2lab">The energy balance</div>
     <div class="barlabel" id="balancesection">ENERGY IN — fuel &amp; electricity purchased<span id="barwin"></span></div>
     <div class="barrow">
       <div class="btot" id="tot_in">—</div>
@@ -654,17 +727,13 @@
         <div id="emptybarplot" style="width:100%;height:300px;margin-top:14px"></div>
         <h2 style="margin-top:26px;font-size:16px">The same fleets, calibrated — share of each country's own buildings heat</h2>
         <div id="emptysharesplot" style="width:100%;height:240px;margin-top:10px"></div>
-        <p class="costnote" id="emptybarnote"></p>
     </div>
-    <p class="geosub" style="margin-top:16px">Geothermal heat is steady,
-      local, combustion-free — and the same boreholes and aquifers that heat in
-      winter cool in summer, rejecting heat to ~12°C ground instead of 30°C
-      summer air. Active ground-source cooling beats air-cooled chillers on
-      efficiency; passive borehole cooling (circulation only, no compressor)
-      can deliver cooling at COPs of 15–30. Solid bars are estimated actuals;
-      hatched bars are third-party forecasts and ambitions, each tagged with
-      its source. Forecast bars are heat only — no published UK geothermal
-      cooling forecast exists to cite.</p>
+    <details class="fold" id="fold_geo"><summary>METHOD —
+      <b>what the bars price, and where the comparators come from</b></summary>
+    <div class="foldbody">
+      <p class="costnote" id="emptybarnote"></p>
+    </div></details>
+
   </section>
 
   <section>
@@ -833,20 +902,6 @@
 
   <h1 class="sect" style="margin-top:44px">Footnotes</h1>
 
-  <details class="fold" id="fold_engine"><summary>UNDER THE BONNET —
-    <b>the gas engine: daily LDZ gas regressed on degree days, live</b></summary>
-  <div class="foldbody"><section>
-    <h2>The gas engine room: daily gas to buildings vs the heating signal</h2>
-    <div id="ts"></div>
-    <div class="burnbar" id="burnbar" aria-label="This week's buildings gas split"></div>
-    <div class="legend">
-      <span><span class="key" style="background:var(--ember)"></span><b>Space heating</b> (useful)</span>
-      <span><span class="key" style="background:repeating-linear-gradient(135deg,#b83f1e 0 4px,#7e2c15 4px 8px)"></span><b>Wasted at the boiler</b> (~15–17.5%)</span>
-      <span><span class="key" style="background:var(--ash)"></span><b>Non-weather gas to buildings</b> (hot water, cooking, industry on the distribution network)</span>
-    </div>
-  </section>
-
-  </div></details>
   <section>
     <h2>Northern Ireland</h2>
     <p class="costnote" id="nipanel">—</p>
@@ -862,62 +917,6 @@
     </div>
     <p class="costnote" id="whyheatnote"></p>
 
-    <h2>Method &amp; caveats</h2>
-    <p class="geosub" style="margin-bottom:10px">Full technical methodology, with equations, figures and a complete bibliography: <a href="uk-heatsplit-methodology.pdf" style="color:var(--geo)">UK Heat Split: data sources and estimation methodology (PDF)</a>.</p>
-    <p style="color:var(--geo);font-size:15px;line-height:1.6">† Current
-      Causeway Energies estimate – challenge and input welcome at
-      <a href="mailto:contact@causewaygt.com" style="color:var(--geo)">contact@causewaygt.com</a>.</p>
-    <p><b>Gas (live).</b> Daily gas offtake to Britain's local distribution zones
-      (LDZ — the network serving homes and most businesses) is regressed against
-      population-weighted GB heating degree days (ERA5 reanalysis via Open-Meteo).
-      The temperature-sensitive component is attributed to space heating.
-      Directly-connected power stations are excluded. Approach follows the
-      published Watson/Sansom method. Current fit: <span id="fit">—</span>.</p>
-    <p><b>Everything else (shaped annual).</b> Oil, electric heating, bioenergy,
-      heat networks, solid fuel and cooling take their annual levels from the
-      DESNZ ECUK 2025 End Use tables (calendar 2024) and are distributed across
-      the year by heating/cooling degree days. They do not respond to live grid
-      data. Cooling is the weakest element: the ECUK figure combines cooling and
-      ventilation, split here 50% flat / 50% weather-shaped by assumption, and UK
-      cooling demand is poorly measured. Electric heating counts the electricity
-      into heat pumps, not the ambient heat they harvest — so the useful heat
-      delivered by heat pumps is understated for now.</p>
-    <p><b>The two bars.</b> The top bar is final energy — fuel and electricity
-      purchased. The bottom bar is useful heat and cooling delivered: combustion
-      derated by measured in-situ efficiencies (gas 83.5%, oil 82%, bio 70%,
-      solid 55% — the last three are estimates), heat networks shown at delivered
-      heat, resistive electric at 100%, heat pumps multiplied by a blended SPF of
-      2.8 (Energy Systems Catapult field data) with the harvested ambient heat
-      shown in teal, and the weather-driven half of cooling multiplied by an
-      assumed EER of 3. Heat-pump electricity is the ECUK 2025 domestic figure
-      (2.0 TWh, 2024); non-domestic heat pumps are not yet counted, so the teal
-      segment is understated.</p>
-    <p><b>Known biases.</b> Hot-water heating is treated as flat but is mildly
-      seasonal (colder mains water in winter), so gas space heating carries a
-      small upward bias. The boiler-waste band uses in-situ UK boiler efficiency
-      measurements (82.5–85%), not nameplate values.</p>
-    <p><b>Geothermal panel.</b> Today's heat figure is anchored on the EGEC
-      2025 UK Country Update (1,430 GWhth/yr from ~55,210 GSHP units,
-      847–861 MWth installed — a 2023 estimate from sales data; the
-      Environment Agency's 2024 review suggests only ~30–38k of those units
-      may be operational, hence the 1.4–2.0 range) plus ~0.07 TWh/yr from
-      mine-water, deep and open-loop district schemes. No national metering
-      or single register of ground-source systems exists; cooling is anchored
-      only on 11 ATES systems (~8 MWth cold) and historic Southampton data.
-      Forward bars are third-party pathways (CCC, Project InnerSpace/REA/ARUP)
-      or explicitly flagged Causeway derivations, not predictions. The 2031
-      bar carries a range of roughly 3.5–6 TWh/yr. If the NI DfE licensing
-      proposals (consultation to 7 Aug 2026; heat below 100&nbsp;m depth)
-      proceed, the resulting register with published system performance would
-      be the UK's first mandatory geothermal data source — this panel is
-      designed to ingest it from ~2027.</p>
-    <p><b>Northern Ireland.</b> NI is not on the GB network shown here. NI heating
-      is estimated annually from subnational consumption statistics scaled by NI
-      degree days.</p>
-    <p id="trendpara" style="display:none"><b>Trends.</b> <span id="trendnote">—</span></p>
-    <p><b>Indigenous share &amp; 20% what-if.</b> <span id="indignote">—</span></p>
-    <p><b>Calibration.</b> <span id="calib">—</span></p>
-    <div class="status" id="status"></div>
   </section>
 </div>
 
@@ -940,7 +939,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.22.1';
+const SITE_VERSION = '8.23.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1741,10 +1740,10 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
     Plotly.newPlot('ts',traces,{
       paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',
       font:{family:'Lato',color:css('--muted'),size:12},
-      margin:{l:52,r:10,t:10,b:40},
+      margin:{l:52,r:10,t:46,b:40},
       yaxis:{title:'GWh/day',gridcolor:css('--line')},
       xaxis:{gridcolor:css('--line')},
-      legend:{orientation:'h',y:1.14}
+      legend:{orientation:'h', y:1.02, yanchor:'bottom', yanchor:'bottom'}
     },{displayModeBar:false,responsive:true});
   }
 
@@ -1835,10 +1834,10 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
     ], {
       paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
       font:{family:'Lato', color:css('--muted'), size:12},
-      margin:{l:60,r:10,t:10,b:44},
+      margin:{l:60,r:10,t:46,b:44},
       xaxis:{title:'Cooling degree days (base 18°C)', gridcolor:css('--line')},
       yaxis:{title:'Cooling electricity, GWh/day', gridcolor:css('--line')},
-      legend:{orientation:'h', y:1.15}
+      legend:{orientation:'h', y:1.02, yanchor:'bottom', yanchor:'bottom'}
     }, {displayModeBar:false, responsive:true});
     document.getElementById('coolobsnote').textContent = co.note +
       ' Sample: ' + co.summer_days_used + ' summer days.';
@@ -1899,10 +1898,10 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
         barmode: 'stack', bargap: 0.05,
         paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
         font:{family:'Lato', color:css('--muted'), size:12},
-        margin:{l:60,r:10,t:10,b:40},
+        margin:{l:60,r:10,t:46,b:40},
         xaxis:{gridcolor:css('--line'), tickformat: n > 120 ? '%b' : '%-d %b'},
         yaxis:{title:'GWh thermal per day', gridcolor:css('--line')},
-        legend:{orientation:'h', y:1.18}
+        legend:{orientation:'h', y:1.02, yanchor:'bottom', yanchor:'bottom'}
       }, {displayModeBar:false, responsive:true});
 
       const t1 = tot(cut(td.t1_GWh)), t2 = tot(cut(td.t2_GWh));
@@ -1977,10 +1976,10 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       barmode:'stack', bargap:0.15,
       paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
       font:{family:'Lato', color:css('--muted'), size:12},
-      margin:{l:60,r:16,t:8,b:40},
+      margin:{l:60,r:16,t:46,b:40},
       xaxis:{gridcolor:css('--line'), tickangle:0, dtick:2},
       yaxis:{title:'GW per \u00b0C', gridcolor:css('--line'), zeroline:false},
-      legend:{orientation:'h', y:1.2}
+      legend:{orientation:'h', y:1.02, yanchor:'bottom', yanchor:'bottom'}
     }, {displayModeBar:false, responsive:true});
     document.getElementById('diurnalnote').textContent =
       'Summer demand regressed on outdoor air temperature, separately for each ' +
@@ -2030,11 +2029,11 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
     Plotly.newPlot('elbow', traces, {
       paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
       font:{family:'Lato', color:css('--muted'), size:12},
-      margin:{l:60,r:16,t:8,b:42},
+      margin:{l:60,r:16,t:46,b:42},
       xaxis:{title:'outdoor air temperature (\u00b0C)', gridcolor:css('--line'),
              range:[lo-1, hi+1]},
       yaxis:{title:'demand (GW)', gridcolor:css('--line')},
-      legend:{orientation:'h', y:1.18}
+      legend:{orientation:'h', y:1.02, yanchor:'bottom', yanchor:'bottom'}
     }, {displayModeBar:false, responsive:true});
     const fm = v => (v>=0?'+':'\u2212') + Math.abs(v).toFixed(3);
     document.getElementById('elbownote').textContent =
@@ -2131,10 +2130,10 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
         barmode: 'stack', bargap: 0.05,
         paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
         font:{family:'Lato', color:css('--muted'), size:12},
-        margin:{l:60,r:16,t:8,b:40},
+        margin:{l:60,r:16,t:46,b:40},
         xaxis:{gridcolor:css('--line'), tickformat: n > 120 ? '%b' : '%-d %b'},
         yaxis:{title:'GWh of electricity per day', gridcolor:css('--line')},
-        legend:{orientation:'h', y:1.18}
+        legend:{orientation:'h', y:1.02, yanchor:'bottom', yanchor:'bottom'}
       }, {displayModeBar:false, responsive:true});
       const sum = a => a.reduce((s_, v) => s_ + v, 0);
       const air = sum(serv) / EER, g = sum(geo), sv = sum(saved);
@@ -2209,7 +2208,7 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
     }], {
       paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
       font:{family:'Lato', color:css('--muted'), size:12},
-      margin:{l:170,r:30,t:6,b:34},
+      margin:{l:170,r:30,t:46,b:34},
       xaxis:{title:{text:axis}, gridcolor:css('--line'), zeroline:false},
       yaxis:{automargin:true}
     }, {displayModeBar:false, responsive:true});
@@ -2855,9 +2854,9 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
         {paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
          font:{family:'Lato', color:css('--muted'), size:11},
          barmode:'stack', showlegend:true,
-         legend:{orientation:'h', y:1.24, font:{size:12},
+         legend:{orientation:'h', y:1.02, yanchor:'bottom', font:{size:12},
                  traceorder:'reversed'},
-         margin:{l:48, r:10, t:14, b:44},
+         margin:{l:48,r:10,t:46,b:44},
          xaxis:{gridcolor:css('--line')},
          yaxis:{title:'GW at the worst hour', gridcolor:css('--line')},
          annotations:[{x:0.5, xref:'paper', y:fifth, yshift:14,
@@ -2923,9 +2922,9 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
         {paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
          font:{family:'Lato', color:css('--muted'), size:11},
          barmode:'stack', showlegend:true,
-         legend:{orientation:'h', y:1.24, font:{size:12},
+         legend:{orientation:'h', y:1.02, yanchor:'bottom', font:{size:12},
                  traceorder:'reversed'},
-         margin:{l:48, r:10, t:14, b:44},
+         margin:{l:48,r:10,t:46,b:44},
          xaxis:{gridcolor:css('--line')},
          yaxis:{title:'GW at the peak cooling hour',
                 gridcolor:css('--line')}},
@@ -2970,9 +2969,9 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
         {paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
           font:{family:'Lato', color:css('--muted'), size:11},
           xaxis:{gridcolor:css('--line')}, barmode:'stack',
-          showlegend:true, legend:{orientation:'h', y:1.22,
+          showlegend:true, legend:{orientation:'h', y:1.02, yanchor:'bottom',
                                    font:{size:12}, traceorder:'reversed'},
-          margin:{l:46, r:10, t:10, b:26},
+          margin:{l:46,r:10,t:46,b:26},
           yaxis:{title:'GW at the binding hour',
                  gridcolor:css('--line'),
                  range:[0, sv.dispatch_derated_GW * 1.12]},
@@ -3033,8 +3032,8 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
         paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
         font:{family:'Lato', color:css('--muted'), size:11},
         barmode:'group', bargap:0.34, bargroupgap:0.08,
-        showlegend:true, legend:{orientation:'h', y:1.22, font:{size:12}},
-        margin:{l:52, r:12, t:14, b:30},
+        showlegend:true, legend:{orientation:'h', y:1.02, yanchor:'bottom', font:{size:12}},
+        margin:{l:52,r:12,t:46,b:30},
         xaxis:{gridcolor:css('--line')},
         yaxis:{title:'% of Britain\u2019s building heat', gridcolor:css('--line'),
                range:[0, Math.max(120, Math.max.apply(null, obs) * 1.22)]},
@@ -3062,8 +3061,8 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
 
     const P = {paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
                font:{family:'Lato', color:css('--muted'), size:11},
-               margin:{l:46, r:46, t:8, b:28},
-               legend:{orientation:'h', y:1.16},
+               margin:{l:46,r:46,t:46,b:28},
+               legend:{orientation:'h', y:1.02, yanchor:'bottom', yanchor:'bottom'},
                xaxis:{gridcolor:css('--line')}};
     function windowTraces(w){
       const t0 = new Date(w.start + ':00:00Z');
@@ -3241,7 +3240,7 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       Object.assign({}, P, {
         xaxis:{title:'air temperature \u00b0C', gridcolor:css('--line')},
         yaxis:{title:'COP', gridcolor:css('--line'), rangemode:'tozero'},
-        margin:{l:46, r:10, t:8, b:32}}),
+        margin:{l:46,r:10,t:46,b:32}}),
       {displayModeBar:false, responsive:true});
 
     // The calibration disclosure runs in BOTH branches. It was written
