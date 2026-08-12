@@ -1490,6 +1490,48 @@ def heat_price_series(store, sap_series=None, retail_series=None,
             c = route_cop(k, tm, etas.get(k, 0.33))
             out["cop"][k].append(round(c, 2))
             out["routes"][k].append(round(fm / c, 2))
+    # GAS, where a series exists. Aligned to the SAME dates as the electric
+    # routes and left as None on days the price was not published, so a gap in
+    # the feed shows as a gap in the line rather than a straight segment
+    # across it. SAP is p/kWh; x10 puts it on the GBP/MWh axis the others use.
+    # Restored 12 Aug 2026 alongside the retail join - the same rewrite of
+    # this function removed both.
+    if sap_series and sap_series.get("dates"):
+        by = dict(zip(sap_series["dates"], sap_series["p_per_kwh"]))
+        out["routes"]["gas"] = [
+            (round(by[d_] * 10.0 / eff_gas, 2) if d_ in by else None)
+            for d_ in out["dates"]]
+        out["gas_days"] = sum(1 for v in out["routes"]["gas"] if v is not None)
+        out["gas_publication"] = sap_series.get("publication")
+
+    # RETAIL, aligned to the same dates. The cap is a step function, so this
+    # is flat between quarters by design rather than by failure. Restored
+    # 12 Aug 2026 after a rewrite of this function silently deleted it: the
+    # replacement spanned from the signature to the note and took this with
+    # it, which is why the basis toggle vanished from the page.
+    if retail_series and retail_series.get("dates"):
+        idx = {d_: i for i, d_ in enumerate(retail_series["dates"])}
+        out["retail"] = {}
+        for k in ("gas", "ashp", "shallow", "network"):
+            src = retail_series.get(k) or []
+            vals = [(src[idx[d_]] if d_ in idx and idx[d_] < len(src) else None)
+                    for d_ in out["dates"]]
+            # Gas arrives already divided by boiler efficiency. The electric
+            # routes arrive as UNIT prices and are divided here by that day's
+            # own COP, so retail and wholesale share one efficiency model.
+            if k != "gas":
+                vals = [(round(v / c, 2) if v is not None and c else None)
+                        for v, c in zip(vals, out["cop"][k])]
+            out["retail"][k] = vals
+        out["retail_note"] = (
+            "Domestic routes at the Ofgem cap in force on each date - a step "
+            "function of policy decisions, not a market series. The "
+            "geothermal network is priced at the NON-DOMESTIC electricity "
+            "rate, because a network operator buys on a commercial contract "
+            "rather than the domestic cap, and it is the operator's input "
+            "cost that is being compared - not what a connected household is "
+            "billed, which is a network tariff this model does not carry.")
+
     # HEAT-WEIGHTED SUMMARY. An unweighted daily chart gives a mild June day
     # the same weight as 5 January, which flatters air-source badly: on point
     # COP it beats ground source in mild weather and only loses in the cold,
