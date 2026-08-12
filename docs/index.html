@@ -964,7 +964,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.28.0';
+const SITE_VERSION = '8.29.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -2286,9 +2286,13 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
         (hp.routes.gas ? ' Gas boiler heat \u00a3' +
           (hp.routes.gas.filter(v=>v!=null).slice(-1)[0] || 0).toFixed(0) +
           '.' : '') +
-        ' The three electric routes move together because they are one ' +
-        'electricity price divided by three seasonal factors \u2014 what ' +
-        'separates them is the machine, not the market. ' +
+        ' The electric routes are one electricity price divided by each ' +
+        'route\u2019s <b>own COP on that day\u2019s temperature</b>, not by a ' +
+        'fixed seasonal factor \u2014 so they spread apart in cold weather ' +
+        'and close up in mild. Air-source is the one that moves: its COP ' +
+        'collapses toward 2 on the coldest days, exactly when the heat is ' +
+        'wanted, while a ground loop barely notices. That divergence is the ' +
+        'argument, and a fixed SPF hides it. ' +
         (hp.routes.gas
           ? 'Gas moves on its own market, which is why the lines cross where ' +
             'they do. '
@@ -2299,7 +2303,10 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
             'which steps at each quarter rather than moving with the market, ' +
             'and includes network, policy and supply costs. The gap is far ' +
             'smaller here than on wholesale, because those costs land on ' +
-            'electricity rather than gas. '
+            'electricity rather than gas. The network line is the ' +
+            'NON-DOMESTIC rate: an operator buys on a commercial contract, ' +
+            'not the domestic cap, and what is compared is its input cost ' +
+            'rather than a connected household\u2019s bill\u2020. '
           : 'Wholesale commodity only: at the meter the gap is far smaller, ' +
             'because policy and network costs land on electricity rather ' +
             'than gas. ') +
