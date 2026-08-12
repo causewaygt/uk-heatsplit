@@ -1431,29 +1431,35 @@ def night_elbow(store):
 
 
 def heat_price_series(store, sap_series=None, retail_series=None,
-                      eff_gas=0.835,
-                      spf=(("ashp", 2.80), ("shallow", 3.24),
-                           ("network", 5.00))):
+                      eff_gas=0.835):
     """Daily commodity cost of DELIVERED heat, by route, on both bases.
 
-    The store carries hourly electricity price, so the three heat-pump routes
-    are just that price divided by each route's seasonal factor. Two means are
-    published per day: the flat mean, which is what the ticker uses, and the
-    HEAT-WEIGHTED mean, which is what a heat pump would actually pay - it buys
-    most of its power at the morning and evening peaks. The gap between them
-    is the coincidence premium, about 3% in winter, and publishing both lets a
-    reader see it rather than take it on trust.
+    COP IS NOT A CONSTANT. Until 12 Aug 2026 this divided one electricity
+    price by three fixed seasonal factors, which made the three electric lines
+    parallel by construction and hid the effect the rest of the site exists to
+    show: an air-source machine loses efficiency exactly when heat is wanted,
+    while a ground loop barely moves. The daily COP now comes from route_cop()
+    on that day's mean temperature, using the SAME calibrated etas as the
+    hourly engine - one COP model on the site, not two.
 
-    Gas is NOT in the store - only today's SAP is fetched - so the gas series
-    is carried only where a caller supplies it. Retail is the Ofgem cap in
-    force on each date, which is a step function, not a series.
+    The store carries hourly electricity price and temperature, so both sides
+    of each division are measured. Two electricity means are published per
+    day: the flat mean, which the ticker uses, and the HEAT-WEIGHTED mean,
+    which is what a heat pump would actually pay.
+
+    Gas is not in the store - only today's SAP is fetched by the ticker - so
+    the gas series is carried only where a caller supplies one.
     """
     M = store.get("mid_gbp_mwh") or []
+    T = store.get("temp_C") or []
     H = store.get("heat_GWh") or []
     if not M:
         return None
+    etas = (store.get("calibration") or {}).get("eta") or {}
+    if not etas:
+        return None
     t0 = dt.date.fromisoformat(store["start_day"])
-    flat, wtd, dates = {}, {}, []
+    flat, wtd, temps = {}, {}, {}
     for i, v in enumerate(M):
         if v is None:
             continue
@@ -1461,43 +1467,29 @@ def heat_price_series(store, sap_series=None, retail_series=None,
         h = H[i] if i < len(H) and H[i] else 0.0
         flat.setdefault(d_, []).append(v)
         wtd.setdefault(d_, []).append((v, h))
+        if i < len(T) and T[i] is not None:
+            temps.setdefault(d_, []).append(T[i])
+    ROUTE_KEYS = ("ashp", "shallow", "network")
     out = {"dates": [], "elec_flat_gbp_mwh": [], "elec_heat_wtd_gbp_mwh": [],
-           "routes": {k: [] for k, _ in spf},
-           "spf": {k: r for k, r in spf}, "eff_gas": eff_gas}
+           "temp_C": [], "routes": {k: [] for k in ROUTE_KEYS},
+           "cop": {k: [] for k in ROUTE_KEYS}, "eff_gas": eff_gas}
     for d_ in sorted(flat):
         vals = flat[d_]
-        if len(vals) < 20:                     # part days are not a price
-            continue
+        if len(vals) < 20 or d_ not in temps:
+            continue                        # a part day is not a price
         fm = sum(vals) / len(vals)
         pw = wtd[d_]
         hsum = sum(h for _, h in pw)
         wm = (sum(p * h for p, h in pw) / hsum) if hsum > 0 else fm
+        tm = sum(temps[d_]) / len(temps[d_])
         out["dates"].append(d_)
         out["elec_flat_gbp_mwh"].append(round(fm, 2))
         out["elec_heat_wtd_gbp_mwh"].append(round(wm, 2))
-        for k, r in spf:
-            out["routes"][k].append(round(fm / r, 2))
-    # Gas, where a series exists. Aligned to the SAME dates as the electricity
-    # routes and left as None on days the price was not published, so a gap in
-    # the feed shows as a gap in the line rather than a straight segment across
-    # it. SAP is p/kWh; x10 puts it on the GBP/MWh axis the others use.
-    if sap_series and sap_series.get("dates"):
-        by = dict(zip(sap_series["dates"], sap_series["p_per_kwh"]))
-        out["routes"]["gas"] = [
-            (round(by[d_] * 10.0 / eff_gas, 2) if d_ in by else None)
-            for d_ in out["dates"]]
-        out["gas_days"] = sum(1 for v in out["routes"]["gas"] if v is not None)
-        out["gas_publication"] = sap_series.get("publication")
-    # Retail, aligned to the same dates. The cap is a step function, so this
-    # is flat between quarters by design rather than by failure.
-    if retail_series and retail_series.get("dates"):
-        idx = {d_: i for i, d_ in enumerate(retail_series["dates"])}
-        out["retail"] = {}
-        for k in ("gas", "ashp", "shallow", "network"):
-            src = retail_series.get(k) or []
-            out["retail"][k] = [
-                (src[idx[d_]] if d_ in idx and idx[d_] < len(src) else None)
-                for d_ in out["dates"]]
+        out["temp_C"].append(round(tm, 2))
+        for k in ROUTE_KEYS:
+            c = route_cop(k, tm, etas.get(k, 0.33))
+            out["cop"][k].append(round(c, 2))
+            out["routes"][k].append(round(fm / c, 2))
     out["note"] = (
         "Commodity cost of DELIVERED heat: the daily electricity index "
         "divided by each route's seasonal factor. The flat mean is what the "

@@ -2216,11 +2216,20 @@ def main():
                     _retail_series["gas"].append(
                         round(_p["gas"] / EFF["gas"] * 10.0, 2))
                     _retail_series["ashp"].append(
-                        round(_p["elec"] / ASHP_SPF * 10.0, 2))
+                        round(_p["elec"] * 10.0, 2))
                     _retail_series["shallow"].append(
-                        round(_p["elec"] / GSHP_SPF * 10.0, 2))
+                        round(_p["elec"] * 10.0, 2))
+                    # A HEAT NETWORK OPERATOR IS NOT A HOUSEHOLD. It buys
+                    # electricity on a commercial contract, not the domestic
+                    # cap, so the network route is priced at the non-domestic
+                    # rate. Using the cap here charged the operator a domestic
+                    # tariff it would never pay.
                     _retail_series["network"].append(
-                        round(_p["elec"] / GEO_NETWORK_SCOP * 10.0, 2))
+                        round(NONDOM_PRICES_P_PER_KWH["elec"] * 10.0, 2))
+                # Unit ELECTRICITY prices per MWh; the front end divides by
+                # that day's COP so the retail and wholesale bases use one
+                # efficiency model rather than two.
+                _retail_series["basis"] = "unit_electricity"
         except Exception:
             traceback.print_exc()
 
