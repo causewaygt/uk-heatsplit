@@ -121,6 +121,13 @@
   section:first-of-type h1.sect{margin-top:34px}
   .sub{color:var(--muted);margin-top:10px;font-size:18px;line-height:1.6}
   .statrow{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:28px}
+  /* The electrification row is read against the bars below it, so the three
+     route figures sit over their own bars and the first column carries the
+     sentence that says what they are. Column widths match the chart's left
+     margin plus three equal bar slots. */
+  .limrow{grid-template-columns:1.25fr repeat(3,1fr)}
+  .limlead{font-size:13.5px;line-height:1.5;color:var(--muted);align-self:center;
+           padding-right:6px}
   @media (max-width:760px){.statrow{grid-template-columns:1fr 1fr}}
   @media (max-width:400px){.statrow{grid-template-columns:1fr}}
   .stat .fig{font-family:"IBM Plex Mono";font-size:clamp(24px,4vw,38px);font-weight:500}
@@ -240,7 +247,7 @@
   /* section sub-headings: same face as h2, used where a label sits over a
      chart or a control row rather than opening a block of prose */
   .h2lab{font-family:Lato;font-weight:700;font-size:14.5px;letter-spacing:.05em;
-         text-transform:uppercase;color:var(--paper);margin:26px 0 6px}
+         text-transform:uppercase;color:var(--paper);margin:42px 0 8px}
   .h2lab .qual{font-weight:400;text-transform:none;letter-spacing:0;
                color:var(--muted);font-size:13px}
   #ts{width:100%;height:340px}
@@ -500,11 +507,11 @@
     <div class="h2lab">The coldest hour <span class="qual">— extra electricity the fifth would need</span></div>
     <div class="statrow" id="rt_winter"></div>
     <div id="rt_winbars" style="width:100%;height:300px;margin-top:12px"></div>
-    <div class="h2lab" id="rt_bindlbl" hidden style="margin-top:16px">The tightest hour of the year <span class="qual">— what Britain’s power stations would have to cover†</span></div>
+    <div class="h2lab" id="rt_bindlbl" hidden style="margin-top:16px">The tightest hour of the year <span class="qual">— what Britain’s power stations would have to cover with the new fifth of electrified heat†</span></div>
     <div class="statrow" id="rt_bind"></div>
     <div id="rt_bindbars" style="width:100%;height:300px;margin-top:12px" hidden></div>
-    <div class="h2lab" id="rt_limlbl" hidden style="margin-top:22px">How far could Britain electrify its heat inside today’s fleet? <span class="qual">— †</span></div>
-    <div class="statrow" id="rt_lim"></div>
+    <div class="h2lab" id="rt_limlbl" hidden>How far could Britain electrify its heat inside today’s fleet? <span class="qual">— †</span></div>
+    <div class="statrow limrow" id="rt_lim"></div>
     <div id="rt_limbars" style="width:100%;height:320px;margin-top:12px" hidden></div>
     <p class="costnote" id="rt_limnote"></p>
     <div class="h2lab" style="margin-top:16px">The hottest hour <span class="qual">— cooling, and what doubling it would cost†</span></div>
@@ -512,9 +519,12 @@
     <div id="rt_sumbars" style="width:100%;height:300px;margin-top:12px" hidden></div>
     <div class="h2lab" id="rt_wklbl" style="margin-top:20px">The tightest week of the year</div>
     <div id="rt_worst" style="width:100%;height:320px;margin-top:8px"></div>
-    <div class="h2lab" style="margin-top:20px">Coefficient of performance <span class="qual">— how much heat each route gets per unit of electricity, by temperature</span></div>
+    <details class="fold" id="fold_cop"><summary>METHOD —
+      <b>how much heat each route gets per unit of electricity, by temperature</b></summary>
+    <div class="foldbody">
     <div id="rt_cop" style="width:100%;height:260px;margin-top:8px"></div>
     <p class="costnote" id="rt_note"></p>
+    </div></details>
   </section>
 
   <section id="coolsection">
@@ -930,7 +940,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.21.0';
+const SITE_VERSION = '8.22.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1654,7 +1664,8 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
         n:'06', fig: cap.bcr.toFixed(2), unit:'benefit-cost ratio',
         warn: cap.bcr < 1, href:'#capitalpanel',
         claim: cap.bcr >= 1
-          ? 'On the government\u2019s own appraisal rules, it pays for itself.'
+          ? 'Making UK heat networks geothermal pays for itself, on the ' +
+            'government\u2019s own appraisal rules.'
           : 'On the government\u2019s own appraisal rules it does not yet pay ' +
             'for itself \u2014 and the reasons are nameable.',
         qual:'\u00a3' + Math.round(cap.ben) + 'bn of social benefit over 60 ' +
@@ -1926,15 +1937,7 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
             'estimate, not measured from the grid. The separation is evidenced ' +
             'under METHOD below.') +
         '</div>';
-      document.getElementById('tierdailynote').textContent =
-        'Thermal GWh a day over ' + (fmtWin[tw] || 'the window') +
-        '. Tier 1 converts observed electricity at the installed fleet\u2019s ' +
-        'efficiency, the same factor the energy bars use; tier 2 is a thermal ' +
-        'load and needs no conversion. A third tier, equipped-but-saturated, ' +
-        'was removed on 11 Aug 2026: its premise was that the fleet flattens ' +
-        'at high load, and the measured response steepens instead.' +
-        (dropped.length ? ' ' + dropped.join(' and ') + ' not shown: no ' +
-         'positive values in this window.' : '');
+      document.getElementById('tierdailynote').textContent = '';
     }
 
     bar.addEventListener('click', ev => {
@@ -2814,7 +2817,8 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       (col ? ' style="color:' + col + '"' : '') + '>' + fig +
       '</div><div class="cap">' + cap + '</div></div>';
     document.getElementById('rt_winter').innerHTML =
-      stat(st.worst_hour.slice(5,13).replace('T',' ') + '<small>h</small>',
+      stat(st.worst_hour.slice(5,13).replace('T',' ') + '<small>h ' +
+           st.worst_hour.slice(0,4) + '</small>',
            'worst modelled hour\u2020 \u00b7 ' + st.worst_hour_heat_GWh +
            ' GWh of heat at ' + st.worst_hour_temp_C + ' \u00b0C') +
       ['ashp','shallow','network'].map(r => stat(
@@ -2833,7 +2837,8 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       Plotly.newPlot('rt_winbars', [
         {type:'bar', width:0.55, name:'electricity bought',
          x:cats, y:elec,
-         marker:{color:['#6f7883'].concat(RK.map(r => RC[r]))},
+         marker:{color:['#6f7883'].concat(RK.map(r => RC[r])),
+                 line:{color:css('--paper'), width:1.2}},
          text:elec.map(v => v.toFixed(1) + ' GW'),
          textposition:'inside', insidetextanchor:'middle',
          textfont:{color:'#0d1117', size:14},
@@ -2863,7 +2868,8 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
     })();
     if(ss){
       document.getElementById('rt_summer').innerHTML =
-        stat(ss.peak_hour.slice(5,13).replace('T',' ') + '<small>h</small>',
+        stat(ss.peak_hour.slice(5,13).replace('T',' ') + '<small>h ' +
+             ss.peak_hour.slice(0,4) + '</small>',
              'peak cooling hour \u00b7 ' + ss.peak_temp_C + ' \u00b0C' +
              (ss.today_pct_of_hour != null
                ? " \u00b7 " + ss.today_pct_of_hour +
@@ -2931,7 +2937,7 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       const rb = sv.routes;
       document.getElementById('rt_bind').innerHTML =
         stat(rb.ashp.binding_hour.slice(5,13).replace('T',' ') +
-             '<small>h</small>',
+             '<small>h ' + rb.ashp.binding_hour.slice(0,4) + '</small>',
              'the binding hour — highest net requirement on ' +
              'dispatchable supply · ' + rb.ashp.binding_temp_C +
              ' °C, wind ' + rb.ashp.binding_wind_GW + ' GW') +
@@ -2983,7 +2989,13 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
     if(sv && sv.limits){
       const L = sv.limits, RKl = ['ashp','shallow','network'];
       document.getElementById('rt_limlbl').hidden = false;
+      // A static sentence in the first column, so the three figures sit over
+      // their own bars in the chart below rather than floating free.
       document.getElementById('rt_lim').innerHTML =
+        '<div class="limlead">Each route is solved hour by hour against the ' +
+        'same ceiling \u2014 today\u2019s de-rated fleet plus the wind and ' +
+        'solar actually generated. The figure is the share of Britain\u2019s ' +
+        'building heat that fits underneath it.</div>' +
         RKl.map(r => stat(
           Math.round(L.routes[r].share_pct) + '<small>%</small>',
           (L.routes[r].all_of_it ? 'all of Britain\u2019s building heat \u2014 ' : '') +
@@ -3117,7 +3129,7 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       const t0 = new Date(ew.start + ':00:00Z');
       const t1 = new Date(t0.getTime() + 167*3600e3);
       const f = d => d.toLocaleDateString('en-GB',
-        {day:'numeric', month:'short', timeZone:'UTC'});
+        {day:'numeric', month:'short', year:'numeric', timeZone:'UTC'});
       // heading face, with the dates and the qualifier in the lighter run-on
       document.getElementById('rt_wklbl').innerHTML =
         (WR.system && WR.binding_week
