@@ -944,7 +944,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.24.1';
+const SITE_VERSION = '8.25.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1612,7 +1612,8 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
             nf(lim.routes.ashp.share_pct,0) + '% air source, ' +
             lim.ratio_vs_air + '\u00d7 the heat for the same capacity. ' +
             'A peak test, not an energy test: it assumes no gas peaking, and ' +
-            'one winter is one sample.',
+            'a peak test, not an energy test: it assumes no gas peaking. ' +
+            'Two winters on record, each measured against its own fleet.',
        ev:'the electrification limit'},
 
       // POINT 04, rebuilt 11 Aug 2026. Was COP 20 over EER 3 - a quotient of
