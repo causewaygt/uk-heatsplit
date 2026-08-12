@@ -667,7 +667,7 @@ def hourly_cooling_elec(temps, cooling):
     return flat_h, shaped
 
 
-def slices(store, nd_daily=None):
+def slices(store, nd_daily=None, sap_series=None):
     """Everything Phase C renders, from the stored year.
     nd_daily: {date_iso: observed GB daily demand GWh} for the ceilings
     (daily-average basis, stated - hourly observed demand is not a feed
@@ -953,7 +953,7 @@ def slices(store, nd_daily=None):
         "worst_week": worst_week,
         "binding_week": binding_week,
         "daily_90": daily,
-        "heat_price": heat_price_series(store),
+        "heat_price": heat_price_series(store, sap_series=sap_series),
         "monthly_13": monthly,
         "monthly_calendar": monthly_calendar,
         "stress": stress,
@@ -1429,7 +1429,7 @@ def night_elbow(store):
     }
 
 
-def heat_price_series(store, cap_history=None, eff_gas=0.835,
+def heat_price_series(store, sap_series=None, eff_gas=0.835,
                       spf=(("ashp", 2.80), ("shallow", 3.24),
                            ("network", 5.00))):
     """Daily commodity cost of DELIVERED heat, by route, on both bases.
@@ -1475,6 +1475,17 @@ def heat_price_series(store, cap_history=None, eff_gas=0.835,
         out["elec_heat_wtd_gbp_mwh"].append(round(wm, 2))
         for k, r in spf:
             out["routes"][k].append(round(fm / r, 2))
+    # Gas, where a series exists. Aligned to the SAME dates as the electricity
+    # routes and left as None on days the price was not published, so a gap in
+    # the feed shows as a gap in the line rather than a straight segment across
+    # it. SAP is p/kWh; x10 puts it on the GBP/MWh axis the others use.
+    if sap_series and sap_series.get("dates"):
+        by = dict(zip(sap_series["dates"], sap_series["p_per_kwh"]))
+        out["routes"]["gas"] = [
+            (round(by[d_] * 10.0 / eff_gas, 2) if d_ in by else None)
+            for d_ in out["dates"]]
+        out["gas_days"] = sum(1 for v in out["routes"]["gas"] if v is not None)
+        out["gas_publication"] = sap_series.get("publication")
     out["note"] = (
         "Commodity cost of DELIVERED heat: the daily electricity index "
         "divided by each route's seasonal factor. The flat mean is what the "
@@ -1483,8 +1494,10 @@ def heat_price_series(store, cap_history=None, eff_gas=0.835,
         "peaks. The difference is the coincidence premium - about 3% across a "
         "winter - so the flat basis understates every heat-pump route by "
         "roughly that much. Gas is not in this series: only today's SAP is "
-        "fetched, so the gas line needs a daily SAP feed before it can be "
-        "drawn historically.")
+        "fetched for the ticker; the line here uses a daily SAP series from "
+        "the same National Gas publication API. SAP is a BALANCING price - "
+        "what National Gas pays to balance the system on the day - which "
+        "tracks NBP day-ahead closely but is not the same instrument.")
     return out
 
 

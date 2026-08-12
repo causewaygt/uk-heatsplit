@@ -30,7 +30,7 @@ import urllib.request
 
 sys.path.insert(0, os.path.dirname(__file__))
 from fetch_degree_days import fetch_degree_days, HDD_BASES  # noqa: E402
-from fetch_gas import fetch_gas_demand                       # noqa: E402
+from fetch_gas import fetch_gas_demand, fetch_gas_sap_series                       # noqa: E402
 from fetch_prices import fetch_gas_sap, fetch_elec_mid        # noqa: E402
 from fetch_carbon import fetch_carbon_intensity               # noqa: E402
 from fetch_electricity import fetch_daily_underlying_demand   # noqa: E402
@@ -2195,7 +2195,17 @@ def main():
             except Exception as _e:                  # diagnostic only
                 print("  before: not comparable (%s)" % type(_e).__name__)
 
-        out["whatif_routes"] = retro.slices(rstore, nd_daily=nd_daily)
+        # The gas line on the heat-price chart needs a SERIES, not today's
+        # single SAP. Fetched here and handed to the retro slice so the four
+        # routes are drawn on one basis from one place.
+        _sap_series = None
+        try:
+            _sap_series = fetch_gas_sap_series(days=RETRO_SPAN_DAYS)
+        except Exception as _e:
+            print("gas SAP series unavailable (%s) - gas line will be absent"
+                  % type(_e).__name__)
+        out["whatif_routes"] = retro.slices(rstore, nd_daily=nd_daily,
+                                            sap_series=_sap_series)
         st = out["whatif_routes"]["stress"]
         print("retro stress: worst hour", st["worst_hour"],
               "heat", st["worst_hour_heat_GWh"], "GWh at",

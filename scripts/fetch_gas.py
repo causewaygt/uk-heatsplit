@@ -154,3 +154,84 @@ def fetch_gas_demand(days=400):
 if __name__ == "__main__":
     data = fetch_gas_demand(days=14)
     print(json.dumps(data["_meta"], indent=2))
+
+# --- daily SAP series --------------------------------------------------------
+# The spark-gap ticker fetches ONE day of System Average Price, so the gas line
+# on the heat-price chart could not be drawn historically. SAP comes from the
+# same National Gas publication API as the demand series above, so it takes the
+# same catalogue lookup and the same date chunking - a range costs one extra
+# call per 437 days rather than a new integration.
+#
+# SAP is a BALANCING price: what National Gas pays to buy or sell gas to
+# balance the system on the day. It tracks NBP day-ahead closely but is not
+# the same instrument, and that is worth stating wherever the series is drawn.
+SAP_PREFERRED_NAMES = [
+    "SAP, Actual Day",
+    "System Average Price, Actual Day",
+    "SAP Actual Day",
+]
+
+
+def fetch_gas_sap_series(days=800):
+    """Daily System Average Price, p/kWh, for the last `days` days.
+
+    Returns {"dates": [...], "p_per_kwh": [...]}. Missing days are dropped
+    rather than filled: a gas price is a published outcome, and inventing one
+    would put a fabricated number on a price chart.
+    """
+    cat = requests.get(CATALOGUE_URL, timeout=60)
+    cat.raise_for_status()
+    found = {}
+    _harvest(cat.json(), found)
+    pub_id = None
+    for want in SAP_PREFERRED_NAMES:
+        for name, pid in found.items():
+            if name.strip().lower() == want.lower():
+                pub_id, pub_name = pid, name
+                break
+        if pub_id:
+            break
+    if not pub_id:                       # name may drift; match loosely
+        for name, pid in found.items():
+            if "sap" in name.lower() and "actual" in name.lower():
+                pub_id, pub_name = pid, name
+                break
+    if not pub_id:
+        print("gas SAP series: no SAP publication found in the catalogue")
+        return None
+
+    end = dt.date.today() - dt.timedelta(days=1)
+    start = end - dt.timedelta(days=days)
+    by_date = {}
+    w0 = start
+    spans = 0
+    while w0 <= end:
+        w1 = min(end, w0 + dt.timedelta(days=DAY_CHUNK - 1))
+        for block in _post_gasday([pub_id], w0, w1):
+            for row in (block.get("data") or []):
+                d_ = (row.get("applicableFor") or row.get("applicableAt")
+                      or "")[:10]
+                v = row.get("value")
+                if d_ and v is not None:
+                    try:
+                        by_date[d_] = float(v)
+                    except (TypeError, ValueError):
+                        pass
+        spans += 1
+        w0 = w1 + dt.timedelta(days=1)
+
+    if not by_date:
+        print("gas SAP series: publication '%s' returned no rows" % pub_name)
+        return None
+    ds = sorted(by_date)
+    vals = [by_date[d_] for d_ in ds]
+    # SAP publishes in p/kWh; guard in case the units ever change under us
+    med = sorted(vals)[len(vals) // 2]
+    if med > 100:                        # looks like GBP/MWh
+        vals = [v / 10.0 for v in vals]
+        print("gas SAP series: median %.1f treated as GBP/MWh -> p/kWh" % med)
+    print("gas SAP series: %d days, %s to %s, %d requests, min %.2f max %.2f "
+          "p/kWh" % (len(ds), ds[0], ds[-1], spans, min(vals), max(vals)))
+    return {"dates": ds, "p_per_kwh": [round(v, 4) for v in vals],
+            "publication": pub_name}
+
