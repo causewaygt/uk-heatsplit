@@ -68,7 +68,7 @@ HISTORY_MAX = 120         # ~24 months of weeks
 #     normalises on the trailing 365, so the anchor is not diluted - but the
 #     older winter is expressed on today's demand basis, not its own).
 RETRO_SPAN_DAYS = 796
-RETRO_BACKFILL = False
+RETRO_BACKFILL = True
 RETRO_FETCHERS = {}   # tests inject {'fetch_temp':..,'fetch_mid':..,'fetch_ci':..}  # weekly entries kept (spec: cap and roll)
 
 
