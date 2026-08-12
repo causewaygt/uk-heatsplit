@@ -404,74 +404,6 @@
     <div class="points" id="points"></div>
     <p class="frontfoot" id="frontfoot"></p>
 
-    <details class="fold" id="fold_start"><summary>METHOD —
-      <b>where every number on this page comes from, and what it cannot see</b></summary>
-    <div class="foldbody">
-    <h2>The gas engine room: daily gas to buildings vs the heating signal</h2>
-    <div id="ts"></div>
-    <div class="burnbar" id="burnbar" aria-label="This week's buildings gas split"></div>
-    <div class="legend">
-      <span><span class="key" style="background:var(--ember)"></span><b>Space heating</b> (useful)</span>
-      <span><span class="key" style="background:repeating-linear-gradient(135deg,#b83f1e 0 4px,#7e2c15 4px 8px)"></span><b>Wasted at the boiler</b> (~15–17.5%)</span>
-      <span><span class="key" style="background:var(--ash)"></span><b>Non-weather gas to buildings</b> (hot water, cooking, industry on the distribution network)</span>
-    </div>
-    <h2>Method &amp; caveats</h2>
-    <p class="geosub" style="margin-bottom:10px">Full technical methodology, with equations, figures and a complete bibliography: <a href="uk-heatsplit-methodology.pdf" style="color:var(--geo)">UK Heat Split: data sources and estimation methodology (PDF)</a>.</p>
-    <p style="color:var(--geo);font-size:15px;line-height:1.6">† Current
-      Causeway Energies estimate – challenge and input welcome at
-      <a href="mailto:contact@causewaygt.com" style="color:var(--geo)">contact@causewaygt.com</a>.</p>
-    <p><b>Gas (live).</b> Daily gas offtake to Britain's local distribution zones
-      (LDZ — the network serving homes and most businesses) is regressed against
-      population-weighted GB heating degree days (ERA5 reanalysis via Open-Meteo).
-      The temperature-sensitive component is attributed to space heating.
-      Directly-connected power stations are excluded. Approach follows the
-      published Watson/Sansom method. Current fit: <span id="fit">—</span>.</p>
-    <p><b>Everything else (shaped annual).</b> Oil, electric heating, bioenergy,
-      heat networks, solid fuel and cooling take their annual levels from the
-      DESNZ ECUK 2025 End Use tables (calendar 2024) and are distributed across
-      the year by heating/cooling degree days. They do not respond to live grid
-      data. Cooling is the weakest element: the ECUK figure combines cooling and
-      ventilation, split here 50% flat / 50% weather-shaped by assumption, and UK
-      cooling demand is poorly measured. Electric heating counts the electricity
-      into heat pumps, not the ambient heat they harvest — so the useful heat
-      delivered by heat pumps is understated for now.</p>
-    <p><b>The two bars.</b> The top bar is final energy — fuel and electricity
-      purchased. The bottom bar is useful heat and cooling delivered: combustion
-      derated by measured in-situ efficiencies (gas 83.5%, oil 82%, bio 70%,
-      solid 55% — the last three are estimates), heat networks shown at delivered
-      heat, resistive electric at 100%, heat pumps multiplied by a blended SPF of
-      2.8 (Energy Systems Catapult field data) with the harvested ambient heat
-      shown in teal, and the weather-driven half of cooling multiplied by an
-      assumed EER of 3. Heat-pump electricity is the ECUK 2025 domestic figure
-      (2.0 TWh, 2024); non-domestic heat pumps are not yet counted, so the teal
-      segment is understated.</p>
-    <p><b>Known biases.</b> Hot-water heating is treated as flat but is mildly
-      seasonal (colder mains water in winter), so gas space heating carries a
-      small upward bias. The boiler-waste band uses in-situ UK boiler efficiency
-      measurements (82.5–85%), not nameplate values.</p>
-    <p><b>Geothermal panel.</b> Today's heat figure is anchored on the EGEC
-      2025 UK Country Update (1,430 GWhth/yr from ~55,210 GSHP units,
-      847–861 MWth installed — a 2023 estimate from sales data; the
-      Environment Agency's 2024 review suggests only ~30–38k of those units
-      may be operational, hence the 1.4–2.0 range) plus ~0.07 TWh/yr from
-      mine-water, deep and open-loop district schemes. No national metering
-      or single register of ground-source systems exists; cooling is anchored
-      only on 11 ATES systems (~8 MWth cold) and historic Southampton data.
-      Forward bars are third-party pathways (CCC, Project InnerSpace/REA/ARUP)
-      or explicitly flagged Causeway derivations, not predictions. The 2031
-      bar carries a range of roughly 3.5–6 TWh/yr. If the NI DfE licensing
-      proposals (consultation to 7 Aug 2026; heat below 100&nbsp;m depth)
-      proceed, the resulting register with published system performance would
-      be the UK's first mandatory geothermal data source — this panel is
-      designed to ingest it from ~2027.</p>
-    <p><b>Northern Ireland.</b> NI is not on the GB network shown here. NI heating
-      is estimated annually from subnational consumption statistics scaled by NI
-      degree days.</p>
-    <p id="trendpara" style="display:none"><b>Trends.</b> <span id="trendnote">—</span></p>
-    <p><b>Indigenous share &amp; 20% what-if.</b> <span id="indignote">—</span></p>
-    <p><b>Calibration.</b> <span id="calib">—</span></p>
-    <div class="status" id="status"></div>
-    </div></details>
   </section>
 
   <div class="hero">
@@ -541,6 +473,75 @@
       <div class="legend" id="uselegend"></div></div>
     <div class="combline" id="combline"></div>
   </div>
+
+    <details class="fold" id="fold_start"><summary>METHOD —
+      <b>where every number on this page comes from, and what it cannot see</b></summary>
+    <div class="foldbody">
+    <h2>The gas engine room: daily gas to buildings vs the heating signal</h2>
+    <div id="ts"></div>
+    <div class="burnbar" id="burnbar" aria-label="This week's buildings gas split"></div>
+    <div class="legend">
+      <span><span class="key" style="background:var(--ember)"></span><b>Space heating</b> (useful)</span>
+      <span><span class="key" style="background:repeating-linear-gradient(135deg,#b83f1e 0 4px,#7e2c15 4px 8px)"></span><b>Wasted at the boiler</b> (~15–17.5%)</span>
+      <span><span class="key" style="background:var(--ash)"></span><b>Non-weather gas to buildings</b> (hot water, cooking, industry on the distribution network)</span>
+    </div>
+    <h2>Method &amp; caveats</h2>
+    <p class="geosub" style="margin-bottom:10px">Full technical methodology, with equations, figures and a complete bibliography: <a href="uk-heatsplit-methodology.pdf" style="color:var(--geo)">UK Heat Split: data sources and estimation methodology (PDF)</a>.</p>
+    <p style="color:var(--geo);font-size:15px;line-height:1.6">† Current
+      Causeway Energies estimate – challenge and input welcome at
+      <a href="mailto:contact@causewaygt.com" style="color:var(--geo)">contact@causewaygt.com</a>.</p>
+    <p><b>Gas (live).</b> Daily gas offtake to Britain's local distribution zones
+      (LDZ — the network serving homes and most businesses) is regressed against
+      population-weighted GB heating degree days (ERA5 reanalysis via Open-Meteo).
+      The temperature-sensitive component is attributed to space heating.
+      Directly-connected power stations are excluded. Approach follows the
+      published Watson/Sansom method. Current fit: <span id="fit">—</span>.</p>
+    <p><b>Everything else (shaped annual).</b> Oil, electric heating, bioenergy,
+      heat networks, solid fuel and cooling take their annual levels from the
+      DESNZ ECUK 2025 End Use tables (calendar 2024) and are distributed across
+      the year by heating/cooling degree days. They do not respond to live grid
+      data. Cooling is the weakest element: the ECUK figure combines cooling and
+      ventilation, split here 50% flat / 50% weather-shaped by assumption, and UK
+      cooling demand is poorly measured. Electric heating counts the electricity
+      into heat pumps, not the ambient heat they harvest — so the useful heat
+      delivered by heat pumps is understated for now.</p>
+    <p><b>The two bars.</b> The top bar is final energy — fuel and electricity
+      purchased. The bottom bar is useful heat and cooling delivered: combustion
+      derated by measured in-situ efficiencies (gas 83.5%, oil 82%, bio 70%,
+      solid 55% — the last three are estimates), heat networks shown at delivered
+      heat, resistive electric at 100%, heat pumps multiplied by a blended SPF of
+      2.8 (Energy Systems Catapult field data) with the harvested ambient heat
+      shown in teal, and the weather-driven half of cooling multiplied by an
+      assumed EER of 3. Heat-pump electricity is the ECUK 2025 domestic figure
+      (2.0 TWh, 2024); non-domestic heat pumps are not yet counted, so the teal
+      segment is understated.</p>
+    <p><b>Known biases.</b> Hot-water heating is treated as flat but is mildly
+      seasonal (colder mains water in winter), so gas space heating carries a
+      small upward bias. The boiler-waste band uses in-situ UK boiler efficiency
+      measurements (82.5–85%), not nameplate values.</p>
+    <p><b>Geothermal panel.</b> Today's heat figure is anchored on the EGEC
+      2025 UK Country Update (1,430 GWhth/yr from ~55,210 GSHP units,
+      847–861 MWth installed — a 2023 estimate from sales data; the
+      Environment Agency's 2024 review suggests only ~30–38k of those units
+      may be operational, hence the 1.4–2.0 range) plus ~0.07 TWh/yr from
+      mine-water, deep and open-loop district schemes. No national metering
+      or single register of ground-source systems exists; cooling is anchored
+      only on 11 ATES systems (~8 MWth cold) and historic Southampton data.
+      Forward bars are third-party pathways (CCC, Project InnerSpace/REA/ARUP)
+      or explicitly flagged Causeway derivations, not predictions. The 2031
+      bar carries a range of roughly 3.5–6 TWh/yr. If the NI DfE licensing
+      proposals (consultation to 7 Aug 2026; heat below 100&nbsp;m depth)
+      proceed, the resulting register with published system performance would
+      be the UK's first mandatory geothermal data source — this panel is
+      designed to ingest it from ~2027.</p>
+    <p><b>Northern Ireland.</b> NI is not on the GB network shown here. NI heating
+      is estimated annually from subnational consumption statistics scaled by NI
+      degree days.</p>
+    <p id="trendpara" style="display:none"><b>Trends.</b> <span id="trendnote">—</span></p>
+    <p><b>Indigenous share &amp; 20% what-if.</b> <span id="indignote">—</span></p>
+    <p><b>Calibration.</b> <span id="calib">—</span></p>
+    <div class="status" id="status"></div>
+    </div></details>
 
   <section id="costsection">
     <h1 class="sect">2. What Britain’s heat costs and emits</h1>
@@ -958,7 +959,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.27.0';
+const SITE_VERSION = '8.27.2';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -2272,11 +2273,15 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
           '.' : '') +
         ' The three electric routes move together because they are one ' +
         'electricity price divided by three seasonal factors \u2014 what ' +
-        'separates them is the machine, not the market. Gas moves on its own ' +
-        'market, which is why the lines cross where they do. Wholesale ' +
-        'commodity only: at the meter the gap is far smaller, because policy ' +
-        'and network costs land on electricity rather than gas. ' +
-        'On this window a heat pump would pay ' +
+        'separates them is the machine, not the market. ' +
+        (hp.routes.gas
+          ? 'Gas moves on its own market, which is why the lines cross where ' +
+            'they do. '
+          : '<b>Gas is not on this chart yet:</b> the daily price series is ' +
+            'fetched by the build, so the line appears after the next run. ') +
+        'Wholesale commodity only: at the meter the gap is far smaller, ' +
+        'because policy and network costs land on electricity rather than ' +
+        'gas. On this window a heat pump would pay ' +
         prem.toFixed(1) + '% more than the flat mean plotted here, because ' +
         'its load sits on the morning and evening peaks\u2020.';
     }
