@@ -721,6 +721,13 @@
               not run down.</div>
           </div>
           <div class="lever">
+            <label for="lv_cool">Connections taking cooling <b id="lv_cool_v"></b></label>
+            <input type="range" id="lv_cool" min="0" max="100" step="5" value="60">
+            <div class="hint">Of the programme. Cooling improves both sides at
+              once — more benefit, less capital — so set it to zero and
+              watch the heat case stand on its own.</div>
+          </div>
+          <div class="lever">
             <label for="lv_sizing">Plant sized at <b id="lv_sizing_v"></b></label>
             <input type="range" id="lv_sizing" min="40" max="100" step="5" value="50">
             <div class="hint">Of the winter peak, with top-up gas boilers above — applied
@@ -729,7 +736,8 @@
           </div>
         </div>
 
-        <p class="fixed" id="fixed"></p>
+        <p class="note" id="coolnote"></p>
+    <p class="fixed" id="fixed"></p>
         <p class="note" id="switch"></p>
         <p class="caveat" id="caveat"></p>
         <p class="caveat" id="whopays"></p>
@@ -905,7 +913,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.17.0';
+const SITE_VERSION = '8.18.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1154,6 +1162,47 @@ fetch('data.json').then(r=>r.json()).then(d=>{
 // that is where its source anchor sits: the doublet class is priced at
 // 5,400-6,000 equivalent full-load hours, which at this programme's 31% load
 // factor is about half the winter peak.
+// COOLING. Panel 6 alone compares against an ASHP heat network PLUS separate
+// air-cooled chillers, because zoning is making that the alternative for new
+// networks. The geothermal option does both from one loop, so the cost side is
+// the INCREMENT over a heat-only geothermal network - and it is smaller than
+// the chiller plant it displaces, which makes cooling capex NEGATIVE.
+// Ratio 1:3 not 1:7 - ECUK's all-services figure understates network-connected
+// commercial stock. BRE/DECC put ~65% of UK office floor area air-conditioned
+// at ~40 kWh/m2/yr of cooling against ~90-130 for space heat.
+const COOL_H2C = 3.0;
+// 450 h from BSRIA's 87 W/m2 office cooling load into BRE's 40 kWh/m2/yr.
+// A LOWER figure raises the implied peak and the capex, so this is the
+// conservative direction, not the flattering one.
+const COOL_EFLH = 450.0;
+// Cooling peaks are solar-driven and more coincident than heating peaks, so
+// aggregation helps less: 0.80 against about 0.60 for heat.
+const COOL_DIVERSITY = 0.80;
+// GBP per kW of cooling, 2025. Chiller plant is the counterfactual's cost;
+// the increment is what the ambient loop needs to deliver cooling as well.
+// Against a VRF counterfactual - how most UK offices and retail actually cool -
+// the chiller figure would be several times higher and the gap much wider.
+const CHILLER_PER_KW = 200.0;      // range 120-350, air-cooled plant installed
+const COOL_INC_PER_KW = 75.0;      // range 0-150, engineering estimate
+// ASHRAE/CIBSE Guide M service lives. Over a 60-year appraisal the
+// counterfactual buys chiller plant three times; the boreholes are bought once.
+const CHILLER_LIFE_Y = 20;
+
+function coolBlock(){
+  const share = S.cool / 100;
+  const serv = TWh / COOL_H2C * share;             // TWh/yr of cooling service
+  const peakKW = serv * 1e9 / COOL_EFLH * COOL_DIVERSITY;
+  return {
+    share, serv, peakGW: peakKW / 1e6,
+    chillerBn: peakKW * CHILLER_PER_KW / 1e9,
+    incBn: peakKW * COOL_INC_PER_KW / 1e9,
+    netBn: peakKW * (COOL_INC_PER_KW - CHILLER_PER_KW) / 1e9,
+    elecTWh: serv / CF_COOL_EER - serv / GEO_COOL_COP,
+    renewals: Math.max(1, Math.round(HORIZON / CHILLER_LIFE_Y)),
+  };
+}
+const CF_COOL_EER = 3.0;      // air-cooled chiller, the counterfactual
+const GEO_COOL_COP = 20.0;    // passive ground cooling, circulation only
 const REF_SIZING=50;
 const capNow=()=>S.cap*(S.sizing/REF_SIZING);
 const PEAK_TH=32.1;                 // GW thermal peak for the programme
@@ -1162,7 +1211,7 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
   // Runs down to 15% of peak so a large subsurface shortfall still bites.
   const SERVED={15:0.388,20:0.490,25:0.585,30:0.671,40:0.811,50:0.907,
                 60:0.963,70:0.987,80:0.996,90:0.999,100:1.0};
-    let S={cap:14, ob:50, pk:75, sizing:50, loss:10, };
+    let S={cap:14, ob:50, pk:75, sizing:50, loss:10, cool:60};
 
   const at=(a,y)=>{
     if(y<=YR[0]) return a[0];
@@ -1197,20 +1246,38 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
   const storeM3   =()=>PEAK_TH*(S.sizing/100)*1e6*TS1_STORE_L_PER_KW/1000;
 
   function appraise(){
+    // Declared FIRST: used in the benefit loop AND the cost loop below.
+    // Declaring it between them is a temporal dead zone - the same fault that
+    // silently emptied the frontispiece earlier today.
+    const cb = coolBlock();
     let en=0,ca=0,aq=0,pk=0;
     for(let t=1;t<=HORIZON;t++){
       const y=2026+t-1, b=Math.min(t,BUILD)/BUILD, d=stpr(t);
-      const kWh=avoidedTWh()*1e9, gw=avoidedGW();
+      const kWh=(avoidedTWh()+cb.elecTWh)*1e9, gw=avoidedGW();
       en+=b*kWh*at(LRV,y)/100/1e9*d;
       ca+=b*(kWh*at(EF,y)/1e9)*at(CARB,y)/1e3*d;
       aq+=b*kWh*at(AQ,y)/100/1e9*d;
       pk+=b*gw*1e6*S.pk/1e9*d;
     }
     let cost=0;
-    for(let t=1;t<=BUILD;t++) cost+=(capNow()*(1+S.ob/100)/BUILD)*stpr(t-0.5);
-    const ben=en+ca+aq+pk;
-    return {en,ca,aq,pk,ben,cost,bcr:ben/cost,npsv:ben-cost};
-  }
+    // COST carries only what THIS option spends: the heat increment plus the
+    // increment to make the same loop deliver cooling.
+    for(let t=1;t<=BUILD;t++)
+      cost+=((capNow()+cb.incBn)*(1+S.ob/100)/BUILD)*stpr(t-0.5);
+    // AVOIDED CHILLER PLANT is a BENEFIT, not a negative cost. Netting an
+    // avoided counterfactual cost off the denominator drives the cost toward
+    // zero and the ratio toward infinity - at 100% cooling that gave a BCR of
+    // 36, an artefact of the treatment rather than a finding. Green Book puts
+    // an avoided cost in the counterfactual on the benefit side.
+    let chill=0;
+    for(let r=0;r<cb.renewals;r++){
+      const t=r*CHILLER_LIFE_Y;
+      if(t<HORIZON) chill+=cb.chillerBn*stpr(Math.max(0.5,t));
+    }
+    const ben=en+ca+aq+pk+chill;
+    return {en,ca,aq,pk,chill,ben,cost,bcr:ben/cost,npsv:ben-cost,cool:cb};
+}
+
   const el=id=>document.getElementById(id);
   const gbp=n=>Math.abs(n)<0.1?'\u00a3'+Math.round(n*1000)+'m'
               :'\u00a3'+(Math.abs(n)<10?n.toFixed(1):Math.round(n))+'bn';
@@ -1254,7 +1321,9 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
     const parts=[['Energy at resource cost',a.en,'var(--geo)'],
                  ['Avoided winter peak',a.pk,'var(--elec)'],
                  ['Carbon',a.ca,'var(--cool)'],
-                 ['Air quality',a.aq,'var(--ash)']];
+                 ['Air quality',a.aq,'var(--ash)'],
+                 ['Chiller plant not built',a.chill,'var(--cool)']]
+                 .filter(p=>p[1]>0.01);
     el('compbar').innerHTML=parts.map(p=>
       '<span style="width:'+(100*p[1]/a.ben)+'%;background:'+p[2]+'"></span>').join('');
     el('key').innerHTML=parts.map(p=>
@@ -1268,11 +1337,34 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
 
     [['cap',gbp(S.cap)+(S.sizing!==REF_SIZING?' \u2192 '+gbp(capNow()):'')],['ob',S.ob+'%'],['pk','\u00a3'+S.pk+'/kW\u00b7yr'],
      ['sizing',S.sizing+'% of peak'],
-     ['loss',S.loss+'% of rated'],
+     ['loss',S.loss+'% of rated'],['cool',S.cool+'% of connections'],
      ]
       .forEach(([k,v])=>{ el('lv_'+k+'_v').textContent=v; el('lv_'+k).value=S[k]; });
 
-    el('fixed').textContent=
+    const cbx = a.cool;
+  el('coolnote').innerHTML = S.cool === 0
+    ? '<b>Cooling excluded.</b> The case above is heat only. Move the ' +
+      'connections lever to bring cooling in.'
+    : '<b>Cooling, and why it lowers the cost rather than raising it.</b> ' +
+      'At ' + S.cool + '% of connections that is <b>' + cbx.serv.toFixed(1) +
+      ' TWh</b> a year of cooling service and a diversified network peak of ' +
+      cbx.peakGW.toFixed(0) + ' GW\u2020. The counterfactual is an air-source ' +
+      'network <b>plus separate chillers</b>, because zoning is making that ' +
+      'the alternative \u2014 so it buys ' + gbp(cbx.chillerBn) + ' of chiller ' +
+      'plant at \u00a3' + CHILLER_PER_KW + '/kW. The geothermal option needs ' +
+      'only the increment to make one loop do both, ' + gbp(cbx.incBn) +
+      ' at \u00a3' + COOL_INC_PER_KW + '/kW\u2020, and a balanced load can ' +
+      'shorten the borefield by 20\u201330% rather than lengthen it. ' +
+      '<b>Net ' + gbp(Math.abs(cbx.netBn)) + ' of avoided capital</b>, not ' +
+      'added \u2014 and chillers are replaced every ' + CHILLER_LIFE_Y +
+      ' years against boreholes lasting 50 to 100, so the counterfactual buys ' +
+      'them ' + cbx.renewals + ' times over this horizon. Cooling also avoids ' +
+      cbx.elecTWh.toFixed(1) + ' TWh of electricity a year at a passive ' +
+      'ground COP of ' + GEO_COOL_COP + ' against an air-cooled EER of ' +
+      CF_COOL_EER + '. Ratio 1 cooling to ' + COOL_H2C + ' heat, ' +
+      COOL_EFLH + ' equivalent full-load hours, diversity ' + COOL_DIVERSITY +
+      '\u2020 \u2014 the load assumptions doing the most work here.';
+  el('fixed').textContent=
       'Fixed at Green Book conventions: a sixty-year horizon for infrastructure; ' +
       'a declining social time preference rate of 3.5% to year 30, 3.0% to 75 and ' +
       '2.5% thereafter; energy at long-run variable cost, because taxes and levies ' +
@@ -1323,7 +1415,7 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       'funds, and the UK has none. The success rate of prospects reaching ' +
       'close, not the percentage spent, is what sets its true cost.';
   }
-  ['cap','ob','pk','sizing','loss',].forEach(k=>{
+  ['cap','ob','pk','sizing','loss','cool'].forEach(k=>{
     el('lv_'+k).addEventListener('input',e=>{ S[k]=+e.target.value; render(); });
   });
 
