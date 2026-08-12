@@ -368,9 +368,9 @@
 <div class="wrap"><p class="standfirst">A live estimate of the energy behind
   Britain’s building heat and cooling, by source — and how much can be
   saved when geothermal is adopted.</p>
-  <p class="sub" style="max-width:74ch">Gas space heating is estimated live from
-  grid data; other sources are official annual figures shaped by this week’s
-  weather. Estimates, not measurements.</p></div>
+  <p class="sub" style="max-width:74ch">Live from grid and gas data where it can
+  be measured; official annual figures shaped by the weather where it cannot.
+  Estimates, not measurements.</p></div>
 </header>
 
 <div class="wrap">
@@ -722,7 +722,7 @@
           </div>
           <div class="lever">
             <label for="lv_cool">Connections taking cooling <b id="lv_cool_v"></b></label>
-            <input type="range" id="lv_cool" min="0" max="100" step="5" value="60">
+            <input type="range" id="lv_cool" min="0" max="100" step="5" value="30">
             <div class="hint">Of the programme. Cooling improves both sides at
               once — more benefit, less capital — so set it to zero and
               watch the heat case stand on its own.</div>
@@ -747,7 +747,7 @@
         <div class="block">
           <h3>What is not in the numbers</h3>
           <dl>
-            <dt>Long-term subsurface performance — now priced above, not listed here</dt>
+            <dt>Subsurface risk — the size is priced, the remedy is not</dt>
             <dd>There is little or no UK experience of geothermal systems at this
               scale, and UK outturn data barely exists. Rather than leave that as an
               unquantified caveat, the subsurface shortfall lever puts it in the
@@ -930,7 +930,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.19.0';
+const SITE_VERSION = '8.21.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1141,7 +1141,10 @@ fetch('data.json').then(r=>r.json()).then(d=>{
   // ONE FLAG covers the panel and the frontispiece point that reads it, so
   // the two can never disagree about whether there is a number to show.
   // Set false to bring both back.
-  const VFM_HOLD = true;
+  // PUBLISHED 12 Aug 2026. Held since the panel was first built; released once
+  // the cooling component was costed against sourced figures and the four
+  // residual risks were named on the page.
+  const VFM_HOLD = false;
 
   (() => {
     const box = document.getElementById('capitalpanel');
@@ -1257,7 +1260,7 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
   // Runs down to 15% of peak so a large subsurface shortfall still bites.
   const SERVED={15:0.388,20:0.490,25:0.585,30:0.671,40:0.811,50:0.907,
                 60:0.963,70:0.987,80:0.996,90:0.999,100:1.0};
-    let S={cap:14, ob:50, pk:75, sizing:50, loss:10, cool:60};
+    let S={cap:14, ob:50, pk:75, sizing:50, loss:10, cool:30};
 
   const at=(a,y)=>{
     if(y<=YR[0]) return a[0];
@@ -1347,7 +1350,7 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       '<small>net present social value</small>';
     el('s2').innerHTML=gbp(a.cost)+'<small>social cost, 60 years</small>';
 
-    el('dealnote').innerHTML='A geothermal source at a seasonal factor of '+
+    el('dealnote').innerHTML='Blended geothermal systems at an assumed seasonal factor of '+
       GEO.spf.toFixed(1)+' against <b>a network-scale air-source energy centre at '+
       CF.spf.toFixed(1)+'</b> \u2014 same pipes, same connections, same buildings. '+
       'Both rated at <b>'+S.sizing+'% of the winter peak</b> with top-up gas '+
@@ -1389,40 +1392,20 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
 
     const cbx = a.cool;
   el('coolnote').innerHTML = S.cool === 0
-    ? '<b>Cooling excluded.</b> The case above is heat only. Move the ' +
-      'connections lever to bring cooling in.'
-    : '<b>Cooling, and why it lowers the capital rather than raising it.</b> ' +
-      'At ' + S.cool + '% of connections that is <b>' + cbx.serv.toFixed(1) +
-      ' TWh</b> a year of cooling service and a diversified network peak of ' +
-      cbx.peakGW.toFixed(0) + ' GW\u2020. The counterfactual is an air-source ' +
-      'network <b>plus separate chillers</b> \u2014 zoning is making that the ' +
-      'alternative \u2014 so it buys ' + gbp(cbx.chillerBn) + ' of chiller ' +
-      'plant at \u00a3' + CHILLER_PER_KW + '/kW. That rate is bounded by UK ' +
-      'evidence at both ends: about \u00a3100/kW for equipment alone, and ' +
-      'about \u00a3390/kW for the one UK contract stating both a value and a ' +
-      'capacity \u2014 an NHS Wales chiller replacement awarded in November ' +
-      '2025, installed and commissioned. Network-scale plant runs above a ' +
-      'megawatt where the rate per kW is lower, so the central sits below that. ' +
-      'The geothermal option needs only the increment to make one loop do ' +
-      'both, ' + gbp(cbx.incBn) + ' at \u00a3' + COOL_INC_PER_KW +
-      '/kW\u2020, and a balanced load can shorten the borefield by about ' +
-      Math.round(100 * BOREFIELD_SAVING) + '% rather than lengthen it. ' +
-      '<b>Net ' + gbp(Math.abs(cbx.netBn)) + ' of avoided capital, not added.</b> ' +
-      'Chillers are replaced every ' + CHILLER_LIFE_Y + ' years against ' +
-      'boreholes lasting 50 to 100, so the counterfactual buys them ' +
-      cbx.renewals + ' times over this horizon and the network buys its cooling ' +
-      'kit once. Cooling also avoids ' + cbx.elecTWh.toFixed(1) + ' TWh of ' +
-      'electricity a year, at a passive ground COP of ' + GEO_COOL_COP +
-      ' against an air-cooled EER of ' + CF_COOL_EER + '. ' +
-      '<b>The increment is the weakest number here:</b> no published UK study ' +
-      'separates a heating-and-cooling shared loop from an otherwise identical ' +
-      'heat-only one, so \u00a3' + COOL_INC_PER_KW + '/kW is an engineering ' +
-      'estimate on a range of \u00a30\u2013150. A review of 133 aquifer ' +
-      'storage systems puts a whole heating-and-cooling ground system near ' +
-      '\u00a3255/kW above 2 MW, which is the same order as a heat-only base ' +
-      'plus a small increment \u2014 consistent, but not the same measurement. ' +
-      'Load assumptions: 1 cooling to ' + COOL_H2C + ' heat, ' + COOL_EFLH +
-      ' equivalent full-load hours, diversity ' + COOL_DIVERSITY + '\u2020.';
+    ? '<b>Cooling excluded.</b> The case above is heat only.'
+    : '<b>Cooling lowers the capital rather than raising it.</b> At ' + S.cool +
+      '% of connections the counterfactual buys ' + gbp(cbx.chillerBn) +
+      ' of chiller plant\u2020; one loop doing both costs ' + gbp(cbx.incBn) +
+      ' more than heat alone\u2020, and a balanced load shortens the borefield ' +
+      'by about ' + Math.round(100 * BOREFIELD_SAVING) + '%. <b>Net ' +
+      gbp(Math.abs(cbx.netBn)) + ' avoided, not added</b> \u2014 and chillers ' +
+      'are rebought every ' + CHILLER_LIFE_Y + ' years against boreholes ' +
+      'lasting 50 to 100. Cooling also avoids ' + cbx.elecTWh.toFixed(1) +
+      ' TWh of electricity a year at a ground COP of ' + GEO_COOL_COP +
+      ' against an air-cooled EER of ' + CF_COOL_EER + '. The increment is the ' +
+      'least evidenced figure on this panel: no UK study separates a shared ' +
+      'heating-and-cooling loop from a heat-only one, so it is an estimate on a ' +
+      'range of \u00a30\u2013150/kW.';
   el('fixed').textContent=
       'Fixed at Green Book conventions: a sixty-year horizon for infrastructure; ' +
       'a declining social time preference rate of 3.5% to year 30, 3.0% to 75 and ' +
@@ -1612,12 +1595,10 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
        qual:'Of all building heat, electrified through networks without ' +
             'exceeding today\u2019s winter capacity \u2014 against ' +
             nf(lim.routes.shallow.share_pct,0) + '% ground source and ' +
-            nf(lim.routes.ashp.share_pct,0) + '% air source. ' +
-            lim.ratio_vs_air + '\u00d7 the heat for the same capacity. A ' +
-            'peak-capacity test, not an energy test, and it assumes no gas ' +
-            'peaking: a few per cent of heat from top-up boilers would let any ' +
-            'route fit, which is why the durable claim is that geothermal ' +
-            'needs none. One winter is one sample.',
+            nf(lim.routes.ashp.share_pct,0) + '% air source, ' +
+            lim.ratio_vs_air + '\u00d7 the heat for the same capacity. ' +
+            'A peak test, not an energy test: it assumes no gas peaking, and ' +
+            'one winter is one sample.',
        ev:'the electrification limit'},
 
       // POINT 04, rebuilt 11 Aug 2026. Was COP 20 over EER 3 - a quotient of
@@ -1629,21 +1610,10 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       // the heat-to-cool mix - both services improve by a similar multiple -
       // so it is one number rather than a heating claim with a footnote.
       (() => {
-        const rr = {};
-        const carb = d.carbon || {};
-        (carb.routes_g_per_useful_kwh || []).forEach(x => {
-          rr[x.route] = x.g_per_useful_kwh; });
         const BOILER = 0.835, CHILLER = 3.0, SPF = 5.0, GEOCOP = 20.0;
         const H = 7.0, C = 1.0;                    // UK annual heat:cool mix
         const eIn = H / BOILER + C / CHILLER;
         const eGeo = H / SPF + C / GEOCOP;
-        const gasH = rr['Gas boiler'];
-        const geoH = rr['Geothermal heat/cool network'];
-        const ci = carb.grid_ci_g_per_kwh;
-        const cSave = (gasH && geoH && ci)
-          ? Math.round(100 * (1 - (H * geoH + C * ci / GEOCOP) /
-                                  (H * gasH + C * ci / CHILLER)))
-          : null;
         return {
           n:'04', fig: Math.round(100 * (1 - eGeo / eIn)) + '%',
           unit:'less energy',
@@ -1654,11 +1624,8 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
                (eIn / eGeo).toFixed(1) + '\u00d7 the energy of one ambient ' +
                'loop delivering the same heat and the same cooling\u2020 \u2014 ' +
                Math.round(100 * (1 - BOILER / SPF)) + '% on heat, ' +
-               Math.round(100 * (1 - CHILLER / GEOCOP)) + '% on cooling, so ' +
-               'it holds whatever the building does.' +
-               (cSave ? ' Emissions fall ' + cSave + '% at today\u2019s ' +
-                 ci + ' g/kWh \u2014 and that gap widens as the grid ' +
-                 'decarbonises, while gas never moves.' : ''),
+               Math.round(100 * (1 - CHILLER / GEOCOP)) + '% on cooling, with ' +
+               'the heat rejected in summer stored and recovered in winter.',
           ev:'cooling, and what heat costs'};
       })(),
 
