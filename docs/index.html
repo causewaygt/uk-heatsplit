@@ -20,12 +20,13 @@
   .wrap{max-width:880px;margin:0 auto;padding:0 20px}
   header{border-bottom:1px solid var(--line);padding:18px 0}
   header .wrap{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
-  .brandbox{display:flex;flex-direction:column;align-items:flex-start;gap:8px;flex:1;min-width:220px}
-  .logo img{height:48px;display:block}
+  .brandbox{display:flex;flex-direction:column;align-items:flex-start;
+            justify-content:center;gap:12px;flex:1;min-width:220px}
+  .logo img{height:66px;display:block}
   .logo{text-decoration:none}
-  .wordmark{font-family:Lato;font-weight:900;font-size:22px;color:var(--geo);letter-spacing:.04em}
+  .wordmark{font-family:Lato;font-weight:900;font-size:30px;color:var(--geo);letter-spacing:.04em}
   .wordmark em{font-style:normal;color:var(--paper);font-weight:500;margin-left:7px}
-  .brand{font-family:Lato;font-weight:900;letter-spacing:.03em;font-size:clamp(34px,6vw,52px);line-height:1.05}
+  .brand{font-family:Lato;font-weight:900;letter-spacing:.03em;font-size:clamp(42px,7.4vw,66px);line-height:1.02}
   /* the only italic on the page. "Shift" is the argument; everything else
      here measures the thing that has not shifted yet. */
   .brand i{font-style:italic;color:var(--geo);font-weight:900}
@@ -554,7 +555,6 @@
     </div>
     <div id="hpchart" style="height:300px;margin:8px 0 4px"></div>
     <p class="costnote" id="hpnote"></p>
-    <div id="costchart" style="height:230px;margin:16px 0 6px"></div>
     <details class="fold" id="fold_cost"><summary>EVIDENCE —
       <b>every route priced per useful kWh, with its basis</b></summary>
     <div class="foldbody">
@@ -958,7 +958,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.26.0';
+const SITE_VERSION = '8.27.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1793,8 +1793,6 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
     // Route bars above the evidence fold. Same route order in both charts,
     // so cost and carbon can be read against each other; geothermal routes
     // carry the geo colour in both so the eye tracks one family across.
-    routeBars('costchart', cost.household_p_per_useful_kwh || [],
-              'p_per_useful_kwh', 'p per useful kWh');
     document.getElementById('costnote').textContent =
       cost.price_tag + '. ' + cost.note;
   }
@@ -2232,18 +2230,23 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
     bar.querySelectorAll('button').forEach(b => {
       if(+b.dataset.hw > HAVE + 30) b.style.display = 'none';
     });
-    const NAME = {ashp:'Air-source heat pump', shallow:'Ground source',
-                  network:'Geothermal network'};
-    const COL  = {ashp:css('--elec'), shallow:css('--cool'),
-                  network:css('--geo')};
+    // Gas first in the legend and heaviest on the page: it is the line the
+    // other three are measured against, and the one that crosses them.
+    const KEYS = (hp.routes.gas ? ['gas'] : [])
+                 .concat(['ashp','shallow','network']);
+    const NAME = {gas:'Gas boiler', ashp:'Air-source heat pump',
+                  shallow:'Ground source', network:'Geothermal network'};
+    const COL  = {gas:css('--ember'), ashp:css('--elec'),
+                  shallow:css('--cool'), network:css('--geo')};
     const fmtW = {28:'four weeks', 84:'twelve weeks', 365:'twelve months',
                   730:'twenty-four months'};
     function draw(w){
       const n = Math.min(w, HAVE);
       const x = hp.dates.slice(-n);
-      const tr = ['ashp','shallow','network'].map(k => ({
+      const tr = KEYS.map(k => ({
         x: x, y: hp.routes[k].slice(-n), name: NAME[k], mode:'lines',
-        line:{color:COL[k], width:2.2},
+        connectgaps: false,
+        line:{color:COL[k], width: k === 'gas' ? 2.8 : 2.2},
         hovertemplate:'%{x}<br>\u00a3%{y:.1f}/MWh<extra>' + NAME[k] + '</extra>'
       }));
       Plotly.newPlot('hpchart', tr, {
@@ -2264,11 +2267,16 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
         last('ashp').toFixed(0) + ', ground source \u00a3' +
         last('shallow').toFixed(0) + ', geothermal network \u00a3' +
         last('network').toFixed(0) + ' per MWh of delivered heat, latest day. ' +
-        'The three move together because they are one electricity price ' +
-        'divided by three seasonal factors \u2014 what separates them is the ' +
-        'machine, not the market. <b>Gas is not drawn:</b> only today\u2019s ' +
-        'SAP is fetched, so a daily series is needed before the line that ' +
-        'matters most can be shown. On this window a heat pump would pay ' +
+        (hp.routes.gas ? ' Gas boiler heat \u00a3' +
+          (hp.routes.gas.filter(v=>v!=null).slice(-1)[0] || 0).toFixed(0) +
+          '.' : '') +
+        ' The three electric routes move together because they are one ' +
+        'electricity price divided by three seasonal factors \u2014 what ' +
+        'separates them is the machine, not the market. Gas moves on its own ' +
+        'market, which is why the lines cross where they do. Wholesale ' +
+        'commodity only: at the meter the gap is far smaller, because policy ' +
+        'and network costs land on electricity rather than gas. ' +
+        'On this window a heat pump would pay ' +
         prem.toFixed(1) + '% more than the flat mean plotted here, because ' +
         'its load sits on the morning and evening peaks\u2020.';
     }
