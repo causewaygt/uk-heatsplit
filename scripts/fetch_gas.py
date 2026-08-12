@@ -196,11 +196,13 @@ if __name__ == "__main__":
 # SAP is a BALANCING price: what National Gas pays to buy or sell gas to
 # balance the system on the day. It tracks NBP day-ahead closely but is not
 # the same instrument, and that is worth stating wherever the series is drawn.
-SAP_PREFERRED_NAMES = [
-    "SAP, Actual Day",
-    "System Average Price, Actual Day",
-    "SAP Actual Day",
-]
+# VERBATIM from fetch_prices.py - keep in lockstep. Substring patterns, not
+# exact names: every string in a pattern must appear in the lowercased
+# publication name. The first pattern is the one that hits, and it is why
+# three rounds of exact-name guessing failed - the publication is called
+# "System Average Price ...", which does not contain the letters "sap" at all,
+# so a matcher looking for "sap" could never find it.
+SAP_PATTERNS = [["system average price"], ["sap, actual"], ["sap actual"]]
 
 
 def fetch_gas_sap_series(days=800):
@@ -212,22 +214,21 @@ def fetch_gas_sap_series(days=800):
     """
     found = _catalogue()
     pub_id = pub_name = None
-    for want in SAP_PREFERRED_NAMES:
+    for pats in SAP_PATTERNS:
         for pid, name in found:
-            if name.strip().lower() == want.lower():
+            low = name.lower()
+            if all(x in low for x in pats):
                 pub_id, pub_name = pid, name
                 break
         if pub_id:
             break
-    if not pub_id:                       # the name may drift; match loosely
-        for pid, name in found:
-            low = name.lower()
-            if "sap" in low and "actual" in low:
-                pub_id, pub_name = pid, name
-                break
     if not pub_id:
-        print("gas SAP series: no SAP publication in the catalogue (%d "
-              "publications seen)" % len(found))
+        cand = [n for _, n in found
+                if "price" in n.lower() or "sap" in n.lower()]
+        print("gas SAP series: no SAP publication matched (%d publications "
+              "seen). Price-ish names:" % len(found))
+        for n in sorted(cand)[:40]:
+            print("    %s" % n)
         return None
 
     end = dt.date.today() - dt.timedelta(days=1)
@@ -260,11 +261,14 @@ def fetch_gas_sap_series(days=800):
         return None
     ds = sorted(by_date)
     vals = [by_date[d_] for d_ in ds]
-    # SAP publishes in p/kWh; guard in case the units ever change under us
+    # SAME unit sniff as fetch_prices.fetch_gas_sap - keep in lockstep, or the
+    # ticker and the chart disagree about what a gas price is. SAP is usually
+    # p/kWh (~2-5); p/therm reads ~80-150.
     med = sorted(vals)[len(vals) // 2]
-    if med > 100:                        # looks like GBP/MWh
-        vals = [v / 10.0 for v in vals]
-        print("gas SAP series: median %.1f treated as GBP/MWh -> p/kWh" % med)
+    if med > 20:                         # p/therm
+        vals = [v / 29.3071 for v in vals]
+        print("gas SAP series: median raw %.1f treated as p/therm -> p/kWh"
+              % med)
     print("gas SAP series: %d days, %s to %s, %d requests, min %.2f max %.2f "
           "p/kWh" % (len(ds), ds[0], ds[-1], spans, min(vals), max(vals)))
     return {"dates": ds, "p_per_kwh": [round(v, 4) for v in vals],

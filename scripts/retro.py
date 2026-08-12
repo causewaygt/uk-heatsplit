@@ -1490,6 +1490,27 @@ def heat_price_series(store, sap_series=None, retail_series=None,
             c = route_cop(k, tm, etas.get(k, 0.33))
             out["cop"][k].append(round(c, 2))
             out["routes"][k].append(round(fm / c, 2))
+    # HEAT-WEIGHTED SUMMARY. An unweighted daily chart gives a mild June day
+    # the same weight as 5 January, which flatters air-source badly: on point
+    # COP it beats ground source in mild weather and only loses in the cold,
+    # but nearly all the heat is drawn in the cold. Unweighted, air-source
+    # averages ABOVE ground source and inverts the site's own SPF ordering.
+    # Published so the chart can say what the annual picture is rather than
+    # letting the eye average the days.
+    hd = {}
+    for i, v in enumerate(H or []):
+        if v:
+            k_ = (t0 + dt.timedelta(days=i // 24)).isoformat()
+            hd[k_] = hd.get(k_, 0.0) + v
+    hw = sum(hd.get(d_, 0.0) for d_ in out["dates"])
+    if hw > 0:
+        out["cop_heat_weighted"] = {
+            k: round(sum(out["cop"][k][i] * hd.get(d_, 0.0)
+                         for i, d_ in enumerate(out["dates"])) / hw, 2)
+            for k in ROUTE_KEYS}
+        out["cop_unweighted"] = {
+            k: round(sum(out["cop"][k]) / len(out["cop"][k]), 2)
+            for k in ROUTE_KEYS}
     out["note"] = (
         "Commodity cost of DELIVERED heat: the daily electricity index "
         "divided by each route's seasonal factor. The flat mean is what the "
