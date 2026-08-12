@@ -68,7 +68,7 @@ HISTORY_MAX = 120         # ~24 months of weeks
 #     normalises on the trailing 365, so the anchor is not diluted - but the
 #     older winter is expressed on today's demand basis, not its own).
 RETRO_SPAN_DAYS = 796
-RETRO_BACKFILL = True
+RETRO_BACKFILL = False
 RETRO_FETCHERS = {}   # tests inject {'fetch_temp':..,'fetch_mid':..,'fetch_ci':..}  # weekly entries kept (spec: cap and roll)
 
 
@@ -2190,6 +2190,11 @@ def main():
                         if d_[5:7] in ("12", "01", "02")})
         print("retro winters covered: %s" % (", ".join(_wint) or "none"))
         sv_ = out["whatif_routes"].get("system")
+        if sv_ and sv_.get("limits", {}).get("routes"):
+            _al = sv_["limits"]["routes"]
+            print("  after:  limits %s"
+                  % {r: _al[r]["share_pct"]
+                     for r in ("ashp", "shallow", "network")})
         if sv_:
             ab = sv_["routes"]["ashp"]
             print("retro binding hour:", ab["binding_hour"],

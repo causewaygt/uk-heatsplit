@@ -1477,7 +1477,11 @@ def system_view(store):
             "response; distribution constraints unmodelled; a GW "
             "ceiling cannot represent storage DURATION - the worst "
             "week's multi-day draw is what duration-limited storage "
-            "cannot cover. One-winter sample (dagger): 2025-26's cold "
+            "cannot cover. TWO winters on record from 12 Aug 2026, so "
+            "the binding hour is now chosen across them rather than "
+            "describing the only one available - and 2025-26 still "
+            "holds it, tested against 2024-25's own lower ceiling. "
+            "(dagger): 2025-26's cold "
             "snap was windy; its still spell (18-21 Mar, wind to 1.6 "
             "GW) was mild; a year where they coincide is the risk case "
             "this chart lets the reader construct."),
@@ -1491,8 +1495,8 @@ def system_view(store):
             "NESO Winter Outlook, per winter: 60.6 GW for 2024/25 and "
             "62.3 for 2025/26) plus the wind and solar "
             "actually generated: a simple overlay, not a model of how "
-            "the grid would really respond. Each winter is tested "
-            "against its own fleet. Full "
+            "the grid would really respond. Two winters on record, "
+            "each tested against its own fleet. Full "
             "method and every assumption: see the methodology."),
     }
 
