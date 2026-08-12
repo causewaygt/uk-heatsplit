@@ -338,11 +338,11 @@
   #capitalpanel .pan .fig{font-family:"IBM Plex Mono";font-size:30px;margin-top:8px}
   #capitalpanel .pan.cost .fig{color:var(--ember)} .pan.buys .fig{color:var(--geo)}
   #capitalpanel .pan p{font-size:12.5px;line-height:1.45;color:var(--muted);margin-top:8px}
-  #capitalpanel .block ol{margin:12px 0 0 20px;font-size:14px;line-height:1.65;max-width:74ch}
+  #capitalpanel .block ol{margin:12px 0 0 20px;font-size:14px;line-height:1.65}
   #capitalpanel .block li{margin-bottom:7px} .block li span{color:var(--muted)}
   #capitalpanel .block dl{margin-top:12px;font-size:13.5px;line-height:1.55}
   #capitalpanel .block dt{color:var(--ember);font-weight:700;margin-top:11px}
-  #capitalpanel .block dd{color:var(--muted);margin:2px 0 0 0;max-width:74ch}
+  #capitalpanel .block dd{color:var(--muted);margin:2px 0 0 0}
   #capitalpanel .block .note, #capitalpanel .block .caveat{max-width:74ch}
   @media(max-width:700px){#capitalpanel .levers{grid-template-columns:1fr 1fr}
                           #capitalpanel .scales{grid-template-columns:1fr}}
@@ -771,6 +771,23 @@
               evidenced — monitored air-source efficiency falls to 2.44 on the coldest
               days against 3.24 for ground source — but the head-to-head figure comes
               from an hourly model of instantaneous performance, not a field trial.</dd>
+            <dt>The cooling increment has no UK primary source</dt>
+            <dd>The cost of making one loop deliver cooling as well as heat is set
+              at £75 per kW, on a range of £0 to 150. No published UK study
+              separates a heating-and-cooling shared loop from an otherwise
+              identical heat-only one, so this is an engineering estimate rather
+              than a benchmark, and it is the weakest number on the panel. The
+              chiller rate it is netted against is now bounded by UK evidence at
+              both ends — about £100 per kW for equipment alone and about
+              £390 for a 2025 NHS installed contract — but that rate exists
+              by size band only in the commercial cost books. A review of 133
+              aquifer storage systems, which are inherently heating and cooling,
+              puts a whole ground system near £255 per kW above 2 MW: the same
+              order as a heat-only base plus a small increment, which is
+              corroboration rather than measurement. The sign of the difference
+              would reverse only if cooling drove the borefield sizing, if the
+              loop had to be upsized for cooling flow, or if building plant had
+              to be replaced rather than specified as reversible from the start.</dd>
           </dl>
         </div>
 
@@ -913,7 +930,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.18.0';
+const SITE_VERSION = '8.19.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1182,8 +1199,37 @@ const COOL_DIVERSITY = 0.80;
 // the increment is what the ambient loop needs to deliver cooling as well.
 // Against a VRF counterfactual - how most UK offices and retail actually cool -
 // the chiller figure would be several times higher and the gap much wider.
-const CHILLER_PER_KW = 200.0;      // range 120-350, air-cooled plant installed
+// CHILLER PLANT, the counterfactual's cost. UK-ANCHORED as of 12 Aug 2026,
+// no longer US-derived. Bounded below by UK equipment-only practice at about
+// £100/kW, and above by the one UK installed contract that states both a value
+// and a capacity: Cwm Taf Morgannwg UHB replaced a Carrier 30HS 161 at Princess
+// of Wales Hospital for £220,000 ex VAT including craneage and commissioning
+// (Find a Tender 2025/S 000-086319, awarded 18 Nov 2025). The 30HS range is
+// 250-560 kW and the 161 sits at the top, so about £390/kW installed - and that
+// is a like-for-like replacement reusing existing distribution, so it is a
+// floor-to-middle estimate of new plant rather than an upper bound.
+// £/kW falls with size and a network-scale plant is above 1 MW, so the central
+// sits below the hospital datapoint. Range widened 120-350 -> 120-400.
+// The rate exists by size band in SPON'S and BCIS; both are paywalled, and
+// SPON'S at about £210 is the cheapest way to make this a published UK primary.
+const CHILLER_PER_KW = 200.0;      // range 120-400, derived, UK-anchored
+const CHILLER_SOURCE = 'UK equipment practice ~\u00a3100/kW to a 2025 NHS ' +
+  'Wales installed contract at ~\u00a3390/kW';
+// COOLING INCREMENT. Still an engineering estimate - no published UK study
+// separates a heating-and-cooling shared loop from an otherwise identical
+// heat-only one, and this remains the weakest number on the panel. Bounded
+// below by near zero, where passive cooling reuses the fan coils already fitted
+// for heat and a balanced load shortens the borefield, and above by ~£150/kW
+// where reversible plant and dedicated emitters are needed. Cross-check:
+// Herrmann et al. 2026 (RSER 226:116202, 133 ATES systems) put a WHOLE
+// heating-and-cooling ground system at about EUR 300/kW above 2 MW - roughly
+// £255/kW - which is the same order as a heat-only base plus a small increment.
 const COOL_INC_PER_KW = 75.0;      // range 0-150, engineering estimate
+// Balanced loads shorten the borefield. Held at 20%, from borehole-layout
+// optimisation studies. NOT the widely-quoted Sommerfeldt & Madani 18%, which
+// is PVT solar regeneration rather than balanced heating and cooling - a
+// mis-citation worth not repeating.
+const BOREFIELD_SAVING = 0.20;
 // ASHRAE/CIBSE Guide M service lives. Over a 60-year appraisal the
 // counterfactual buys chiller plant three times; the boreholes are bought once.
 const CHILLER_LIFE_Y = 20;
@@ -1345,25 +1391,38 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
   el('coolnote').innerHTML = S.cool === 0
     ? '<b>Cooling excluded.</b> The case above is heat only. Move the ' +
       'connections lever to bring cooling in.'
-    : '<b>Cooling, and why it lowers the cost rather than raising it.</b> ' +
+    : '<b>Cooling, and why it lowers the capital rather than raising it.</b> ' +
       'At ' + S.cool + '% of connections that is <b>' + cbx.serv.toFixed(1) +
       ' TWh</b> a year of cooling service and a diversified network peak of ' +
       cbx.peakGW.toFixed(0) + ' GW\u2020. The counterfactual is an air-source ' +
-      'network <b>plus separate chillers</b>, because zoning is making that ' +
-      'the alternative \u2014 so it buys ' + gbp(cbx.chillerBn) + ' of chiller ' +
-      'plant at \u00a3' + CHILLER_PER_KW + '/kW. The geothermal option needs ' +
-      'only the increment to make one loop do both, ' + gbp(cbx.incBn) +
-      ' at \u00a3' + COOL_INC_PER_KW + '/kW\u2020, and a balanced load can ' +
-      'shorten the borefield by 20\u201330% rather than lengthen it. ' +
-      '<b>Net ' + gbp(Math.abs(cbx.netBn)) + ' of avoided capital</b>, not ' +
-      'added \u2014 and chillers are replaced every ' + CHILLER_LIFE_Y +
-      ' years against boreholes lasting 50 to 100, so the counterfactual buys ' +
-      'them ' + cbx.renewals + ' times over this horizon. Cooling also avoids ' +
-      cbx.elecTWh.toFixed(1) + ' TWh of electricity a year at a passive ' +
-      'ground COP of ' + GEO_COOL_COP + ' against an air-cooled EER of ' +
-      CF_COOL_EER + '. Ratio 1 cooling to ' + COOL_H2C + ' heat, ' +
-      COOL_EFLH + ' equivalent full-load hours, diversity ' + COOL_DIVERSITY +
-      '\u2020 \u2014 the load assumptions doing the most work here.';
+      'network <b>plus separate chillers</b> \u2014 zoning is making that the ' +
+      'alternative \u2014 so it buys ' + gbp(cbx.chillerBn) + ' of chiller ' +
+      'plant at \u00a3' + CHILLER_PER_KW + '/kW. That rate is bounded by UK ' +
+      'evidence at both ends: about \u00a3100/kW for equipment alone, and ' +
+      'about \u00a3390/kW for the one UK contract stating both a value and a ' +
+      'capacity \u2014 an NHS Wales chiller replacement awarded in November ' +
+      '2025, installed and commissioned. Network-scale plant runs above a ' +
+      'megawatt where the rate per kW is lower, so the central sits below that. ' +
+      'The geothermal option needs only the increment to make one loop do ' +
+      'both, ' + gbp(cbx.incBn) + ' at \u00a3' + COOL_INC_PER_KW +
+      '/kW\u2020, and a balanced load can shorten the borefield by about ' +
+      Math.round(100 * BOREFIELD_SAVING) + '% rather than lengthen it. ' +
+      '<b>Net ' + gbp(Math.abs(cbx.netBn)) + ' of avoided capital, not added.</b> ' +
+      'Chillers are replaced every ' + CHILLER_LIFE_Y + ' years against ' +
+      'boreholes lasting 50 to 100, so the counterfactual buys them ' +
+      cbx.renewals + ' times over this horizon and the network buys its cooling ' +
+      'kit once. Cooling also avoids ' + cbx.elecTWh.toFixed(1) + ' TWh of ' +
+      'electricity a year, at a passive ground COP of ' + GEO_COOL_COP +
+      ' against an air-cooled EER of ' + CF_COOL_EER + '. ' +
+      '<b>The increment is the weakest number here:</b> no published UK study ' +
+      'separates a heating-and-cooling shared loop from an otherwise identical ' +
+      'heat-only one, so \u00a3' + COOL_INC_PER_KW + '/kW is an engineering ' +
+      'estimate on a range of \u00a30\u2013150. A review of 133 aquifer ' +
+      'storage systems puts a whole heating-and-cooling ground system near ' +
+      '\u00a3255/kW above 2 MW, which is the same order as a heat-only base ' +
+      'plus a small increment \u2014 consistent, but not the same measurement. ' +
+      'Load assumptions: 1 cooling to ' + COOL_H2C + ' heat, ' + COOL_EFLH +
+      ' equivalent full-load hours, diversity ' + COOL_DIVERSITY + '\u2020.';
   el('fixed').textContent=
       'Fixed at Green Book conventions: a sixty-year horizon for infrastructure; ' +
       'a declining social time preference rate of 3.5% to year 30, 3.0% to 75 and ' +
