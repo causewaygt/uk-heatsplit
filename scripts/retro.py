@@ -953,6 +953,7 @@ def slices(store, nd_daily=None):
         "worst_week": worst_week,
         "binding_week": binding_week,
         "daily_90": daily,
+        "heat_price": heat_price_series(store),
         "monthly_13": monthly,
         "monthly_calendar": monthly_calendar,
         "stress": stress,
@@ -1426,6 +1427,65 @@ def night_elbow(store):
                  "summer on record. No level can be read off it - the flat "
                  "segment is a floor whose height aggregate demand cannot see."),
     }
+
+
+def heat_price_series(store, cap_history=None, eff_gas=0.835,
+                      spf=(("ashp", 2.80), ("shallow", 3.24),
+                           ("network", 5.00))):
+    """Daily commodity cost of DELIVERED heat, by route, on both bases.
+
+    The store carries hourly electricity price, so the three heat-pump routes
+    are just that price divided by each route's seasonal factor. Two means are
+    published per day: the flat mean, which is what the ticker uses, and the
+    HEAT-WEIGHTED mean, which is what a heat pump would actually pay - it buys
+    most of its power at the morning and evening peaks. The gap between them
+    is the coincidence premium, about 3% in winter, and publishing both lets a
+    reader see it rather than take it on trust.
+
+    Gas is NOT in the store - only today's SAP is fetched - so the gas series
+    is carried only where a caller supplies it. Retail is the Ofgem cap in
+    force on each date, which is a step function, not a series.
+    """
+    M = store.get("mid_gbp_mwh") or []
+    H = store.get("heat_GWh") or []
+    if not M:
+        return None
+    t0 = dt.date.fromisoformat(store["start_day"])
+    flat, wtd, dates = {}, {}, []
+    for i, v in enumerate(M):
+        if v is None:
+            continue
+        d_ = (t0 + dt.timedelta(days=i // 24)).isoformat()
+        h = H[i] if i < len(H) and H[i] else 0.0
+        flat.setdefault(d_, []).append(v)
+        wtd.setdefault(d_, []).append((v, h))
+    out = {"dates": [], "elec_flat_gbp_mwh": [], "elec_heat_wtd_gbp_mwh": [],
+           "routes": {k: [] for k, _ in spf},
+           "spf": {k: r for k, r in spf}, "eff_gas": eff_gas}
+    for d_ in sorted(flat):
+        vals = flat[d_]
+        if len(vals) < 20:                     # part days are not a price
+            continue
+        fm = sum(vals) / len(vals)
+        pw = wtd[d_]
+        hsum = sum(h for _, h in pw)
+        wm = (sum(p * h for p, h in pw) / hsum) if hsum > 0 else fm
+        out["dates"].append(d_)
+        out["elec_flat_gbp_mwh"].append(round(fm, 2))
+        out["elec_heat_wtd_gbp_mwh"].append(round(wm, 2))
+        for k, r in spf:
+            out["routes"][k].append(round(fm / r, 2))
+    out["note"] = (
+        "Commodity cost of DELIVERED heat: the daily electricity index "
+        "divided by each route's seasonal factor. The flat mean is what the "
+        "headline ticker uses; the heat-weighted mean is what a heat pump "
+        "would actually pay, because its load sits on the morning and evening "
+        "peaks. The difference is the coincidence premium - about 3% across a "
+        "winter - so the flat basis understates every heat-pump route by "
+        "roughly that much. Gas is not in this series: only today's SAP is "
+        "fetched, so the gas line needs a daily SAP feed before it can be "
+        "drawn historically.")
+    return out
 
 
 def system_view(store):

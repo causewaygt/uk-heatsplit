@@ -1288,14 +1288,38 @@ def main():
         mid = fetch_elec_mid()
         gas_heat = sap["gbp_per_mwh"] / EFF["gas"]
         hp_heat = mid["gbp_per_mwh"] / GSHP_SPF
+        # BOTH BASES, 12 Aug 2026. The ticker ran on wholesale alone, and
+        # the bill panels run on retail, so the page carried two answers to
+        # what looked like one question. Publishing both turns that into the
+        # point: the wholesale gap is roughly three times the retail one, and
+        # the difference is policy and network cost loaded onto electricity
+        # rather than gas.
+        _rp, _ = cap_prices(dt.date.today().isoformat())
+        rt_gas = _rp["gas"] / EFF["gas"]              # p per useful kWh
+        rt_gshp = _rp["elec"] / GSHP_SPF
         spark = {
             "date": max(sap["date"], mid["date"]),
             "gas_boiler_heat_gbp_mwh": round(gas_heat, 1),
             "gshp_heat_gbp_mwh": round(hp_heat, 1),
             "gap_gbp_mwh": round(gas_heat - hp_heat, 1),
+            "retail": {
+                "gas_boiler_p_per_kwh": round(rt_gas, 1),
+                "gshp_p_per_kwh": round(rt_gshp, 1),
+                "gap_p_per_kwh": round(rt_gas - rt_gshp, 1),
+                "gap_gbp_mwh": round((rt_gas - rt_gshp) * 10, 1),
+            },
             "basis": ("Wholesale daily: gas SAP / 0.835 boiler efficiency vs "
                       "electricity market index / SPF 3.24. Commodity cost "
-                      "only - excludes network, policy and supply costs."),
+                      "only - excludes network, policy and supply costs. The "
+                      "retail line is the same two routes at the Ofgem cap, "
+                      "which includes them - the difference between the two "
+                      "gaps is what policy and network costs do to the "
+                      "comparison, and they fall much harder on electricity "
+                      "than on gas. A flat daily electricity mean also "
+                      "understates heat-pump cost by about 3%, because a heat "
+                      "pump buys most of its power at the morning and evening "
+                      "peaks - measured, and logged as the coincidence "
+                      "premium."),
         }
         out["sources"]["prices"] = {"status": "ok", "last_good": spark["date"]}
     except Exception:
