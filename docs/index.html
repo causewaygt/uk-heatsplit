@@ -964,7 +964,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.29.0';
+const SITE_VERSION = '8.30.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -2289,10 +2289,21 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
         ' The electric routes are one electricity price divided by each ' +
         'route\u2019s <b>own COP on that day\u2019s temperature</b>, not by a ' +
         'fixed seasonal factor \u2014 so they spread apart in cold weather ' +
-        'and close up in mild. Air-source is the one that moves: its COP ' +
-        'collapses toward 2 on the coldest days, exactly when the heat is ' +
-        'wanted, while a ground loop barely notices. That divergence is the ' +
-        'argument, and a fixed SPF hides it. ' +
+        'and close up in mild. ' +
+        (hp.cop_heat_weighted
+          ? '<b>Read the cold days, not the average of the days.</b> ' +
+            'Air-source beats ground source in mild weather and loses badly ' +
+            'in the cold, and almost all the heat is drawn in the cold: ' +
+            'across this record its COP averages ' +
+            hp.cop_unweighted.ashp + ' over all days but ' +
+            hp.cop_heat_weighted.ashp + ' weighted by the heat actually ' +
+            'wanted, against ' + hp.cop_heat_weighted.shallow +
+            ' for ground source and ' + hp.cop_heat_weighted.network +
+            ' for a network. So the eye should not average this chart \u2014 ' +
+            'the days that matter are the spikes. '
+          : 'Air-source is the one that moves: its COP collapses toward 2 on ' +
+            'the coldest days, exactly when the heat is wanted, while a ' +
+            'ground loop barely notices. ') +
         (hp.routes.gas
           ? 'Gas moves on its own market, which is why the lines cross where ' +
             'they do. '
