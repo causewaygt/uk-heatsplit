@@ -83,7 +83,42 @@ SUMMER_HDD_FULL = 3.0
 # (~5.1 GW) => ~62 GW of dispatchable-and-interconnector de-rated
 # capacity. Winter-assessed: the ceiling and every headroom statement
 # are confined to Nov-Mar. Static overlay, not a dispatch model.
-DISPATCH_DERATED_GW = 62.0
+# --- the ceiling, per winter -------------------------------------------------
+# The site's ceiling is the de-rated DISPATCHABLE block plus the wind and solar
+# ACTUALLY generated in each hour. So this constant must exclude wind, or wind
+# is counted twice: once de-rated in the block and again at its outturn.
+#
+# Derived the same way for both winters, from NESO's published Winter Outlook:
+#     total de-rated capacity = ACS peak demand + de-rated margin
+#     dispatchable block      = total - de-rated wind
+#
+# 2024/25 (WO 8 Oct 2024): margin 5.2 GW at 8.8% of ACS peak, so ACS peak
+#   59.8 GW and total 65.0. NESO de-rated 30,532 MW of installed wind to
+#   4,416 MW, giving 60.6 GW dispatchable.
+# 2025/26 (WO 9 Oct 2025): margin 6.1 GW at 10.0%, so ACS peak 61.0 GW and
+#   total 67.1. De-rated wind is not published in the summaries; scaled with
+#   installed capacity growth to ~4.8 GW, giving 62.3 GW. DAGGERED - the wind
+#   de-rating is the estimated part, not the margin.
+#
+# Each winter is now tested against ITS OWN fleet. Before 12 Aug 2026 a single
+# 62.0 was applied to every hour, which was defensible while the store held one
+# winter and became wrong the moment it held two.
+DISPATCH_BY_WINTER = {
+    2024: 60.6,      # winter 2024/25, labelled by its OPENING year
+    2025: 62.3,      # winter 2025/26
+}
+DISPATCH_DERATED_GW = 62.3       # fallback and headline; the latest winter
+
+
+def dispatch_block(when):
+    """De-rated dispatchable capacity for the winter containing `when`.
+
+    Winters are labelled by their opening year, so January 2026 belongs to
+    winter 2025. Anything outside the table falls back to the latest figure
+    rather than failing - an unmapped year is a stale table, not a data error.
+    """
+    y = when.year - (1 if when.month <= 6 else 0)
+    return DISPATCH_BY_WINTER.get(y, DISPATCH_DERATED_GW)
 CEILING_MONTHS = (11, 12, 1, 2, 3)
 RETRO_SCHEMA = 2   # 2: system feeds - demand/wind/solar (A'.2)
 RETRO_PATH = os.path.join(os.path.dirname(__file__), "..", "docs",
@@ -572,7 +607,16 @@ def load(path=None):
 # ===========================================================================
 # Phase B - slice and stress
 # ===========================================================================
-MAX_DAYS = 400               # store cap; oldest days trimmed past this
+# Store cap. Raised 400 -> 800 on 12 Aug 2026 to reach two winters, so the
+# worst hour, the binding hour and the tightest week become a choice across
+# winters rather than a description of one.
+#
+# THIS ALONE DOES NOT REACH BACKWARDS. start_day is fixed when the store is
+# created and trim() only ever moves it FORWARD. Raising the cap stops the
+# front being cut, so the store grows forward one day per run from where it
+# is. Reaching winter 24/25 needs the separate backfill below, which moves
+# r_start and therefore refetches the whole span.
+MAX_DAYS = 800               # store cap; oldest days trimmed past this
 
 
 def trim(store, max_days=MAX_DAYS):
@@ -1105,25 +1149,41 @@ def _elec_limits(store, D, W, S, disp, gross, winter, _iso):
     they share one ceiling - which is the point worth making."""
     cal = store["calibration"]
     heat_annual = (cal["space_annual_TWh"] + cal["dhw_annual_TWh"])
+    _t0 = dt.datetime.fromisoformat(store["start_day"])
+
+    def _block_at(i):
+        """The de-rated dispatchable block for the winter hour i falls in."""
+        return dispatch_block(_t0 + dt.timedelta(hours=i))
+
     # per-unit-share series: gross/R_SHIFT is the 100%-share draw
     unit = {r: [g / R_SHIFT for g in gross[r]] for r in ROUTES}
     unit_disp = [x / R_SHIFT for x in disp]
 
+    # Each hour is measured against ITS OWN winter's block, so the binding
+    # hour is the one with the LEAST HEADROOM rather than the highest absolute
+    # requirement. With one winter in the store the two are the same hour;
+    # with two they need not be, and the headroom reading is the correct one.
     def peak(route, share, wind):
         best, bi = -1e9, winter[0]
         u, ud = unit[route], unit_disp
         for i in winter:
             v = (D[i] + max(0.0, share * u[i] - share * ud[i])
                  - wind(i) - S[i])
-            if v > best:
-                best, bi = v, i
-        return best, bi
+            over = v - _block_at(i)
+            if over > best:
+                best, bi = over, i
+        # return the REQUIREMENT at the binding hour, and the hour itself
+        i = bi
+        req = (D[i] + max(0.0, share * u[i] - share * ud[i])
+               - wind(i) - S[i])
+        return req, bi
 
     def solve(route, wind):
         lo, hi = 0.0, 4.0
         for _ in range(42):
             mid = (lo + hi) / 2
-            if peak(route, mid, wind)[0] < DISPATCH_DERATED_GW:
+            _r, _i = peak(route, mid, wind)
+            if _r < _block_at(_i):
                 lo = mid
             else:
                 hi = mid
@@ -1428,18 +1488,26 @@ def system_view(store):
             "carbon, demand, wind and solar are measured. Cooling shown "
             "here is already inside today's demand, not added to it. "
             "The capacity line is a fixed generation block (dagger - "
-            "NESO Winter Outlook 2025/26) plus the wind and solar "
+            "NESO Winter Outlook, per winter: 60.6 GW for 2024/25 and "
+            "62.3 for 2025/26) plus the wind and solar "
             "actually generated: a simple overlay, not a model of how "
-            "the grid would really respond. One winter of data. Full "
+            "the grid would really respond. Each winter is tested "
+            "against its own fleet. Full "
             "method and every assumption: see the methodology."),
     }
 
+    _t0v = dt.datetime.fromisoformat(store["start_day"])
+    def _blk(i):
+        return dispatch_block(_t0v + dt.timedelta(hours=i))
+
     for r in ROUTES:
-        ib = max(winter, key=lambda i: D[i] + net[r][i] - W[i] - S[i])
+        # least headroom, not highest requirement - the ceiling now differs
+        # by winter, so the two are not the same hour once the store holds
+        # more than one.
+        ib = max(winter, key=lambda i: D[i] + net[r][i] - W[i] - S[i] - _blk(i))
         req = D[ib] + net[r][ib] - W[ib] - S[ib]
         exceed = sum(1 for i in winter
-                     if D[i] + net[r][i] - W[i] - S[i]
-                     > DISPATCH_DERATED_GW)
+                     if D[i] + net[r][i] - W[i] - S[i] > _blk(i))
         out["routes"][r] = {
             "binding_hour": _iso(ib),
             "binding_temp_C": store["temp_C"][ib],
@@ -1449,7 +1517,8 @@ def system_view(store):
             "net_add_GW": round(net[r][ib], 1),
             "gross_add_GW": round(gross[r][ib], 1),
             "dispatch_req_GW": round(req, 1),
-            "headroom_GW": round(DISPATCH_DERATED_GW - req, 1),
+            "block_GW": _blk(ib),
+            "headroom_GW": round(_blk(ib) - req, 1),
             "hours_above_block": exceed,
         }
     return out

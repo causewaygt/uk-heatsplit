@@ -49,6 +49,26 @@ WINDOW_DAYS = 730          # 24 months of weekly history
 ANNUAL_DAYS = 365          # a year, for every trailing-12-month quantity
 EST = " \u2020"   # marks a Causeway estimate - see site footnote
 HISTORY_MAX = 120         # ~24 months of weeks
+
+# --- retro span -------------------------------------------------------------
+# How far back the hourly store reaches. 796 days spans two winters, so the
+# worst hour and the binding hour are chosen ACROSS winters rather than
+# describing the only one on record.
+#
+# TWO-STEP, deliberately. RETRO_BACKFILL stays False for the first run after
+# raising the span: the cap change alone lets the store stop shrinking and
+# grow forward, which proves the plumbing without a refetch. Set it True for
+# ONE run to pull the earlier winter in, then set it back to False so the
+# store returns to cheap two-day increments.
+#
+# TWO THINGS THAT DO NOT REACH BACK WITH THE DATA, and belong in the copy:
+#   - DISPATCH_DERATED_GW is this winter's de-rated fleet. Backfilling tests
+#     two winters of weather against one winter's capacity.
+#   - hourly heat is shaped from the CURRENT annual anchor (the shaping
+#     normalises on the trailing 365, so the anchor is not diluted - but the
+#     older winter is expressed on today's demand basis, not its own).
+RETRO_SPAN_DAYS = 796
+RETRO_BACKFILL = False
 RETRO_FETCHERS = {}   # tests inject {'fetch_temp':..,'fetch_mid':..,'fetch_ci':..}  # weekly entries kept (spec: cap and roll)
 
 
@@ -2074,7 +2094,22 @@ def main():
         prev_retro = retro.load()
         if not prev_retro:
             r_start = (dt.date.today()
-                       - dt.timedelta(days=2 + 396)).isoformat()
+                       - dt.timedelta(days=2 + RETRO_SPAN_DAYS)).isoformat()
+        elif RETRO_BACKFILL:
+            # STEP 2, deliberate and one-off. Moving the start breaks the
+            # start_day match in build_retro, so the WHOLE span is refetched
+            # from four feeds rather than extended by two days. Expect a long
+            # run and expect headline figures to move: a colder hour anywhere
+            # in the new span becomes the worst hour, and the binding hour,
+            # headroom and electrification limit all follow it.
+            want = (dt.date.today()
+                    - dt.timedelta(days=2 + RETRO_SPAN_DAYS)).isoformat()
+            r_start = min(want, prev_retro["start_day"])
+            if r_start != prev_retro["start_day"]:
+                print("retro BACKFILL: start %s -> %s (full refetch of %d days)"
+                      % (prev_retro["start_day"], r_start,
+                         (dt.date.fromisoformat(r_end)
+                          - dt.date.fromisoformat(r_start)).days + 1))
         else:
             r_start = prev_retro["start_day"]
         rstore = retro.build_retro(
@@ -2102,6 +2137,33 @@ def main():
             nd_daily = elec if isinstance(elec, dict) else None
         except NameError:
             pass
+        # SPAN AND BEFORE/AFTER. A changed span moves the headlines for a
+        # legitimate reason, but only if you can see WHICH change moved them.
+        # The previous store's own figures are printed alongside the new ones
+        # so a shift is attributable rather than merely noticed.
+        _pv = (prev_retro or {})
+        _pspan = len(_pv.get("temp_C") or []) // 24
+        _nspan = rstore["n_hours"] // 24
+        print("retro span: %d -> %d days (%s -> %s), cap %d%s"
+              % (_pspan, _nspan, _pv.get("start_day", "-"),
+                 rstore["start_day"], retro.MAX_DAYS,
+                 "  BACKFILL RUN" if RETRO_BACKFILL else ""))
+        if _pspan and _pv.get("demand_GW"):
+            try:
+                _before = retro.slices(_pv)
+                _bs, _ns = _before["stress"], None
+                print("  before: worst %s at %s C, %s GWh"
+                      % (_bs["worst_hour"], _bs["worst_hour_temp_C"],
+                         _bs["worst_hour_heat_GWh"]))
+                _bsv = _before.get("system")
+                if _bsv:
+                    _bl = _bsv["limits"]["routes"]
+                    print("  before: limits %s"
+                          % {r: _bl[r]["share_pct"]
+                             for r in ("ashp", "shallow", "network")})
+            except Exception as _e:                  # diagnostic only
+                print("  before: not comparable (%s)" % type(_e).__name__)
+
         out["whatif_routes"] = retro.slices(rstore, nd_daily=nd_daily)
         st = out["whatif_routes"]["stress"]
         print("retro stress: worst hour", st["worst_hour"],
@@ -2114,11 +2176,18 @@ def main():
             print("retro summer: peak cool hour", ss["peak_hour"],
                   ss["today_GW"], "GW today |", ss["x2_scenario_added_GW"],
                   "GW if doubled |", ss["whatif_relief_GW"], "GW relief")
+        _wint = sorted({d_[:7] for d_ in
+                        [(dt.date.fromisoformat(rstore["start_day"])
+                          + dt.timedelta(days=i)).isoformat()
+                         for i in range(rstore["n_hours"] // 24)]
+                        if d_[5:7] in ("12", "01", "02")})
+        print("retro winters covered: %s" % (", ".join(_wint) or "none"))
         sv_ = out["whatif_routes"].get("system")
         if sv_:
             ab = sv_["routes"]["ashp"]
             print("retro binding hour:", ab["binding_hour"],
-                  "req", ab["dispatch_req_GW"], "GW, headroom",
+                  "req", ab["dispatch_req_GW"], "GW vs block",
+                  ab.get("block_GW"), "GW, headroom",
                   ab["headroom_GW"], "GW |",
                   {r: sv_["routes"][r]["dispatch_req_GW"]
                    for r in ("ashp", "shallow", "network")})
