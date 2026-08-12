@@ -324,7 +324,12 @@
   #capitalpanel .dealnote b{color:var(--paper)}
   #capitalpanel .compbar{display:flex;height:32px;border-radius:4px;overflow:hidden;
            border:1px solid var(--line);margin-top:22px}
-  #capitalpanel .key{display:flex;gap:16px;flex-wrap:wrap;margin-top:11px;
+  /* NAME COLLISION. The page-wide .key is an 11x11 colour swatch; this is a
+     CONTAINER that happens to share the class. Without resetting width and
+     height it inherits 11x11 and every legend item overflows onto the text
+     below - which is what the reader was seeing over the levers. */
+  #capitalpanel .key{display:flex;width:auto;height:auto;gap:10px 18px;
+       flex-wrap:wrap;margin:11px 0 4px;
        font-family:"IBM Plex Mono";font-size:12px;color:var(--muted)}
   #capitalpanel .key i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
   #capitalpanel .levers{display:grid;grid-template-columns:repeat(3,1fr);gap:18px 24px;margin-top:24px}
@@ -939,7 +944,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.23.0';
+const SITE_VERSION = '8.23.1';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
