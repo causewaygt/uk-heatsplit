@@ -221,7 +221,11 @@ def fetch_gas_sap_series(days=800):
         w0 = w1 + dt.timedelta(days=1)
 
     if not by_date:
-        print("gas SAP series: publication '%s' returned no rows" % pub_name)
+        print("gas SAP series: publication '%s' (id %s) returned no usable "
+              "rows over %s..%s. The demand path's row shape is assumed here "
+              "- if SAP uses different field names the values are being "
+              "dropped silently, so log one raw row before assuming the feed "
+              "is empty." % (pub_name, pub_id, start, end))
         return None
     ds = sorted(by_date)
     vals = [by_date[d_] for d_ in ds]
