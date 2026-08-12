@@ -1916,7 +1916,9 @@ def main():
                 "winter_recovered_GWh": round(
                     central * (1 + 1 / GROUND_COOL_COP) * 0.7, 0),
             },
-            "note": ("Cooling degree-hours on the daily mean of "
+            "note": ("NOTE this base is not the 15.5 degC cooling shape base used "
+                     "elsewhere on the page - it answers a different question. "
+                     "Cooling degree-hours on the daily mean of "
                      "population-weighted outdoor air above a " + base_used +
                      " degC base, x the unequipped stock at risk (low: EHS "
                      "11%; central 25%" + EST + "; high: CCC over-half-at-risk) "
