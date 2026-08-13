@@ -524,7 +524,6 @@ def compute_week(gas_space_wk, hdd_wk, cdd_wk, hdd_12m, cdd_12m, p):
         "total_in": total_in,
         "indig_now": indig_now, "indig_services_now": indig_services_now,
         "heat_repl_elec": heat_repl_elec, "cool_repl_elec": cool_repl_elec,
-        "adj": adj,
         "wf_heat": wf_heat, "wf_cooling": wf_cooling,
         "wf_bill_heat": wf_bill_heat, "wf_bill_cool": wf_bill_cool,
         "adj": adj, "new_total": new_total,
@@ -1254,9 +1253,12 @@ def main():
     # much smaller quantity of electricity plus ambient heat harvested from the
     # ground. That is the whole argument in one chart.
     _wf = r["adj"]
-    _wf_ambient = ((useful_heat_wk * R_SHIFT) - r["heat_repl_elec"]
-                   + (useful["cooling_delivered"] * R_SHIFT)
-                   - r["cool_repl_elec"])
+    # Ambient harvested = service delivered minus electricity bought, for both
+    # legs. Derived from the replacement electricities rather than the raw
+    # service totals, because those are locals of the calculation function -
+    # heat_repl_elec = service x R / SCOP, so service x R = elec x SCOP.
+    _wf_ambient = (r["heat_repl_elec"] * (GEO_NETWORK_SCOP - 1.0)
+                   + r["cool_repl_elec"] * (PASSIVE_COOL_COP - 1.0))
     whatif_bars = {
         "mix": {
             "gas": round(_wf["gas"], 0), "oil": round(_wf["oil"], 0),
@@ -1266,7 +1268,7 @@ def main():
         },
         "mix_total_GWh": round(sum(_wf.values()), 0),
         "geothermal_ambient_GWh": round(_wf_ambient, 0),
-        "useful_total_GWh": round(useful["total"], 0),
+        "useful_total_GWh": round(sum(r["useful"].values()), 0),
         "share_pct": round(100 * R_SHIFT),
         "note": ("The same delivered heat and cooling, with a fifth of it "
                  "served by geothermal networks instead. The useful side is "
