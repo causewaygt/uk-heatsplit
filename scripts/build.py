@@ -524,6 +524,7 @@ def compute_week(gas_space_wk, hdd_wk, cdd_wk, hdd_12m, cdd_12m, p):
         "total_in": total_in,
         "indig_now": indig_now, "indig_services_now": indig_services_now,
         "heat_repl_elec": heat_repl_elec, "cool_repl_elec": cool_repl_elec,
+        "adj": adj,
         "wf_heat": wf_heat, "wf_cooling": wf_cooling,
         "wf_bill_heat": wf_bill_heat, "wf_bill_cool": wf_bill_cool,
         "adj": adj, "new_total": new_total,
@@ -1239,6 +1240,39 @@ def main():
                  "The electricity/gas price ratio embeds policy levies on "
                  "electricity; rebalancing would shift these comparisons "
                  "further toward heat pumps."),
+    }
+
+    # WHAT-IF BARS. The energy balance can now toggle between what Britain
+    # actually bought this week and what the 20% geothermal what-if would have
+    # bought for the same delivered service. The per-fuel split already existed
+    # inside the what-if arithmetic (adj) - it simply was not published, so the
+    # front end could show totals but not composition.
+    #
+    # The OUT side barely moves, by construction: the what-if delivers the same
+    # heat and the same cooling. What changes is the IN side and the waste - a
+    # fifth of the combustion goes, and with it the flue losses, replaced by a
+    # much smaller quantity of electricity plus ambient heat harvested from the
+    # ground. That is the whole argument in one chart.
+    _wf = r["adj"]
+    _wf_ambient = ((useful_heat_wk * R_SHIFT) - r["heat_repl_elec"]
+                   + (useful["cooling_delivered"] * R_SHIFT)
+                   - r["cool_repl_elec"])
+    whatif_bars = {
+        "mix": {
+            "gas": round(_wf["gas"], 0), "oil": round(_wf["oil"], 0),
+            "bio_other": round(_wf["bio"], 0), "solid": round(_wf["solid"], 0),
+            "heat_networks": round(_wf["hn"], 0),
+            "electricity": round(_wf["elec"], 0),
+        },
+        "mix_total_GWh": round(sum(_wf.values()), 0),
+        "geothermal_ambient_GWh": round(_wf_ambient, 0),
+        "useful_total_GWh": round(useful["total"], 0),
+        "share_pct": round(100 * R_SHIFT),
+        "note": ("The same delivered heat and cooling, with a fifth of it "
+                 "served by geothermal networks instead. The useful side is "
+                 "unchanged by construction - that is the point of the "
+                 "comparison. What moves is what had to be bought to deliver "
+                 "it, and how much was thrown away doing so." + EST),
     }
 
     # --- headline stats: indigenous share + 20% geothermal what-if -------------
@@ -2002,6 +2036,7 @@ def main():
         "weekly": weekly,
         "weekly_mix": weekly_mix,
         "weekly_useful": weekly_useful,
+        "whatif_bars": whatif_bars,
         "geothermal": geothermal,
         "cost": cost,
         "headlines": headlines,
