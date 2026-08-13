@@ -458,6 +458,10 @@
   </div>
   <div class="hero">
     <div class="h2lab">The energy balance</div>
+    <div class="trendbar" id="balwin" style="margin:2px 0 10px">
+      <button data-bw="now" aria-pressed="true">AS BOUGHT</button>
+      <button data-bw="wf">WITH A FIFTH GEOTHERMAL</button>
+    </div>
     <div class="barlabel" id="balancesection">ENERGY IN — fuel &amp; electricity purchased<span id="barwin"></span></div>
     <div class="barrow">
       <div class="btot" id="tot_in">—</div>
@@ -964,7 +968,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.30.2';
+const SITE_VERSION = '8.31.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1127,7 +1131,58 @@ fetch('data.json').then(r=>r.json()).then(d=>{
     // Bars draw from `agg` when a trend window is active, from the live
     // week otherwise. `m` and `u` stay in scope throughout so no caption
     // or guard below can dereference a missing block (Irish trap 3).
+    // WHAT-IF TOGGLE. The same delivered service, a fifth of it served by
+    // geothermal networks instead. Only the IN side and the waste move - the
+    // useful side is unchanged by construction, which is the comparison.
+    // The toggle is hidden unless the payload carries whatif_bars, so an old
+    // data.json degrades to the observed view rather than an empty chart.
+    let BAL = 'now';
+    const wfb = d.whatif_bars;
+    const balbar = document.getElementById('balwin');
+    if(!wfb) balbar.style.display = 'none';
+    let LAST = null;
+
+    const WF_IN_DEF = [
+      ["gas","Gas \u2014 what is left","--ember"],
+      ["oil","Oil","--oil"],
+      ["bio_other","Bioenergy & other","--bio"],
+      ["solid","Solid fuel","--solid"],
+      ["heat_networks","Heat networks","--dh"],
+      ["electricity","Electricity \u2014 including the geothermal fifth","--elec"],
+    ];
+
+    function drawWhatIfBars(){
+      const sc = Math.max(wfb.mix_total_GWh, wfb.useful_total_GWh) || 1;
+      document.getElementById('mixlegend').innerHTML = '';
+      document.getElementById('uselegend').innerHTML = '';
+      Object.keys(seen).forEach(k => { delete seen[k]; });
+      document.getElementById('tot_in').innerHTML =
+        fmt(wfb.mix_total_GWh) + '<small>GWh in</small>';
+      renderBar(document.getElementById('mixbar'), WF_IN_DEF, wfb.mix, 0,
+                'mixlegend', sc);
+      const outC = u ? u.components_GWh : null;
+      if(outC){
+        document.getElementById('tot_out').innerHTML =
+          fmt(wfb.useful_total_GWh) + '<small>GWh useful</small>';
+        renderBar(document.getElementById('usebar'), OUT_DEF, outC,
+                  0, 'uselegend', sc);
+      }
+      const saved = (m.total_GWh || 0) - wfb.mix_total_GWh;
+      document.getElementById('combline').innerHTML =
+        '<b>The same heat and the same cooling</b>, with a fifth of it served ' +
+        'by geothermal networks instead. Purchased energy falls <b>' +
+        fmt(Math.round(saved)) + ' GWh</b> \u2014 ' +
+        Math.round(100 * saved / (m.total_GWh || 1)) + '% \u2014 and the ' +
+        'boiler losses on that fifth go with it. The useful side does not ' +
+        'move, by construction: that is what makes it a comparison rather ' +
+        'than a scenario. <b style="color:' + css('--geo') + '">' +
+        fmt(wfb.geothermal_ambient_GWh) + ' GWh</b> of it arrives as heat ' +
+        'lifted from the ground rather than bought\u2020.';
+    }
+
     window.drawEnergyBars = function(agg){
+      LAST = agg;
+      if(BAL === 'wf' && wfb) return drawWhatIfBars();
       const W    = !!(agg && agg.fuels);
       const inC  = W ? agg.in_components  : m.components_GWh;
       const outC = W ? agg.out_components : (u ? u.components_GWh : null);
@@ -1162,6 +1217,16 @@ fetch('data.json').then(r=>r.json()).then(d=>{
         document.getElementById('combline').innerHTML = line;
       }
     };
+    balbar.addEventListener('click', ev => {
+      const b = ev.target.closest('button'); if(!b) return;
+      balbar.querySelectorAll('button').forEach(x =>
+        x.setAttribute('aria-pressed', String(x === b)));
+      BAL = b.dataset.bw;
+      document.getElementById('balancesection').firstChild.nodeValue =
+        BAL === 'wf' ? 'ENERGY IN \u2014 with a fifth served geothermally'
+                     : 'ENERGY IN \u2014 fuel & electricity purchased';
+      window.drawEnergyBars(LAST);
+    });
     window.drawEnergyBars(null);
   }
 
@@ -2791,7 +2856,17 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
           ? ' \u2014 totals ' + label + ', shares of the window, not of one week'
           : '';
         if(!okF){
-          window.drawEnergyBars(null);
+          balbar.addEventListener('click', ev => {
+      const b = ev.target.closest('button'); if(!b) return;
+      balbar.querySelectorAll('button').forEach(x =>
+        x.setAttribute('aria-pressed', String(x === b)));
+      BAL = b.dataset.bw;
+      document.getElementById('balancesection').firstChild.nodeValue =
+        BAL === 'wf' ? 'ENERGY IN \u2014 with a fifth served geothermally'
+                     : 'ENERGY IN \u2014 fuel & electricity purchased';
+      window.drawEnergyBars(LAST);
+    });
+    window.drawEnergyBars(null);
         } else {
           const inC = {}, outC = {};
           let tIn = 0, tOut = 0, lost = 0, comb = 0;
