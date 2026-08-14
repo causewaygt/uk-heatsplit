@@ -1,650 +1,394 @@
-# Irish Heat Split
-
-**How the island of Ireland heats itself, weekly – and how much of that heat
-no one can see.**
-
-Live site: https://causewaygt.github.io/irish-heatsplit/
-Sibling of the [UK Heat Split](https://causewaygt.github.io/uk-heatsplit/).
-Built and maintained by [Causeway Energies](https://causewaygt.com)
-(Causeway Geothermal NI Ltd). Pipeline 5.6.0 / site 5.3.0.
-
-## The premise
-
-The island of Ireland is the most oil-heated corner of Western Europe.
-Oil has no meter, no grid and no daily statistics – the majority of the
-island's heat is invisible to the systems that watch everything else.
-This tracker makes the visible parts visible daily, carries the invisible
-majority as clearly-labelled annual anchors shaped by each week's weather,
-and prices the alternative. The data gap is the story.
-
-## What the site shows
-
-- **Masthead** – the heat spark gap, live: oil-boiler heat versus
-  geothermal on a useful-heat basis, priced in each jurisdiction's own
-  currency, with the winning margin computed fresh from the day's feeds.
-- **The back look** – a weekly history of the hero's combined figures
-  and their what-if twins: complete calendar weeks priced at their own
-  week's oil prices, ECB rate, tariff period and grid carbon intensity,
-  frozen after the two most recent, capped at 60. A 1w/4w/12w/12m
-  selector re-totals the headline four (auto-scaled to TWh/€bn/Mt, the
-  indigenous share purchased-weighted) with sparklines – actual solid,
-  what-if green, the gap between them shaded – and a delta versus the
-  window start. Bills are sector-blended†: services gas and
-  electricity, and all cooling, price at non-domestic rates; oil prices
-  identically across sectors. The record reaches back to 6 August 2025. Weeks from 1 October 2025
-  were observed as they happened; the eight before it are
-  **reconstructed** from published regulated tariffs and the hourly
-  carbon store, and are counted separately – weeks on record and weeks
-  live are two numbers, and the 52-live-weeks milestone is the second
-  one. NI oil before the daily survey began
-  (2026-02-26) is bridged from the EU bulletin's ex-tax series plus an
-  overlap-calibrated margin†, each bridged week tagged with its source.
-  Twelve live months complete in October 2026.
-- **Hero** – the week's heating *and cooling*: combined energy
-  purchased (with the heat/cooling split), indigenous share, the bill
-  and emissions in both currencies, toggled all-island / NI / ROI, each
-  jurisdiction shaped by its own degree days with weekly cooling from
-  the cold-economy census (comfort following the live overheating
-  record); a what-if strip – 20% of heat & cooling moved to geothermal,
-  the cooling side at a 70%† ground-coupled electricity saving; a
-  for-scale line against last winter's peak; and energy-in versus
-  useful-heat-&-cooling-out bars with losses hatched – delivered cooling
-  applies per-load service factors† (vapour-compression plant delivers a
-  multiple of its electricity), so served can legitimately exceed
-  purchased, and the indigenous share is computed on the delivered
-  basis with the ambient balance counted indigenous. In July the
-  island's cooling bill outweighs its heat bill roughly 3:1 – the
-  summer inversion the tracker displays rather than omits.
-- **What heat costs to make** – five routes priced weekly per useful
-  kWh, retail or ex-tax, sitting under the energy bars. It replaced the
-  invisible-majority bar: the point that most of the island's heat is
-  unmetered is now made where it belongs, in the method fold on the
-  panel that depends on it.
-- **The oil ticker** – NI kerosene daily (Consumer Council survey), ROI
-  weekly (EU Oil Bulletin, backfilled from the Commission's price-history
-  workbook), both per litre on FX-locked twin axes; dashed pre-tax lines
-  either side making the tax wedge visible; policy events as chart
-  markers; a same-tax GB comparison line that draws whenever its feed
-  reports. Same fuel, two price regimes, one island.
-- **The gas engine room** – daily ROI gas demand against degree days;
-  the within-month temperature-sensitive slope is space heat,
-  displayed with its residual standard error and an annual
-  calibration disclosure against the SEAI anchor.
-- **The heat gap** – cost of one useful kWh by route (oil boiler, gas
-  boiler, air-source heat pump, geothermal), toggled by jurisdiction,
-  with the break-even SPF against the incumbent oil boiler as the
-  headline stat. The air-source SPF is modelled from each jurisdiction's
-  own climate, not the brochure.
-- **The cold economy** – a census of the island's cooling loads: data
-  centres, the food-export cold chain, process cooling, comfort cooling
-  and NI, 6.25 TWh† of electricity rejecting ≈19 TWh† of heat a year –
-  refrigeration rejects more heat than the electricity it draws. The
-  electricity figure fell from ≈12 TWh on 6 August 2026 when the
-  data-centre line was repriced to its cooling share; the heat
-  rejected did not move, because the physical output was never in
-  question – only the share of the draw that counts as cooling. Flat
-  loads against the degree-day demand shape, comfort shaped by the live
-  overheating-degree record once a season exists; the stranded share is
-  the seasonal-storage (ATES) wedge.
-- **Geothermal – the empty bar** – installed capacity in thermal
-  megawatts: today's island stock stacked beneath what serving 20% of
-  delivered heat would require, beside the installed reality of Sweden,
-  the Netherlands and France including their deeper-geothermal layer.
-  The NI >60 kW register – every system named, dated and statused –
-  ships in data.json; ROI anchors from the WGC2026 country update; flow
-  context from the EGEC Geothermal Market Report 2025.
-- **Why heat?** – the whole-economy zoom-out: four charts of annual
-  energy services, spend, imported energy and emissions across power,
-  transport and heat. Heat rivals transport as the largest service,
-  carries the smallest bill per unit delivered – and is therefore still
-  fossil.
-- **Method & sources** – every feed, its status and its flags.
-
-## Architecture
-
-Static site, no backend. A GitHub Action runs `scripts/build.py` daily at
-04:17 UTC, fetching every feed with retries, merging history across runs,
-and writing a single `docs/data.json` that `docs/index.html` renders
-client-side with Plotly. GitHub Pages serves `/docs`.
-
-### Feeds
-
-| Feed | Source | Cadence | Notes |
-|---|---|---|---|
-| `hdd` | ERA5 via Open-Meteo | daily | population-weighted heating degree days, island/ROI/NI; hourly overheating-degree-hours (base 26 °C) collected for the future comfort metric |
-| `ecb_fx` | ECB reference rates | daily | EUR/GBP twin-currency lock |
-| `ccni_oil` | Consumer Council NI price checker | daily (Mon–Fri) | 300/500/900 L; history merged across runs |
-| `oil_bulletin` | EU Weekly Oil Bulletin + price-history workbook | weekly | Ireland heating gas oil, with & without taxes, backfilled from the 2005-onwards history |
-| `gb_oil` | BoilerJuice / DESNZ | daily | SOFT feed – cache-busting + browser headers against a CDN observed serving archived 2021 pages to non-browser clients; a freshness gate rejects fossils |
-| `gni_live` | Gas Networks Ireland gasconsumption API | daily | ~8-day windows, weekly anchors backfill |
-| `gni_ckan` | GNI via data.gov.ie (CC BY 4.0) | quarterly | calibration series for the regression |
-| `semopx` | SEMOpx day-ahead results | daily | dual-currency power price |
-| `eirgrid` | Smart Grid Dashboard (/api/chart/) | daily | quarter-hour demand → daily GWh, island/NI/ROI; incomplete days excluded; carbon intensity live and stored hourly |
-| `sem_mix` | third-party generation mix | daily | DIAGNOSTIC ONLY – reads ~33% indigenous against ~55% implied by grid carbon intensity; held at anchor and logging its two suspects (missing solar in the feed, an unverified cross-border sign convention) until they reconcile |
-| `entsog_probe` | ENTSOG transparency platform | daily | SOFT – physical gas flows; the measurement behind the NI-exit finding below |
-| `eirgrid_probe` | Smart Grid Dashboard (/api/chart/) | daily | SOFT, log-only discovery; retires once the wind/solar feeds are formalised |
-
-Feed statuses: **ok** (fetched, current), **lagging** (fetched, source
-publishes on a lag), **stale** (fetch failed, previous values retained).
-`SOFT_FEEDS` fail quietly; `EXPECTED_DOWN` feeds are documented outages.
-`FEED_FLAGS` carry value-level caveats distinct from fetch status and
-render as ⚑ in the method table. `EVENTS` is a curated policy-event
-register rendered as chart markers.
-
-## Methodology
-
-**The scaffold estimator.** Weekly figures are not measurements – no such
-measurements exist for most of the island's heat. They are annual anchors
-(SEAI, DfE/NISRA, Causeway estimates) shaped by each week's weather: hot
-water is carried as a flat term (22.4% of annual input – SEAI's National
-Heat Study residential split, applied to this site's sector mix†), and the space-heating
-share follows the week's fraction of the trailing year's heating degree
-days. Per-capita heat input sits at parity with the UK (6.2 vs 6.3
-MWh/person, input basis). Each jurisdiction is shaped by its own HDD
-series and the island is their reconciled sum, so the toggle views always
-agree.
-
-**Degree days.** ERA5 reanalysis via Open-Meteo for seven stations,
-population-weighted, base 15.5 °C – the standard Met Éireann/SEAI base.
-
-**The air-source SPF model.** The heat-gap panel refuses brochure SCOP
-figures. The demand-weighted outdoor temperature falls out of the HDD
-series itself (for heating days T = base − HDD, so the load-weighted
-source temperature is base − Σh²/Σh over the trailing year); a
-Carnot-fraction COP at 45 °C flow with a defrost derate and a hot-water
-share, blended on an energy-weighted harmonic basis, gives a seasonal
-performance factor per jurisdiction – calibrated to GB field-trial
-medians, moving with the weather year. Geothermal's stable source
-temperature is exactly why its SPF escapes this ceiling.
-
-**The gas regression.** Space-heat sensitivity is estimated by
-within-class (monthly) centring – daily demand deviations on daily HDD
-deviations within each month – which removes seasonal confounds
-(holidays, school terms, baseload drift) that bias the pooled slope.
-Both slopes ship in the payload with the residual standard error; the
-centred one is displayed, and a calibration disclosure publishes the
-regression-implied annual space heat against the SEAI-derived anchor
-with a 0.90–1.10 gate, whether or not it passes.
-
-**The what-if.** 20% of delivered heat moves to heat pumps at seasonal
-performance 4, and 20% of the cooling load moves to ground-coupled
-systems at a 70%† electricity saving: heat-pump electricity is bought at
-each jurisdiction's tariff and carries its grid-indigenous share, the
-ambient remainder is free and indigenous by definition, avoided cooling
-electricity is displaced by ambient rejection, and the displaced fuels
-scale down pro-rata – purchased energy, bills, indigenous share and
-emissions all recompute from one accounting.
-
-**The cold economy.** Cooling loads are a census: data centres
-(CSO-anchored) plus †-anchored cold-chain, process, comfort and NI
-loads. Per-load rejection factors convert electricity to rejected heat
-(vapour-compression loads reject compressor work plus the heat they
-pump). Flat loads spread evenly; the comfort load follows the live
-ODH₂₆ overheating record once a season of it exists. With annual totals
-normalised, the stranded share is the part of supply produced while
-heat demand runs below it – the seasonal-storage wedge, recomputed from
-live records on every build.
-
-**Geothermal capacity requirement.** 20% of annual delivered buildings
-heat at 2,000 equivalent full-load hours, per jurisdiction and per
-person – the arithmetic that converts the what-if strip into installed
-thermal megawatts.
-
-**Why heat?** Whole-economy anchors are annual and static: sourced where
-a publication exists (SEAI Energy in Ireland 2025; the Causeway island
-Sankey for the import split), with allocations kept deliberately round
-and dagger-marked.
-
-**Tariff basis.** Domestic rates include VAT (5% NI, 9% ROI);
-non-domestic rates exclude it, because businesses recover input VAT.
-That is Eurostat level 3 for households and level 2 for
-non-households, and the UK sibling follows the same rule. NI gas and
-electricity are effective all-in rates at the Utility Regulator's own
-consumption basis, taken from published annual bills, with gas
-weighted across SSE Airtricity (Greater Belfast and West, ~198,200
-regulated customers) and Firmus Energy (Ten Towns, ~75,756) by
-customer count. This replaced a single-supplier percentage chain with
-the standing charge stripped out – Firmus alone was setting the NI gas
-bill, and the two suppliers are not structurally comparable, since
-SSE's domestic tariff is banded with no standing charge while Firmus
-charges a unit rate plus one. ROI domestic is now the same KIND of quantity: the
-Eurostat band price for semester 2 2025 – total revenue over volume,
-so standing charges are included by construction – stepped by the
-Electric Ireland announcements, which held from October 2022 to 1 July
-2026. Both jurisdictions are therefore all-in effective rates at a
-stated consumption, VAT and standing charges included, and the bills
-are comparable at component level rather than only in total. The
-residual difference is scope, not basis: NI is incumbent-weighted
-regulated, ROI a market-wide average including discounts. Measured
-against the same tables, NI's regulated electricity runs about 7%
-above its own market band while its regulated gas runs about 18%
-below, so the two do not bias in one direction. Non-domestic
-rates for both jurisdictions come from the Utility Regulator's Retail
-Energy Market Monitoring semester bands (S2 2024), which are derived
-Eurostat-style as revenue over volume and therefore include standing
-charges – so the services share IS like-for-like across the border.
-They replace large-user prices: NI was carrying the GB manufacturing
-average, which priced offices at industrial rates. Electricity is
-consumption-weighted across the published bands, excluding only Large
-and Very Large – seventeen NI connections and 683 GWh of heavy
-industry and data centres. The ladder runs 28.5 p/kWh for very small
-connections down to 16.9 for large and very large; the services-scoped
-weighting lands at 23.5 p/kWh for NI and 23.8 for Ireland. Gas is band
-I1 (under 278,000 kWh a year), where services buildings overwhelmingly
-sit, rather than weighted – the REMM price bands do not map onto the
-network bands the consumption split is published in, and NI I&C gas is
-about two-thirds daily-metered heavy industry. **Non-domestic rates step by semester.** Three are published – S2
-2024, S1 2025 and S2 2025 – and each week's services share is priced at
-the semester it falls in, assigned by week ending, so a week straddling
-30 June or 31 December lands wholly in the semester it ends in. The
-semester is the resolution because there are no regulated non-domestic
-announcements to give finer timing; domestic keeps dated steps because
-the regulator and the incumbents publish them. Each Irish figure
-converts at the ECB mean for its own semester, not the week's, because
-that is the rate UREGNI used to sterling it. Weeks past the last
-published semester hold at it – REMM lags about nine months. One consequence is visible on the site: because domestic rates
-ARE stepped through to 2026 and NI gas fell about 15% over that span,
-NI non-domestic gas now prints above NI domestic gas. That is a
-vintage artefact rather than a claim about small business tariffs – at
-a common vintage the ordering is right – and it is disclosed rather
-than escalated away, because applying regulated domestic steps to
-unregulated business contracts would compound one estimate with
-another. It closes when REMM publishes newer semesters.
-
-**Weeks that cannot be built say so.** A week the pipeline cannot
-price is dropped, and a dropped week used to leave no trace – the
-record simply came out shorter, which reads as a smaller number rather
-than an error. Every decline now carries a reason, and the build logs
-them grouped by cause with a count against the number attempted and the
-span affected. A week outside the retention window is the only silent
-decline, because that one is by design.
-
-**The history block is written columnar.** Each key appears once
-instead of once per week, with the ni/roi/fuels sub-blocks recursed
-into – at 52 weeks the entries are wide and shallow, so the repeated
-key strings outweigh the numbers they label, and the encoding takes the
-block to about a third of its size. Wire format and content schema are
-deliberately orthogonal: re-encoding is not a restatement and does not
-trigger one. Both readers accept the columnar form and a plain list,
-because `index.html` publishes the moment Pages deploys while
-`data.json` only changes at the next 04:17 build, so for up to a day
-each side is reading the other's previous shape.
-
-**Irish anchors: credit-free, and converted at a fetched rate.** The
-Irish domestic electricity series carries government credits as
-negative taxes – €1,500 of them since 2022, the last €125 in
-January/February 2025 – which is why Ireland reads 31.3 p/kWh in
-semester 2 2024, 27.5 in semester 1 2025 and 35.2 in semester 2 2025.
-That 28% jump is a credit ending, not a price moving. This site prices
-the real cost of heat, so the credit-bearing semesters are unusable and
-semester 2 2025, the first clean one, is the anchor – which is also the
-semester the back-look starts in.
-
-The Utility Regulator publishes Ireland in sterling, having converted
-Eurostat's euro at the semester average, so recovering the euro figure
-needs that same average. It scales every Irish anchor on the site, and
-it is now computed from the ECB daily reference rates this pipeline
-already retains rather than assumed – the full history back to 1999
-comes down with the deep backfill, semesters with fewer than 110
-observations are dropped rather than averaged thin, and the rate in use
-is logged on every run. A documented fallback fires only if the mean
-cannot be computed, and says so loudly.
-
-**Provenance.** Sourced figures cite their publisher. Judgement figures
-carry a dagger (†) and are current Causeway Energies estimates –
-challenge and input welcome at contact@causewaygt.com. Data-quality
-caveats distinct from fetch status render as ⚑ flags. Feeds are developed
-diagnostics-first: on first contact with an unknown format the pipeline
-logs the raw structure and continues, so parsers are written against
-evidence from live run logs, never guessed.
-
-The full estimation methodology is published as
-[methodology.pdf](https://causewaygt.github.io/irish-heatsplit/methodology.pdf)
-and linked from the site footer.
-
-## The hourly store
-
-`docs/hourly.json` holds a rolling 13 months of all-island demand,
-wind, solar and carbon intensity at hourly resolution – EirGrid's
-15-minute series aggregated to hourly means, an hour requiring at
-least three of its four quarters – plus island air temperature,
-population-weighted from ERA5 on the same station weights the daily
-HDD feed uses. Both sources backfill by walking chunks and re-fetch
-the most recent for revisions.
-
-**Every series is keyed on Irish local clock, not UTC.** EirGrid
-stamps its rows on local time and the weekly layer already treats
-them that way, so the temperature request asks Open-Meteo for
-`Europe/Dublin` rather than the UTC the daily HDD feed uses. Joined on
-mixed clocks the store would put temperature an hour out of step with
-demand from late March to late October – silently, and in the
-direction that misaligns an evening peak with the cold that caused it.
-
-**The series are written as flat arrays**, not one key per value:
-`t0` is the base hour and position *i* is `t0 + i` hours, null where
-absent. At one key per value the file reached 1,025 kB rewritten
-daily and the repeated 13-character keys were most of it; the array
-form is about 30% of that. Readers accept both shapes, so the run
-that first writes the new encoding still inherits the old file rather
-than refilling thirteen months from empty. The spring clock change
-skips a local hour and shows up as one null a year – the same shape
-as a feed gap, and indistinguishable from one by design.
-
-The store is a **separate file with its own schema**: a failure there
-cannot corrupt the weekly tracker. Two gates, deliberately separate.
-`complete` covers the demand/wind/solar trio and governs the grid
-panel; `heat_ready` additionally requires the temperature series at
-95%, and governs the electrification computations. Carbon gates
-itself as an overlay. Nothing already shipping can be withdrawn by a
-series that is still filling.
-
-Groundwork for the electrification-headroom and dispatch-down
-absorption panels. Holding temperature rather than degree hours means
-hourly HDD, ODH₂₆ and the Carnot source temperature all derive from
-one retained series.
-
-## What heat costs to make
-
-The Irish equivalent of the UK sibling's cost-of-delivered-heat panel,
-with **oil as the main series** because the island is the most
-oil-heated corner of western Europe. Five routes – oil boiler, gas
-boiler, air-source, ground-source, geothermal network – priced weekly
-in native minor units per useful kWh. Pipeline side only so far; the
-panel itself is not drawn.
-
-**Daily, and every electric route is priced at that day's own COP.**
-Ported from the UK sibling so the two dashboards compute the electric
-routes the same way. The panel had one air-source SPF for the whole
-record, which made every electric line a flat multiple of the
-electricity price – they could never spread apart in the cold, which is
-the effect the chart exists to show. Space flow follows the weather from
-30 °C at +15 down to 50 °C at −5; hot water is held at 52 °C year-round,
-because without that split a mild summer day gives absurd COPs on a load
-that is entirely hot water. The oil price is the only weekly input, so it
-is step-held across the week rather than interpolated.
-
-**The mode regime is seasonal; the COP is instantaneous.** A boiler in
-January does not drop to summer cycling efficiency because one day was
-mild – it is still running its space-heating circuit, and the sub-40%
-hot-water efficiency arises from a regime rather than a day. So the
-hot-water/space blend runs on a trailing 28-day share while the
-heat-pump COPs follow the day's own temperature. Blending the fuels on
-each day's own share made the oil line sawtooth between adjacent days,
-which is a shaping artefact rather than a price signal. Both shares are
-published: the daily one for the caption, the smoothed one for the
-money.
-
-The method runs in the UK's order: assert the SPF anchor, then calibrate
-the Carnot fraction so the heat-weighted trailing-year SPF reproduces it.
-The four calibrated fractions must land within 15% of each other, or the
-source temperature and the anchor are not describing the same machine.
-
-**The two jurisdictions run different network models**, because
-Permo-Triassic HSA is an NI play with no onshore ROI equivalent at scale.
-Northern Ireland takes the UK sibling's blend – UTES and
-intermediate-doublet together, source 19.6 °C, SPF 5.0. The Republic
-takes a 5G ambient loop on seasonal storage alone, charged from comfort
-cooling and process rejection, source 16 °C, SPF 4.0.
-
-**Each day is priced at its own hot-water share, and every route is
-priced in the mode that day actually demands.** Hot water is flat
-across the year while space heat follows the week's share of the
-trailing year's degree days, so a July week is almost all hot water –
-and every route performs worse on hot water than on space heat. Oil
-boilers cycling for a small summer load fall furthest: BRE put them
-under 40% gross in water-only mode against ~85% annual. Heat pumps
-degrade too, to the MCS defaults of 1.70 (air source, MCS 031 Issue
-4.0) and 2.24 (ground source) against annual figures of 2.80 and 3.24.
-The geothermal network figure is derived at the same lift ratio as
-ground source, because both are ground-coupled with a constant source
-and the hot-water penalty is flow temperature alone. Pricing the summer
-at an annual efficiency would flatter the heat pumps and flatter the
-boiler at exactly the point where the lines converge.
-
-**The immersion leakage is zeroed.** Oil households do switch to the
-cylinder immersion in summer rather than fire a boiler at sub-40% for a
-small load, and at COP 1 that is dearer than the inefficient boiler – so
-the mechanism is real and it pushed the oil line up, not down. But at
-30% it was adding 5.8 c to the summer oil figure, nearly half of it
-electricity rather than oil, on no metered evidence: the research found
-consumer guidance and owner forums and nothing measured. It sat under
-the most striking feature of the chart, and the UK sibling has no
-equivalent, so carrying it broke parity between the two dashboards. The
-constant stays in the code at zero; a metered Irish or NI study of
-summer immersion use is what would turn it back on.
-
-**What still differs between the two dashboards.** The heat-pump side is
-aligned – both price hot water at a 52 °C cylinder flow year-round while
-space heat follows the weather-compensated curve. The remaining divergence is
-the boiler: this site prices a boiler at a separate hot-water efficiency
-where the UK applies one figure year-round. Those figures are now taken
-from **SAP 2012 Table 4b**, which publishes a winter and a summer
-seasonal efficiency for every gas and oil archetype – 0.71 oil and 0.75
-gas, the mean modern-stock summer/winter ratio applied to this site's
-winter anchors.
-
-They were 0.55 and 0.68, built on a BRE remark about two specific oil
-boilers having "very low hot water efficiency (under 40% gross)" and
-treated here as a fleet floor. Table 4b is the fleet answer: summer runs
-82–89% of winter across every archetype, and the worst row in the whole
-table – a single-burner range cooker boiler at 47/37 – is still 0.79.
-The panel was using 0.67, below anything SAP publishes for any boiler,
-and the summer oil penalty is roughly half what was shown: the oil line
-now swings 15% between winter and summer rather than 49%.
-
-Two things are deliberately not applied. Table 4b is SAP's fallback for
-boilers absent from the Product Characteristics Database, so it is
-conservative and skewed to older plant; a BER-weighted PCDB figure would
-beat it, and BER records boiler make and model. And Table 4c deducts
-5 points from both figures where a regular boiler has no interlock,
-which is common in older Irish installations†.
-
-**Every route pays what it would actually pay.** The panel priced all
-five at domestic tariffs, which was wrong twice. About a quarter of the
-island's building heat is services rather than residential, and the hero
-bill has always blended that – so the cost panel disagreed with the bill
-on the same page. And a heat network operator is not a household at all:
-it buys electricity on a commercial contract and would never pay a
-domestic tariff. So gas, air source and ground source blend domestic and
-non-domestic at the services share of island heat input; the geothermal
-network prices wholly at non-domestic, whoever the end customer is; and
-oil stays a single price, because kerosene sells to both sectors on the
-same terms and no non-domestic oil rate exists.
-
-**Retail and ex-tax, with the wedge derived rather than left to the
-browser.** Deliberately *ex-tax*, not *wholesale*: the EU bulletin's
-without-taxes line is product, distribution and margin, not a wholesale
-quote, and the same is true of a unit rate with its tax stripped. VAT
-comes off first in both jurisdictions, because it is charged on the
-carbon-tax-inclusive price; the carbon component comes off after.
-
-The two sides of the border are not symmetrical. ROI kerosene carries a
-carbon component (16.081 c/litre at €63.50 a tonne), the NORA levy at
-2 c/litre and VAT at 13.5%; ROI gas carries the Natural Gas Carbon Tax
-at 1.148 c/kWh and VAT at 9%. NI kerosene is fully duty-rebated with no
-carbon price, and NI gas and electricity carry no carbon price and no
-Climate Change Levy on domestic use – so NI ex-tax is retail over 1.05,
-exactly rather than approximately. The result is that two oil lines
-sitting about a third apart at retail converge to within a few percent
-ex-tax: the border in heating cost is a policy wedge, not a market one.
-
-Ireland's carbon increase on non-propellant fuels normally lands on
-1 May; for 2026 it was postponed to **14 October**, so the rate is a
-dated table rather than a constant and the discontinuity sits inside
-the record.
-
-**Carbon and VAT are dated tables, not constants.** Removing the floor
-took the panel to 122 weeks and April 2024 on its first run, which is
-before the carbon table began – 55 weeks were being charged €63.50 a
-tonne when the rate was €56.00 or less, silently. The table now covers
-the whole Finance Act 2020 trajectory and refuses anything earlier
-rather than clamping, so a missing figure is visible where a wrong one
-was not. VAT is dated too: ROI gas and electricity stepped from 13.5%
-to 9% on 1 May 2022, and kerosene never got the cut.
-
-**The series is not floored at the back-look's start.** That floor
-exists because four tariff anchors are verified from 1 October 2025;
-this panel is a different artefact, and its limit is how far the
-weather record reaches, since every week needs a trailing year of
-degree days behind it to know its own hot-water share.
-
-Two things this does not claim. The heat-pump hot-water figures are MCS
-design defaults, not field measurements: the Electrification of Heat
-trial did not meter hot water separately, so no field hot-water SPF
-exists. And the oil price is the EU bulletin's heating gas oil line
-read as a kerosene level – a different product, 35-second against
-28-second – which remains a stated Causeway judgement.
-
-## Phase B.2 – the grid layer
-
-Three computations run and logged **before any panel is drawn**, so the
-headline is chosen after the numbers are seen rather than before.
-
-**B.2.1, the tightest hour, is live and log-only.** Island useful heat
-is shaped hourly from the store's own degree hours – hot water flat,
-space heat degree-shaped – put through a Carnot-fraction COP at each
-hour's actual air temperature, netted of the resistive heating already
-inside observed demand, and added to observed all-island demand. The question it answers is the UK sibling's: **how far can heat be
-electrified inside the fleet that already exists**, solved per route
-rather than assumed. Fixing a share instead would force a choice
-between this site's own 20% what-if and a 100% ceiling that appears
-nowhere else, and the answer swings entirely on which is picked; the
-netting is linear in the share, so solving is exact.
-
-The ceiling **breathes with the weather** – the de-rated dispatchable
-block plus the wind and solar actually generated in that hour – because
-the hour that binds is cold and still and dark, and a flat block would
-either credit wind that was not blowing or ignore wind that was. It is
-also how the UK ceiling is defined, and the two figures are not
-comparable otherwise.
-
-Headroom is
-reported for every route, not just one, because which routes fit under
-the block IS the result – leaving it to be subtracted from three other
-numbers was the first thing the live run exposed. The same line states
-the island's useful heat in that hour against the electrical block,
-which is the comparison the whole phase exists to make.
-
-The
-binding hour is reported against the de-rated dispatchable block
-(~8,595 MW†, of which ~1,490 MW is run-hour-limited) with the observed
-all-island peak of 7,502 MW on 8 January 2025 as the sanity rail. The
-same hour is reported for three routes, on the **same tiers as the UK
-sibling** so the two grid layers read against one ladder – air source
-2.80 and ground source 3.24, both Energy Systems Catapult in-situ field
-figures rather than brochure SCOPs, and a networked geothermal ambient
-loop at 5.0. Ground and network are flat by construction, because a
-borehole field does not care what the air is doing.
-
-The air route is the exception: it is priced at each hour's own
-Carnot-fraction COP, not the seasonal 2.80, because the point of that
-column is that air-source performance collapses in the hour that binds.
-Both figures are logged side by side, and the gap between them is the
-argument.
-
-Nothing draws from it. It is soft: a failure there cannot touch the
-weekly tracker, and it declines rather than guessing if the store is
-short or has no temperature.
-
-**B.2.3 has its price series, filling forward.** `price_ai` – SEMOpx
-day-ahead in EUR/MWh – is the store's sixth series, with its own gate so
-it cannot withdraw the grid trio or the heat layer while it climbs. The
-parser was reading the CSV's delivery-timestamp row and discarding it,
-keeping only a daily mean; the stamps are now retained, because B.2.3
-asks what price applied in one hour.
-
-Prices are keyed on the **Irish local clock**, because every other
-series in the store is and B.2.3 asks what price applied in one hour.
-The offset is measured, not assumed: a trade day runs 00:00 to 23:00
-local by definition and the resource name states which day it is, so
-the shift is taken from the document's own first period. Two timezone
-guesses – UTC, then CET – were each wrong and each cost a run to
-disprove; anchoring needs no guess at all, and a document that cannot
-be anchored contributes nothing rather than something misaligned.
-
-History comes by **paging, not filtering**. The probe found that a
-`Date` parameter returns nothing while a deep descending page reaches
-months back and an unsorted listing returns the oldest documents in the
-archive, so the days are there and simply have to be walked to. The
-backfill is bounded per run – six listing pages, twelve trade days –
-converging over runs in the same pattern the hourly chunks and the
-temperature archive already use, rather than four hundred requests in
-one build.
-
-**The SEMO probe came back inconclusive, and now says so.** Its first
-live run returned the same 50 documents from every trial – one report
-ID, all from 2019 – because that endpoint lists documents ascending by
-date rather than report types, and its text filter is ignored. The
-probe announced it had found the catalogue anyway. It now tests for
-more than one report ID and, failing that, says to read the catalogue
-by hand rather than inviting a third round of guesses.
-
-**B.2.2's per-farm layer has a probe.** Per-unit downward dispatch is
-published on SEMO, but SEMO does not retain the full history – so the
-series exists only from the day capture starts, and every day without
-a feed is a day that cannot be recovered. `semo_dispatch_probe()` lists
-the report catalogue on both API families and logs it, rather than
-guessing a report ID; the feed is written against those logs, once it
-is clear which report names resource codes and half-hourly periods.
-
-The panel does not wait on it. The annual regional report and
-EirGrid's 30-minute jurisdiction series are already published, so
-B.2.2 can be built on those now and the per-farm map becomes a later
-upgrade once the captured series has a winter in it. Two limitations
-travel with any per-farm work: the volumes do not separate constraint
-from curtailment, and the generator coordinates are not public, so a
-unit-code-to-farm-to-location register has to be built separately.
-
-**B.2.2 (dispatch-down absorption) is not built.** B.2.2 needs its dispatch-down basis settled first – the
-2,139 GWh spilled in 2025 is an annual figure and there is no hourly
-curtailment series – and it needs the regional split, because an
-all-island absorption number is the one its own caveat disowns.
-
-## Sibling comparability
-
-This tracker is read beside the [UK Heat Split](https://causewaygt.github.io/uk-heatsplit/).
-Any topline scoped differently between the two carries an explicit note –
-cooling is the live example: this site's cold-economy census (data
-centres, cold chain, process, comfort) is wider than the UK's
-comfort-scoped line and the hero declares it. A standing test compares
-extensive quantities per capita against the UK anchors; electricity
-emissions use live all-island grid intensity once a week of the EirGrid
-series exists.
+# UK Heat Split — a weekly estimate of how Britain heats and cools itself
+
+Most of Britain's heat still comes from burning gas, and a material share of
+every unit burned never becomes useful heat. This site turns live grid data
+into a weekly estimate of the GB heating and cooling energy split — the
+energy volume, what it costs, what it emits, how much of it is UK-indigenous,
+who is left sweltering without cooling at all, what geothermal (deep, mine
+water, and ground source) supplies today and could supply next — and, at the
+foot of the page, why heat is the energy transition's biggest prize.
+
+**Live site:** https://causewaygt.github.io/uk-heatsplit/
+**Full methodology:** [UK Heat Split: data sources and estimation methodology, v8 (PDF)](docs/uk-heatsplit-methodology.pdf)
+
+The page is organised as six numbered sections: **1** the starting point,
+**2** what heat costs and emits, **3** electricity grid impacts, **4** the
+rising demand for cooling, **5** UK geothermal now and next, and **6** value
+for money. Footnotes follow.
+
+Every live figure is a model estimate, not a measurement. Every figure resting
+on Causeway judgement is marked † and is open to challenge at
+contact@causewaygt.com.
+
+## What the dashboard shows
+
+- **Headlines** — four stats: energy purchased this week; the UK-indigenous
+  share of heat and cooling delivered (services basis); the national bill
+  split between heating and cooling; and heating & cooling emissions —
+  alongside a what-if strip answering all four with 20% of heat and cooling
+  moved to geothermal.
+- **Trends** — a sparkline under each headline showing its weekly history,
+  with a 1-week to 12-month window selector that also re-totals the
+  headline figures themselves — actuals and the 20% what-if strip alike —
+  so the 12-month view states the year's purchased energy, bill, emissions
+  and the cumulative what-if saving (sums over complete live weeks;
+  the indigenous share as an energy-weighted average). The what-if is
+  overlaid in green on each sparkline; the shaded band is the forgone
+  saving, and every splittable headline — purchased energy, bill and
+  emissions, actuals and what-if alike — carries its heat/cool split
+  in each window's caption. Live weeks only: each point is computed with
+  the same estimators as the headline, priced at the Ofgem cap in force
+  that week and carboned at that week's mean grid intensity — no modelled
+  back-cast. The window is bounded by the ~13 months the National Gas feed
+  serves; a longer modelled series, visually distinguished, is planned.
+- **Dual bars, same scale** — energy in (fuel and electricity purchased) vs
+  useful heat and cooling delivered: combustion derated by in-situ boiler
+  efficiencies, heat pumps credited with their harvested ambient heat,
+  cooling with its delivered multiple.
+- **Daily spark gap** — wholesale cost of useful heat via a gas boiler vs a
+  ground-source heat pump, updated daily from the National Gas SAP and the
+  Elexon market index.
+- **What heat costs** — pence per useful kWh by route at current Ofgem cap
+  rates, and the national weekly bill — priced by sector: each fuel's
+  domestic share (ECUK) at the Ofgem cap, its services share at
+  DESNZ QEP-anchored non-domestic rates†, standing charges excluded.
+- **What heat emits** — weekly emissions with a heat/cool split, and gCO2e
+  per useful kWh by route: combustion at fixed DESNZ factors (natural gas
+  0.18296 kgCO2e/kWh, gross CV basis), electric routes at the live GB grid
+  intensity (NESO Carbon Intensity API, 7-day mean) — so the heat-pump rows
+  fall as the grid decarbonises while combustion never does.
+- **The empty bar** — the 20% what-if priced in hardware: installed
+  thermal megawatts of UK ground-source capacity today (861 MWth,
+  EGC 2025 country update) against the ~30–40 GWth the what-if requires at 2,000
+  equivalent full-load hours†, beside installed reality in France, the
+  Netherlands and Sweden† (comparator constants shared with the Irish
+  sibling). Sweden's whole fleet — Europe's largest — covers barely a
+  quarter of the UK requirement; per person the what-if is unremarkable
+  (Sweden 778 W vs UK 13 W†), enormous only because Britain has never
+  started. A calibration chart restates the same fleets as a share of
+  each country's own buildings heat†: UK 0.5%, France ~2%, Netherlands
+  ~5%, Sweden ~20% — Sweden's existing fleet already serves about the
+  share the UK what-if proposes.
+- **Geothermal — now and next** — heat and cooling from geothermal this week,
+  plus annual bars for today, 2027, 2031 and 2050, each tagged to its source.
+  Today's heat is anchored on the EGEC 2025 UK Country Update (~1.43 TWh/yr
+  from ~55,210 GSHP units, 2023 base) plus mine-water, deep and open-loop
+  district schemes; the 2027 and 2031 bars carry the EGEC Geothermal Market
+  Report 2025 evidence (4,070 UK unit sales, 4 new large closed-loop systems,
+  ~11 UK district systems in development). A benchmark line sets the UK
+  against Europe: 2.55 million geothermal heat pumps delivering 88 TWh in
+  2025 — Sweden alone sold 26,785 units to the UK's 4,070.
+- **The gas engine room** — daily gas offtake to the distribution zones
+  (buildings) against the regression-estimated space-heating signal, with
+  total NTS shown for context. The fit reports R², the residual standard
+  error (the honest daily uncertainty), and the calibration ratio against the
+  ECUK anchor with its ±10% publication gate.
+- **Cooling: demand vs delivery, in three tiers** —
+  *Tiers 1 & 2 (the equipped fleet):* an observed cooling response curve from
+  half-hourly national electricity demand (NESO, embedded solar and wind
+  reconstructed, centred within month and weekend class), binned by cooling
+  degree days: what installed cooling delivers, and whether it saturates.
+  A reconciliation diagnostic — a year-round regression of demand on
+  heating and cooling degree days jointly, with the cooling base swept so
+  the data chooses where conditioning starts — decomposes the gap between
+  the observed response and the ECUK cooling & ventilation anchor into
+  weather-driven and weather-flat parts (published, not yet in the bill).
+  *Tier 3 (the comfort deficit):* the buildings with no cooling at all —
+  overheating-degree-hours above the CIBSE 26°C threshold (population-
+  weighted, live from hourly ERA5) × the unequipped stock at risk (bounded
+  low/central/high from EHS self-reports to the CCC's over-half-at-risk),
+  with the health and productivity context (ONS/UKHSA excess deaths, ONS
+  hot-day output losses). A tier bar graphic sets the unserviced deficit
+  against what the fleet delivered, and a seasonal-mirror graphic shows the
+  geocooling dividend: rejected summer heat banked underground and ~70%
+  recovered for winter heating (UTES round-trip, literature range 50–80%).
+- **Northern Ireland** — a separate estimate: NI runs on its own gas and
+  electricity systems, so the live GB feeds do not cover it. If the NI DfE
+  geothermal licensing proposals proceed (consultation 2026; heat below
+  100 m depth), the resulting register would be the UK's first mandatory
+  geothermal data source, and this dashboard is designed to ingest it.
+- **WHY HEAT?** — the zoom-out. Four annual pies place heat beside transport
+  and power across energy services delivered (TWh), national spend (£bn),
+  imported energy (TWh) and emissions (Mt CO2e). The pattern they show: heat
+  is the largest energy service in Britain, the cheapest per unit (untaxed
+  fossil fuel), a major import driver, and a top-tier emitter — which is why
+  it is the transition's biggest prize.
+
+- **Electricity grid impacts (v7)** — the same 20% what-if, computed
+  hour by hour across the trailing twelve months against the electricity
+  system Britain actually ran. Three views (live week, last 90 days, the
+  calendar-year falcon curve), two stress statistics, the tightest week
+  under a capacity line, and the COP curves the whole thing rests on.
+  See **The hourly engine** below.
+
+## The hourly engine (v7, extended at v8)
+
+The weekly panels describe the transition; this one tests it against the
+grid. A second engine (`scripts/retro.py`) keeps a rolling hourly store —
+`docs/retro.json`, append-only with a 2-day revision window — of
+temperature, wholesale price, grid carbon intensity, observed underlying
+demand, and observed wind and solar. Every annual figure is computed on the
+trailing 8,760 hours.
+
+**Two winters, from v8.** The store cap was raised from 400 to 800 days and
+backfilled to June 2024, so the worst hour, the binding hour and the tightest
+week are now *chosen across* two winters rather than describing the only one
+available. The first run on the extended store left every figure unmoved:
+2025/26 still holds the binding hour, and it holds it against 2024/25's own
+lower capacity block. That is a stronger claim than before, not a new number.
+
+**What is modelled and what is measured.** Heat demand is modelled: annual
+useful heat is distributed by daily heating-degree-day share, then within
+the day by degree-hours, with hot water flat. Everything else — price,
+carbon, demand, wind, solar — is measured. Days below 1 heating degree day
+carry no space heat (ramping to full at 3†), because raw degree-hour
+allocation otherwise assigns winter-strength heat to cool summer nights,
+which the weekly estimator itself contradicts; weights are renormalised so
+the annual total is unchanged.
+
+**The three routes.** Each hour's replacement electricity is a Carnot
+fraction with weather-compensated flow (30–50 °C) for space heat and a
+fixed 52 °C for hot water†, sources being outdoor air less 3 K, ground at
+8 °C, and networks at 19.6 °C† — a *charged* ambient loop, warmer than virgin
+ground because summer heat has been rejected into it. A single scale factor per route is solved so
+the year integrates exactly to the published seasonal performance factors
+(2.80 / 3.24 / 5.0†). The flow curve is the same for all three routes
+deliberately: the what-if replaces heat in the existing building stock, so
+weather compensation applies whatever the source. One consequence worth
+knowing: above about 11 °C, air-source outperforms ground source, because
+outdoor air less its approach is then warmer than the ground.
+
+**Two different stress figures.** The *coldest hour* is the year's peak
+modelled heat demand and reports each route's addition alone — gross, and
+separated by the ratio of coefficients of performance. The *binding hour*
+is the hour of greatest total call on dispatchable supply (observed demand
+plus the net addition, less the wind and solar actually generated), and
+reports a system total dominated by standing demand. Net subtracts the
+fifth of existing resistive heating the what-if displaces; that credit is
+space-shaped, so night-storage profiles would reduce it at peaks† and the
+gross figures bound the zero-credit case. The two hours need not coincide.
+
+**The capacity line.** A de-rated block of dispatchable and interconnector
+capacity **per winter** — 60.6 GW for 2024/25 and 62.3 GW for 2025/26†,
+derived identically from each year's NESO Winter Outlook as ACS peak plus
+de-rated margin less de-rated wind — plus the wind and solar actually
+generated. Wind is excluded from the block because outturn wind is added
+hourly; leaving it in would count it twice. Each winter is tested against its
+own fleet, and with a ceiling that varies the binding hour is the hour of
+*least headroom* rather than of highest absolute requirement. Renewables enter as
+observed rather than de-rated, which removes the most contested assumption
+in margin arithmetic and lets the line sag when the wind genuinely
+dropped. It is a **static overlay, not a dispatch model**: no redispatch,
+imports response, demand-side response or price response, no distribution
+constraints, and a GW figure cannot represent storage duration. Exceedance
+is reported as hours above available headroom under today's fleet, never
+as a claim about supply interruption.
+
+**Scope of the cooling figures.** Cooling here is the ECUK *buildings*
+anchor. From v8 that anchor is split **54% ventilation / 46% cooling** using
+the BEES component lines it derives from, and **ventilation is reported as its
+own service rather than as cooling** — fans move air, not heat, so there is no
+coefficient of performance to apply. That correction reduced published cooling
+delivered by about a third. Data centres, cold store and the wider cold chain
+sit outside the anchor entirely†; they are named on the cooling panel as
+Tier 0, of order 26 TWh/yr, and deliberately not plotted, being several times
+the tiers above them.
+
+**Gates.** Four hourly checks run before anything is published: the
+performance anchors are reproduced; the hourly network route reconciles with
+the weekly estimator (near-tautological by design — it proves wiring, not
+physics); cooling is conserved against its annual; and any feed missing more
+than 5% of its hours is refused. A failed gate leaves the previous hourly
+output in place and the weekly panels untouched.
+
+**Three whole-build gates were added at v8**, each after a defect reached
+publication. *Annual plausibility*: trailing-12-month HDD must fall in
+1,200–3,200, because raising the regression window from 365 to 730 days
+doubled every quantity that treated the window as a year — the electrification
+limit read 49% instead of 98% for a day — while all four test suites passed.
+*Document structure*: nothing before the doctype, balanced script tags, no
+JavaScript in markup; `node --check` proves a script parses, not that the
+document is well formed. *Scope*: `main()` is walked for names read but never
+assigned there, which a syntax check cannot see.
+
+## Autumn maintenance — things that expire
+
+These are constants and anchors that go stale on a known schedule:
+
+| When | What | Why |
+|---|---|---|
+| October | **NESO Winter Outlook 2026/27** → add a 2026 row to `DISPATCH_BY_WINTER` in `scripts/retro.py` | Each winter is tested against its own fleet; an unmapped year falls back to the latest and should not |
+| Autumn | **ECUK 2026** re-anchor (heat-pump electricity, domestic shares, sectoral revisions) | Annual anchors lag 9–15 months |
+| September | **Cooling reconciliation gate** — decide whether the undemeaned baseline model replaces the ECUK-anchored cooling estimate | Recovers 74% of the anchor against the centred curve's 15%; switchover would restate summer figures |
+| Spring | **`RETRO_BACKFILL`** must remain `False` between deliberate backfills | `True` refetches ~800 days of four feeds every night instead of two days |
+| Quarterly | **Ofgem cap history** | Bill layer |
+
+**Two version counters, not one.** `history_schema` tracks new *fields* on
+the weekly history — a bump adds them and restates stored weeks so the new
+fields appear. `anchor_epoch` tracks a changed *basis* — bump it whenever a
+constant changes what a past week would have computed, and every
+recomputable stored week is rewritten. A schema bump alone would leave the
+series half on one basis and half on another.
+
+## Method in one paragraph
+
+Daily gas offtake to Britain's local distribution zones (LDZ — the network
+serving homes and most businesses, excluding directly connected power
+stations) is regressed against population-weighted GB heating degree days
+(ERA5 reanalysis via Open-Meteo). The temperature-sensitive component is
+attributed to space heating, following the published Watson et al. / Sansom
+method; the trailing 12-month total is calibrated against the DESNZ ECUK
+end-use tables, GB-adjusted and weather-normalised (current ratio ~1.10,
+within the ±10% publication threshold). Other fuels and cooling take their
+annual levels from ECUK 2025 (calendar 2024) shaped by heating/cooling degree
+days — cooling on a 15.5 °C base, the balance point at which comfort cooling
+plant begins to run, not the Met Office's 22 °C climate convention. The indigenous share is measured on a services basis — each unit of
+delivered heat or cooling inherits the UK-origin share of its energy input,
+with harvested ambient/ground heat counting as 100% indigenous, consistent
+with Eurostat/DUKES renewable-supply accounting. **The full technical
+methodology — with equations, figures and a complete bibliography — is in
+[docs/uk-heatsplit-methodology.pdf](docs/uk-heatsplit-methodology.pdf).**
+
+## Estimates open to challenge
+
+Sourced figures (Ofgem cap, ECUK anchors, DESNZ GHG factors, Energy Systems
+Catapult SPFs, EGEC capacity and market data, NISRA heating shares, MCS
+installations, EHS/CCC overheating prevalence, ONS/UKHSA health and
+productivity data) are cited as such. Figures resting on Causeway judgement
+are marked † on the site — the geothermal forecast scenario, several unit
+prices, the cooling EER (3.0, range 2.5–4.0 — the largest single unverified
+assumption in the cooling chain), the comfort-deficit stock fractions and
+thermal-response coefficients, the network source temperature and SCOP, the
+UTES round-trip, the chiller and cooling-increment capex in the value panel,
+indigenous input-origin shares, the NI heat total, and the WHY HEAT?
+service-level allocations. Challenge and input welcome:
+**contact@causewaygt.com**.
+
+- **The hourly heat shape** is modelled from weather with no occupancy
+  model; the summer damping threshold and the flow temperatures are
+  conventions†, chosen to reconcile with the weekly estimator.
+- **The capacity line** is now two winters of observed weather, each under
+  its own de-rated block†, and still says nothing about storage duration or
+  network constraints. Two is not a distribution.
+- **The observed cooling response is a lower bound**, not an independent
+  estimate: within-class centring removes the level along with the seasonal
+  confound, so it recovers about a seventh of the anchor. The undemeaned
+  reconciliation recovers 74% and is not yet used in published figures.
+- **Humidity was tested and rejected.** Dewpoint adds 0.0014 to R² and
+  moist-air enthalpy 0.0001; the quadratic term rose 7% where latent load
+  would have made it fall. The convexity is the extensive margin — buildings
+  switching on — not latent load.
+- **The displaced resistive credit** assumes the what-if samples the
+  existing stock proportionally and that displaced load is space-shaped†;
+  gross and net figures bound the truth between them.
+
+## Data sources & licences
+
+National Gas Transmission open data (demand and SAP publications, REST API;
+derived public use and attribution confirmed with the operator, July 2026) ·
+Contains BMRS data © Elexon Limited copyright and database right 2026 · NESO
+Data Portal (demand) and NESO Carbon Intensity API, NESO Open Licence ·
+Open-Meteo.com (CC BY 4.0) / Copernicus ERA5 (daily and hourly) · DESNZ ECUK,
+DUKES and GHG conversion factors, MHCLG dwelling statistics, and NISRA
+statistics, under the Open Government Licence v3.0 · EGEC 2025 UK Country
+Update and EGEC Geothermal Market Report 2025, English Housing Survey, CCC
+adaptation reporting, ONS/UKHSA heat mortality and productivity statistics
+(cited). Full bibliography with DOIs in the methodology PDF.
+
+Hourly layer (v7): ERA5 reanalysis via Open-Meteo (temperature, twelve
+population-weighted points); Elexon BMRS market index (wholesale price) and
+FUELINST (transmission wind); NESO historic demand and daily demand update
+(underlying demand, embedded wind and solar) and Carbon Intensity API;
+NESO Winter Outlook 2025/26 (the de-rated capacity block†). All open data,
+no authentication.
+
+## How it runs
+
+A GitHub Actions cron (`.github/workflows/update.yml`) runs daily at 03:43
+UTC: `scripts/build.py` pulls the feeds, fits the regressions, computes the
+mix, costs, emissions, cooling tiers and headlines, and commits
+`docs/data.json`; the static page (`docs/index.html`, Plotly) renders it.
+Feed failures fall back to the last good values and are flagged on the page
+(sources that publish on a lag show amber); build failures push a
+notification. Site traffic is measured with GoatCounter (cookieless, no
+personal data). No API keys required; fork-friendly.
+
+The daily commit of `docs/data.json` also carries the weekly trend history
+(capped at 60 weeks), so the git log doubles as its backup: each run appends
+the newest complete week, recomputes the two most recent against feed
+revisions, and leaves older weeks frozen as first published.
+
+Anchor constants are refreshed on a maintenance calendar: Ofgem cap
+quarterly (one row added to the cap-history table in `build.py`, so past
+weeks keep the cap that was in force); ECUK/DUKES and the WHY HEAT? panel
+annually; the geothermal panel annually on MCS/EGEC release.
+
+## Repository layout
+
+```
+docs/
+  index.html                      the dashboard (static; Plotly)
+  data.json                       written daily by the workflow
+  uk-heatsplit-methodology.pdf    full technical methodology statement
+scripts/
+  build.py                        pulls feeds, fits, computes, writes data.json
+  retro.py                        hourly engine: store, calibration, gates,
+                                  slices, system view
+  fetch_*.py                      per-source fetchers
+analysis/                         offline, hand-run — not on the daily path
+  fetch_humidity.py               dewpoint and moist-air enthalpy (a null result)
+  fit_cooling.py                  undemeaned baseline model, balance-point scan
+docs/retro.json                   ~800-day hourly store, append-only
+.github/workflows/update.yml      daily cron
+.github/workflows/cooling-fit.yml manual: runs the offline cooling fit
+```
 
 ## Versioning
 
-**Temporarily frozen at x = 5.** The scheme is `x.y.z` – x a new source
-or panel, y a source update, z wording or format – but while the site is
-under construction only y and z move. The panels are changing weekly and
-an x that tracked every new one would carry no information. The
-masthead's "Under Construction" label and this freeze come off together.
+The site carries a version (footer, `SITE_VERSION` in `docs/index.html`):
+x.y.z where **x** = new data source or panel, **y** = update to an existing
+source or anchor, **z** = wording or formatting. Current: **8.31.1**.
 
+History: v1 launch (gas split, costs, spark gap, geothermal, NI) → v2 carbon
+layer → v3.0–3.2 observed cooling analysis → v3.3–3.4 comfort deficit, tier
+graphic and UTES dividend → v3.5 services-basis indigenous share → v3.6 EGEC
+refinements → v4.0 WHY HEAT? whole-economy panel → v4.0.1–4.0.3 methodology
+statement and calibration ratio surfaced → v5.0–5.2 live trend layer, window
+selector, cooling reconciliation diagnostic → v6.0–6.7 the empty bar,
+share-of-national-heat calibration, DUKES 2026 re-anchor, heat/cool splits at
+every window → **v7.0 the hourly engine and the grid impacts panel** →
+**v8 the cooling rebuild, the value case and the price series**.
 
-`x.y.z` – x: new source or panel; y: source update; z: wording/format.
-Pipeline and site are versioned independently; both are stamped in the
-footer alongside the build time.
+### What v8 changed
 
-## Development
+**The site was restructured** into six numbered sections with a value-for-money
+panel at the end, published after being held while its cooling component was
+costed.
 
-```
-pip install requests openpyxl
-python3 tests/test_synthetic.py   # 158 tests, no network
-python3 scripts/build.py          # full build, writes docs/data.json
-```
+**Cooling was rebuilt from the anchor outward.** The ECUK cooling-and-
+ventilation line is now split 54:46 from BEES rather than 50/50 by assumption;
+ventilation is reported as its own service because fans have no coefficient of
+performance, which cut published cooling delivered by about a third; the shape
+base moved from 18 °C to 15.5 °C; the binned response curve became a continuous
+quadratic, removing a ceiling that held fifteen days a year at one value; and
+the saturation tier was withdrawn, because the measured response steepens where
+that tier assumed it flattens.
 
-Tests validate parsers against verbatim formats captured from live run
-logs, derivations against hand calculations, the regression against
-synthetic data with injected confounds, and the Why heat? anchors against
-their own internal logic (services reconcile to final consumption; heat's
-bill is the smallest; imports never exceed the service).
+**Three things were tested and reported as negative results** rather than
+quietly dropped: humidity, the slope-to-level inversion, and the saturation
+tier. All three are in the methodology.
 
-## Attribution
+**The hourly store holds two winters**, each tested against its own NESO
+capacity block. **COP is now evaluated at each day's temperature** rather than
+as a fixed seasonal factor, which is what makes the heat-price series honest —
+air-source and ground source cross, and the crossing is the point.
 
-Contains data from Gas Networks Ireland (CC BY 4.0 via data.gov.ie),
-EirGrid Group (Smart Grid Dashboard), SEMOpx, the European Commission Weekly Oil Bulletin, the
-Consumer Council for Northern Ireland, BoilerJuice, the European Central
-Bank, ERA5/Copernicus via Open-Meteo, the WGC2026 Ireland country update
-(Ireland, Blake, Pasquali, Dunphy & Hunter Williams), the EGEC Geothermal
-Market Report 2025 (Key Findings), and NISRA/SEAI/DfE publications as
-cited on the site. Sherwood Sandstone geothermal context: Todd et al.,
-*Geoenergy* (2026), doi:10.1144/geoenergy2025-057.
+**A heat-price series was added** for four routes on two bases, wholesale and
+at the meter, with the difference between them showing what policy costs do to
+the comparison. **The spark-gap ticker carries both bases** for the same
+reason.
+
+**Seven defects were found and declared**, and are tabulated in §13 of the
+methodology. Three new build gates were added as a direct result.
+
+*A Causeway Energies public-interest tool — https://causewaygt.com*
