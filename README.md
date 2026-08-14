@@ -393,7 +393,12 @@ air-source and ground source cross, and the crossing is the point.
 
 **A heat-price series was added** for four routes on two bases, wholesale and
 at the meter, with the difference between them showing what policy costs do to
-the comparison. **The spark-gap ticker carries both bases** for the same
+the comparison. It also carries **three services** — space heating, hot water,
+and both blended as delivered. Hot water runs at a 52 °C cylinder flow all
+year, so none of the flow-temperature benefit is available to it and the
+geothermal advantage is about 1.7× in every month, against 1.9–4.4× on space
+heating. The blended view is a harmonic mean weighted by the service mix
+actually served that day, and is the only one that moves with the load. **The spark-gap ticker carries both bases** for the same
 reason.
 
 **Seven defects were found and declared**, and are tabulated in §13 of the
