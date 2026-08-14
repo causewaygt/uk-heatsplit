@@ -1578,19 +1578,52 @@ def heat_price_series(store, sap_series=None, retail_series=None,
     # replacement spanned from the signature to the note and took this with
     # it, which is why the basis toggle vanished from the page.
     if retail_series and retail_series.get("dates"):
+        # THREE SERVICES ON THIS BASIS TOO, from 14 Aug 2026. Retail was built
+        # before the service split and carried space heating only, so the
+        # service toggle silently did nothing whenever "at the meter" was
+        # selected - three buttons that appeared to work and did not.
         idx = {d_: i for i, d_ in enumerate(retail_series["dates"])}
         out["retail"] = {}
+        out["retail_dhw"] = {}
+        out["retail_blend"] = {}
+        ss = out["space_share"]
         for k in ("gas", "ashp", "shallow", "network"):
             src = retail_series.get(k) or []
-            vals = [(src[idx[d_]] if d_ in idx and idx[d_] < len(src) else None)
+            unit = [(src[idx[d_]] if d_ in idx and idx[d_] < len(src) else None)
                     for d_ in out["dates"]]
-            # Gas arrives already divided by boiler efficiency. The electric
-            # routes arrive as UNIT prices and are divided here by that day's
-            # own COP, so retail and wholesale share one efficiency model.
-            if k != "gas":
-                vals = [(round(v / c, 2) if v is not None and c else None)
-                        for v, c in zip(vals, out["cop"][k])]
-            out["retail"][k] = vals
+            if k == "gas":
+                # Gas arrives ALREADY divided by the space efficiency. Recover
+                # the raw unit price, then redivide per service.
+                raw = [(v * eff_gas if v is not None else None) for v in unit]
+                out["retail"][k] = unit
+                out["retail_dhw"][k] = [
+                    (round(v / eff_gas_dhw, 2) if v is not None else None)
+                    for v in raw]
+                out["retail_blend"][k] = [
+                    (round(v * (ss[i] / eff_gas
+                                + (1 - ss[i]) / eff_gas_dhw), 2)
+                     if v is not None and i < len(ss) else None)
+                    for i, v in enumerate(raw)]
+                continue
+            # Electric routes arrive as UNIT prices; divide by that day's own
+            # COP for each service, so retail and wholesale share one
+            # efficiency model throughout.
+            out["retail"][k] = [
+                (round(v / c, 2) if v is not None and c else None)
+                for v, c in zip(unit, out["cop"][k])]
+            out["retail_dhw"][k] = [
+                (round(v / c, 2) if v is not None and c else None)
+                for v, c in zip(unit, out["cop_dhw"][k])]
+            blend = []
+            for i, v in enumerate(unit):
+                if v is None or i >= len(ss):
+                    blend.append(None)
+                    continue
+                cs, cd = out["cop"][k][i], out["cop_dhw"][k][i]
+                inv = (ss[i] / cs if cs else 0.0) + \
+                      ((1 - ss[i]) / cd if cd else 0.0)
+                blend.append(round(v * inv, 2) if inv else None)
+            out["retail_blend"][k] = blend
         out["retail_note"] = (
             "Domestic routes at the Ofgem cap in force on each date - a step "
             "function of policy decisions, not a market series. The "
