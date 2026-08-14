@@ -241,7 +241,10 @@ method; the trailing 12-month total is calibrated against the DESNZ ECUK
 end-use tables, GB-adjusted and weather-normalised (current ratio ~1.10,
 within the ±10% publication threshold). Other fuels and cooling take their
 annual levels from ECUK 2025 (calendar 2024) shaped by heating/cooling degree
-days — cooling on a 15.5 °C base, the balance point at which comfort cooling
+days. **Space heating and hot water are converted at different boiler
+efficiencies** — gas 0.835 and 0.73, oil 0.82 and 0.71 — because a boiler
+serving only a cylinder loses its latent recovery; the hot-water figures come
+from SAP 2012 Table 4b and apply year-round, not seasonally — cooling on a 15.5 °C base, the balance point at which comfort cooling
 plant begins to run, not the Met Office's 22 °C climate convention. The indigenous share is measured on a services basis — each unit of
 delivered heat or cooling inherits the UK-origin share of its energy input,
 with harvested ambient/ground heat counting as 100% indigenous, consistent
@@ -373,6 +376,11 @@ base moved from 18 °C to 15.5 °C; the binned response curve became a continuou
 quadratic, removing a ceiling that held fifteen days a year at one value; and
 the saturation tier was withdrawn, because the measured response steepens where
 that tier assumed it flattens.
+
+**Boilers were given a separate hot-water efficiency**, from SAP Table 4b, so
+gas now carries a seasonal efficiency shape — about 0.81 in January against
+0.74 in July, when the load is almost all hot water. It was a flat 0.835 in
+every month before.
 
 **Three things were tested and reported as negative results** rather than
 quietly dropped: humidity, the slope-to-level inversion, and the saturation
