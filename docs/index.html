@@ -521,10 +521,25 @@
       assumed EER of 3. Heat-pump electricity is the ECUK 2025 domestic figure
       (2.0 TWh, 2024); non-domestic heat pumps are not yet counted, so the teal
       segment is understated.</p>
+    <p><b>Boiler efficiency, by end use.</b> Space heating and hot water are
+      converted at <b>different</b> efficiencies. A boiler serving only a
+      cylinder fires in short bursts, cools between them, and returns water
+      above the condensing dewpoint, losing its latent recovery: gas is 0.835
+      for space heating and <b>0.73</b> for hot water, oil 0.82 and
+      <b>0.71</b>. Both hot-water figures are the mean SAP 2012 Table 4b
+      summer/winter ratio applied to the in-situ winter anchor, and SAP applies
+      the summer figure to hot water in every month, not seasonally. Summer
+      runs 82–89% of winter across that table. Bioenergy and solid fuel keep
+      a single figure, because Table 4b does not cover them. The effect is that
+      the effective gas efficiency now moves with the season — about 0.81 in
+      January and 0.74 in July, when the load is almost all hot water.</p>
     <p><b>Known biases.</b> Hot-water heating is treated as flat but is mildly
       seasonal (colder mains water in winter), so gas space heating carries a
-      small upward bias. The boiler-waste band uses in-situ UK boiler efficiency
-      measurements (82.5–85%), not nameplate values.</p>
+      small upward bias. Table 4b is SAP’s fallback for boilers absent from
+      the Product Characteristics Database, so it is conservative and skewed to
+      older plant; a PCDB-weighted fleet figure would beat it. Table 4c deducts
+      5 points where a regular boiler has no interlock, which is not applied
+      here.</p>
     <p><b>Geothermal panel.</b> Today's heat figure is anchored on the EGEC
       2025 UK Country Update (1,430 GWhth/yr from ~55,210 GSHP units,
       847–861 MWth installed — a 2023 estimate from sales data; the
@@ -972,7 +987,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.32.0';
+const SITE_VERSION = '8.33.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
