@@ -585,11 +585,11 @@
       <button data-hw="730">24M</button>
     </div>
     <div id="hpchart" style="height:300px;margin:8px 0 0"></div>
-    <div id="hpvol" style="height:120px;margin:0 0 4px"></div>
-    <p class="costnote" id="hpnote"></p>
-    <details class="fold" id="fold_cost"><summary>EVIDENCE —
-      <b>every route priced per useful kWh, with its basis</b></summary>
+    <div id="hpvol" style="height:142px;margin:0 0 4px"></div>
+    <details class="fold" id="fold_cost"><summary>METHOD —
+      <b>every route priced per useful kWh, with its basis and explanation</b></summary>
     <div class="foldbody">
+    <p class="costnote" id="hpnote"></p>
     <table class="costtable">
       <thead><tr><th>Route</th><th class="num">p per useful kWh</th><th>Basis</th></tr></thead>
       <tbody id="costrows"></tbody>
@@ -600,8 +600,8 @@
     <h2 style="margin-top:30px">What it emits</h2>
     <div class="billline" id="carbline"></div>
     <div id="carbchart" style="height:230px;margin:16px 0 6px"></div>
-    <details class="fold" id="fold_carb"><summary>EVIDENCE —
-      <b>every route's carbon per useful kWh, live grid intensity</b></summary>
+    <details class="fold" id="fold_carb"><summary>METHOD —
+      <b>every route’s carbon per useful kWh, live grid intensity</b></summary>
     <div class="foldbody">
     <table class="costtable">
       <thead><tr><th>Route</th><th class="num">gCO2e per useful kWh</th></tr></thead>
@@ -993,7 +993,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.35.0';
+const SITE_VERSION = '8.35.1';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -2407,12 +2407,16 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
         ], {
           paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
           font:{family:'Lato', color:css('--muted'), size:11},
-          margin:{l:62,r:16,t:4,b:26},
+          margin:{l:62,r:16,t:26,b:26},
           xaxis:{gridcolor:css('--line'),
                  tickformat: n > 120 ? '%b %y' : '%-d %b'},
           yaxis:{title:{text:'GWh/day delivered', font:{size:10}},
                  gridcolor:css('--line'), rangemode:'tozero'},
-          showlegend:false
+          // Named, not left to inference. Obvious to a reader who already
+          // knows the shape of a heating year; not to anyone else.
+          showlegend:true,
+          legend:{orientation:'h', y:1.02, yanchor:'bottom',
+                  font:{size:10.5}}
         }, {displayModeBar:false, responsive:true});
       } else if(vbox){
         vbox.style.display = 'none';
