@@ -584,7 +584,8 @@
       <button data-hw="365" aria-pressed="true">12M</button>
       <button data-hw="730">24M</button>
     </div>
-    <div id="hpchart" style="height:300px;margin:8px 0 4px"></div>
+    <div id="hpchart" style="height:300px;margin:8px 0 0"></div>
+    <div id="hpvol" style="height:120px;margin:0 0 4px"></div>
     <p class="costnote" id="hpnote"></p>
     <details class="fold" id="fold_cost"><summary>EVIDENCE —
       <b>every route priced per useful kWh, with its basis</b></summary>
@@ -992,7 +993,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.34.1';
+const SITE_VERSION = '8.35.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -2383,6 +2384,40 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
                gridcolor:css('--line'), rangemode:'tozero'},
         legend:{orientation:'h', y:1.02, yanchor:'bottom'}
       }, {displayModeBar:false, responsive:true});
+      // SERVICE VOLUMES, on the same window and the same x axis. A price is
+      // only as interesting as the service it prices: in July the whole load
+      // is hot water, so the space-heating line is describing something
+      // nobody is buying. The selected service is drawn solid and the other
+      // faded, so the reader can see at a glance how much of the load the
+      // line above actually applies to.
+      const vbox = document.getElementById('hpvol');
+      if(hp.space_GWh && hp.space_GWh.length){
+        const solid = 0.92, faded = 0.16;
+        const aSp = SVC === 'dhw' ? faded : solid;
+        const aHw = SVC === 'space' ? faded : solid;
+        Plotly.newPlot('hpvol', [
+          {x: x, y: hp.space_GWh.slice(-n), name: 'space heating',
+           type: 'scatter', mode: 'lines', stackgroup: 'v',
+           line: {width: 0}, fillcolor: css('--ember'), opacity: aSp,
+           hovertemplate: '%{y:.0f} GWh<extra>space heating</extra>'},
+          {x: x, y: hp.dhw_GWh.slice(-n), name: 'hot water',
+           type: 'scatter', mode: 'lines', stackgroup: 'v',
+           line: {width: 0}, fillcolor: css('--cool'), opacity: aHw,
+           hovertemplate: '%{y:.0f} GWh<extra>hot water</extra>'}
+        ], {
+          paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
+          font:{family:'Lato', color:css('--muted'), size:11},
+          margin:{l:62,r:16,t:4,b:26},
+          xaxis:{gridcolor:css('--line'),
+                 tickformat: n > 120 ? '%b %y' : '%-d %b'},
+          yaxis:{title:{text:'GWh/day delivered', font:{size:10}},
+                 gridcolor:css('--line'), rangemode:'tozero'},
+          showlegend:false
+        }, {displayModeBar:false, responsive:true});
+      } else if(vbox){
+        vbox.style.display = 'none';
+      }
+
       const last = i => { const a = src(i).filter(v => v != null);
                           return a.length ? a[a.length - 1] : 0; };
       const mean = a => a.slice(-n).reduce((s_,v)=>s_+v,0) / n;
@@ -2396,6 +2431,13 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
         (hp.routes.gas ? ' Gas boiler heat \u00a3' +
           (hp.routes.gas.filter(v=>v!=null).slice(-1)[0] || 0).toFixed(0) +
           '.' : '') +
+        (hp.space_GWh && hp.space_GWh.length
+          ? ' The band beneath shows what is actually being delivered on the ' +
+            'same days, so the price above can be weighed against the volume ' +
+            'it applies to \u2014 the selected service solid, the other faded. ' +
+            'By July the load is entirely hot water, so a space-heating price ' +
+            'that month is describing something nobody is buying.'
+          : '') +
         (SVC === 'dhw'
           ? ' <b>Hot water.</b> A cylinder needs its temperature whatever the ' +
             'weather, so the lift never shrinks and none of the ' +
