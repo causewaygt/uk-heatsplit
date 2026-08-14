@@ -1476,7 +1476,7 @@ def heat_price_series(store, sap_series=None, retail_series=None,
            "cop_dhw": {k: [] for k in ROUTE_KEYS},
            "dhw": {k: [] for k in ROUTE_KEYS},
            "blend": {k: [] for k in ROUTE_KEYS},
-           "space_share": [],
+           "space_share": [], "space_GWh": [], "dhw_GWh": [],
            "eff_gas": eff_gas, "eff_gas_dhw": eff_gas_dhw}
     for d_ in sorted(flat):
         vals = flat[d_]
@@ -1538,6 +1538,12 @@ def heat_price_series(store, sap_series=None, retail_series=None,
             tot = sp + dhw_day
             ws = (sp / tot) if tot else 0.0
             out["space_share"].append(round(ws, 4))
+            # The VOLUMES, not just the share. A price for a service nobody is
+            # buying in July is a different claim from one they are, and the
+            # reader cannot weigh the three service views without seeing how
+            # much of each is actually being delivered on the same window.
+            out["space_GWh"].append(round(sp, 1))
+            out["dhw_GWh"].append(round(dhw_day, 1))
             for k in ROUTE_KEYS:
                 cs, cd = out["cop"][k][i], out["cop_dhw"][k][i]
                 inv = (ws / cs if cs else 0.0) + ((1 - ws) / cd if cd else 0.0)
