@@ -224,8 +224,33 @@ def cap_prices(date_iso):
 
 
 # --- shared estimator constants (single source for live panels + history) ---
+# WINTER (space heating) seasonal efficiencies. In-situ, not nameplate.
 EFF = {"gas": 0.835, "oil": 0.82, "bio": 0.70, "solid": 0.55,
        "heat_networks": 1.0, "resistive": 1.0}
+
+# HOT WATER seasonal efficiencies, added 13 Aug 2026. A boiler serving only a
+# cylinder fires in short bursts, cools between them, and returns water above
+# the condensing dewpoint - so it loses its latent recovery outright. SAP has
+# carried separate winter and summer seasonal efficiencies for exactly this
+# reason since SAP 2009, and SAP is explicit that eta_water = eta_summer for
+# ALL months: the summer figure is applied to hot water year-round, not
+# seasonally.
+#
+# Derived as the mean SAP 2012 Table 4b summer/winter ratio applied to the
+# existing winter anchor, so the sourced winter figures above are untouched:
+#   gas  ratios 64/74, 74/84, 65/74, 75/84 -> mean 0.879 x 0.835 = 0.73
+#   oil  ratios 68/80, 72/84, 73/82        -> mean 0.866 x 0.820 = 0.71
+# Summer runs 82-89% of winter across the whole of Table 4b.
+# Source: SAP 2012, Table 4b p207, files.bregroup.com/SAP/SAP-2012_9-92.pdf
+#
+# TWO CAVEATS. Table 4b is SAP's FALLBACK for boilers absent from the Product
+# Characteristics Database, so it is conservative and skewed to older plant; a
+# PCDB-weighted fleet figure would beat it. And Table 4c deducts 5 points from
+# both figures where a regular boiler has no interlock - not applied here.
+#
+# GAS AND OIL ONLY. Table 4b does not cover bioenergy or solid fuel, so those
+# keep their single figure rather than inheriting an invented ratio.
+EFF_DHW = {"gas": 0.73, "oil": 0.71}
 
 UK_POP_M = 68.0   # population convention per the July 2026 cross-calibration †
 HP_ELEC_TWH = 2.0   # hydronic-domestic subset consistent with the ECUK
@@ -318,10 +343,17 @@ def compute_week(gas_space_wk, hdd_wk, cdd_wk, hdd_12m, cdd_12m, p):
     f_c = (cdd_wk / cdd_12m) if cdd_12m else 0.0
     A = {k: v * g * 1000.0 for k, v in ANNUAL_TWH.items()}  # GWh, GB
 
+    # Oil is one bar on the page but TWO loads on two different curves, and
+    # from 13 Aug 2026 two different efficiencies. Kept separate through the
+    # efficiency step and only summed for display - summing first would apply
+    # a space-heating efficiency to hot water.
+    oil_space_wk = A["oil_space"] * f_h
+    oil_dhw_wk = A["oil_dhw"] * f_flat
+
     mix = {
         "gas_space": round(gas_space_wk, 0),                # live estimate
         "gas_dhw": round(A["gas_dhw"] * f_flat, 0),
-        "oil": round(A["oil_space"] * f_h + A["oil_dhw"] * f_flat, 0),
+        "oil": round(oil_space_wk + oil_dhw_wk, 0),
         "elec_heat": round(A["elec_space"] * f_h + A["elec_dhw"] * f_flat, 0),
         "bio_other": round(A["bio_space"] * f_h + A["bio_dhw"] * f_flat, 0),
         "heat_networks": round(A["heat_networks"] * f_h, 0),
@@ -359,8 +391,10 @@ def compute_week(gas_space_wk, hdd_wk, cdd_wk, hdd_12m, cdd_12m, p):
 
     useful = {
         "gas_space": round(mix["gas_space"] * EFF["gas"], 0),
-        "gas_dhw": round(mix["gas_dhw"] * EFF["gas"], 0),
-        "oil": round(mix["oil"] * EFF["oil"], 0),
+        # Hot water at the SUMMER efficiency, year-round - see EFF_DHW.
+        "gas_dhw": round(mix["gas_dhw"] * EFF_DHW["gas"], 0),
+        "oil": round(oil_space_wk * EFF["oil"]
+                     + oil_dhw_wk * EFF_DHW["oil"], 0),
         "bio_other": round(mix["bio_other"] * EFF["bio"], 0),
         "solid": round(mix["solid"] * EFF["solid"], 0),
         "heat_networks": round(mix["heat_networks"] * EFF["heat_networks"], 0),
@@ -370,9 +404,14 @@ def compute_week(gas_space_wk, hdd_wk, cdd_wk, hdd_12m, cdd_12m, p):
         "cooling_delivered": round(cool_useful, 0),
         "ventilation": round(vent_useful, 0),
     }
+    # Hot water wastes MORE than space heating, not the same - a cylinder
+    # boiler loses its latent recovery. Split by end use here too, or the
+    # waste bar contradicts the useful bar it is derived from.
     wasted = round(
-        (mix["gas_space"] + mix["gas_dhw"]) * (1 - EFF["gas"])
-        + mix["oil"] * (1 - EFF["oil"])
+        mix["gas_space"] * (1 - EFF["gas"])
+        + mix["gas_dhw"] * (1 - EFF_DHW["gas"])
+        + oil_space_wk * (1 - EFF["oil"])
+        + oil_dhw_wk * (1 - EFF_DHW["oil"])
         + mix["bio_other"] * (1 - EFF["bio"])
         + mix["solid"] * (1 - EFF["solid"]), 0)
 
@@ -986,6 +1025,7 @@ def main():
         "total_GWh": round(sum(useful.values()), 0),
         "wasted_GWh": r["wasted"],
         "factors": {"boiler_gas": EFF["gas"], "oil": EFF["oil"],
+                    "boiler_gas_dhw": EFF_DHW["gas"], "oil_dhw": EFF_DHW["oil"],
                     "bio": EFF["bio"], "solid": EFF["solid"],
                     "hp_spf": HP_SPF, "hp_elec_TWh_yr": HP_ELEC_TWH,
                     "cool_eer": COOL_EER,
@@ -1091,8 +1131,10 @@ def main():
     try:
         elec_heat_all = ANNUAL_TWH["elec_space"] + ANNUAL_TWH["elec_dhw"]
         useful_heat_annual = (
-            (annual_space_twh + ANNUAL_TWH["gas_dhw"]) * EFF["gas"]
-            + (ANNUAL_TWH["oil_space"] + ANNUAL_TWH["oil_dhw"]) * EFF["oil"]
+            annual_space_twh * EFF["gas"]
+            + ANNUAL_TWH["gas_dhw"] * EFF_DHW["gas"]
+            + ANNUAL_TWH["oil_space"] * EFF["oil"]
+            + ANNUAL_TWH["oil_dhw"] * EFF_DHW["oil"]
             + (ANNUAL_TWH["bio_space"] + ANNUAL_TWH["bio_dhw"]) * EFF["bio"]
             + ANNUAL_TWH["solid"] * EFF["solid"]
             + ANNUAL_TWH["heat_networks"] * EFF["heat_networks"]
@@ -2153,8 +2195,12 @@ def main():
                         + max(0.0, ANNUAL_TWH["elec_space"] - HP_ELEC_TWH)
                         * EFF["resistive"]
                         + HP_ELEC_TWH * HP_SPF)
-        useful_dhw = (ANNUAL_TWH["gas_dhw"] * EFF["gas"]
-                      + ANNUAL_TWH["oil_dhw"] * EFF["oil"]
+        # NOTE this feeds the retro store's dhw_annual_TWh, and the sum of
+        # space + dhw is the DENOMINATOR of the electrification limit. Moving
+        # hot water onto the summer efficiency lowers useful DHW and therefore
+        # raises the limit slightly.
+        useful_dhw = (ANNUAL_TWH["gas_dhw"] * EFF_DHW["gas"]
+                      + ANNUAL_TWH["oil_dhw"] * EFF_DHW["oil"]
                       + ANNUAL_TWH["bio_dhw"] * EFF["bio"]
                       + ANNUAL_TWH["elec_dhw"] * EFF["resistive"])
         g2_weekly_twh = (useful_space + useful_dhw) * 0.20 / 5.0
