@@ -992,7 +992,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.34.0';
+const SITE_VERSION = '8.34.1';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -2350,12 +2350,20 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
     const bbar = document.getElementById('hpbasis');
     if(!hp.retail) bbar.style.display = 'none';
     const svcbar = document.getElementById('hpsvc');
-    if(!hp.dhw) svcbar.style.display = 'none';
+    if(!hp.dhw && !hp.retail_dhw) svcbar.style.display = 'none';
+    // SIX COMBINATIONS, not two plus three. The first version short-circuited
+    // on basis before it looked at service, so on the retail basis the three
+    // service buttons appeared to work and did nothing. Pick the service
+    // WITHIN the basis, and fall back to space heating only if a payload
+    // predates the split.
+    const SERIES = {
+      wholesale: {space: 'routes', dhw: 'dhw',        blend: 'blend'},
+      retail:    {space: 'retail', dhw: 'retail_dhw', blend: 'retail_blend'},
+    };
     const src = k => {
-      if(BASIS === 'retail' && hp.retail) return hp.retail[k] || [];
-      if(SVC === 'dhw' && hp.dhw) return hp.dhw[k] || [];
-      if(SVC === 'blend' && hp.blend) return hp.blend[k] || [];
-      return hp.routes[k] || [];
+      const want = (SERIES[BASIS] || SERIES.wholesale)[SVC];
+      const set = hp[want] || hp[SERIES[BASIS].space] || hp.routes || {};
+      return set[k] || [];
     };
     function draw(w){
       const n = Math.min(w, HAVE);
