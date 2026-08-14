@@ -1431,7 +1431,7 @@ def night_elbow(store):
 
 
 def heat_price_series(store, sap_series=None, retail_series=None,
-                      eff_gas=0.835):
+                      eff_gas=0.835, eff_gas_dhw=0.73):
     """Daily commodity cost of DELIVERED heat, by route, on both bases.
 
     COP IS NOT A CONSTANT. Until 12 Aug 2026 this divided one electricity
@@ -1472,7 +1472,12 @@ def heat_price_series(store, sap_series=None, retail_series=None,
     ROUTE_KEYS = ("ashp", "shallow", "network")
     out = {"dates": [], "elec_flat_gbp_mwh": [], "elec_heat_wtd_gbp_mwh": [],
            "temp_C": [], "routes": {k: [] for k in ROUTE_KEYS},
-           "cop": {k: [] for k in ROUTE_KEYS}, "eff_gas": eff_gas}
+           "cop": {k: [] for k in ROUTE_KEYS},
+           "cop_dhw": {k: [] for k in ROUTE_KEYS},
+           "dhw": {k: [] for k in ROUTE_KEYS},
+           "blend": {k: [] for k in ROUTE_KEYS},
+           "space_share": [],
+           "eff_gas": eff_gas, "eff_gas_dhw": eff_gas_dhw}
     for d_ in sorted(flat):
         vals = flat[d_]
         if len(vals) < 20 or d_ not in temps:
@@ -1490,6 +1495,55 @@ def heat_price_series(store, sap_series=None, retail_series=None,
             c = route_cop(k, tm, etas.get(k, 0.33))
             out["cop"][k].append(round(c, 2))
             out["routes"][k].append(round(fm / c, 2))
+            # HOT WATER on the same machine. The cylinder needs its own flow
+            # temperature whatever the weather, so none of the flow-reduction
+            # benefit is available and the lift never shrinks. Same engine,
+            # same eta, one argument different.
+            ch = route_cop(k, tm, etas.get(k, 0.33), t_flow=DHW_FLOW_C)
+            out["cop_dhw"][k].append(round(ch, 2))
+            out["dhw"][k].append(round(fm / ch, 2))
+
+    # AS DELIVERED: the two services blended by the mix actually being served
+    # that day. Space heat is HDD-shaped with the same summer damping the
+    # hourly engine uses; hot water is flat. The blend is a HARMONIC mean
+    # weighted by delivered service, because what is being averaged is a cost
+    # per unit delivered:
+    #
+    #     effective COP = 1 / (w_space/COP_space + w_dhw/COP_dhw)
+    #
+    # This is the only one of the three that moves with the load mix, and it
+    # is where the separate hot-water efficiency becomes visible: cheapest per
+    # MWh in January when the load is mostly space heating, dearest in July
+    # when it is almost all hot water.
+    cal = store.get("calibration") or {}
+    sp_ann = cal.get("space_annual_TWh") or 0.0
+    dh_ann = cal.get("dhw_annual_TWh") or 0.0
+    if sp_ann and dh_ann and out["dates"]:
+        base_c = cal.get("base_temp_C", 15.5)
+
+        def _damp(hd):
+            if hd <= SUMMER_HDD_OFF:
+                return 0.0
+            if hd >= SUMMER_HDD_FULL:
+                return 1.0
+            x = (hd - SUMMER_HDD_OFF) / (SUMMER_HDD_FULL - SUMMER_HDD_OFF)
+            return x * x * (3 - 2 * x)                    # smoothstep
+
+        hdd = [max(0.0, base_c - t) for t in out["temp_C"]]
+        wgt = [h * _damp(h) for h in hdd]
+        den = sum(wgt[-365:]) or (sum(wgt) or 1.0)
+        dhw_day = dh_ann * 1000.0 / 365.0                # GWh/day, flat
+        for i in range(len(out["dates"])):
+            sp = sp_ann * 1000.0 * wgt[i] / den
+            tot = sp + dhw_day
+            ws = (sp / tot) if tot else 0.0
+            out["space_share"].append(round(ws, 4))
+            for k in ROUTE_KEYS:
+                cs, cd = out["cop"][k][i], out["cop_dhw"][k][i]
+                inv = (ws / cs if cs else 0.0) + ((1 - ws) / cd if cd else 0.0)
+                out["blend"][k].append(
+                    round(out["elec_flat_gbp_mwh"][i] * inv, 2) if inv else None)
+
     # GAS, where a series exists. Aligned to the SAME dates as the electric
     # routes and left as None on days the price was not published, so a gap in
     # the feed shows as a gap in the line rather than a straight segment
@@ -1501,6 +1555,20 @@ def heat_price_series(store, sap_series=None, retail_series=None,
         out["routes"]["gas"] = [
             (round(by[d_] * 10.0 / eff_gas, 2) if d_ in by else None)
             for d_ in out["dates"]]
+        # Gas hot water at the SAP-derived summer efficiency, and the blend
+        # at the same harmonic mean the electric routes use.
+        out["dhw"]["gas"] = [
+            (round(by[d_] * 10.0 / eff_gas_dhw, 2) if d_ in by else None)
+            for d_ in out["dates"]]
+        if out["space_share"]:
+            out["blend"]["gas"] = []
+            for i, d_ in enumerate(out["dates"]):
+                if d_ not in by:
+                    out["blend"]["gas"].append(None)
+                    continue
+                ws = out["space_share"][i]
+                inv = ws / eff_gas + (1 - ws) / eff_gas_dhw
+                out["blend"]["gas"].append(round(by[d_] * 10.0 * inv, 2))
         out["gas_days"] = sum(1 for v in out["routes"]["gas"] if v is not None)
         out["gas_publication"] = sap_series.get("publication")
 
