@@ -569,7 +569,12 @@
     <h2>What it costs</h2>
     <div class="billline" id="billline"></div>
     <div class="h2lab" id="hplab" hidden>What heat costs to make <span class="qual" id="hpbasislbl">— by route, wholesale commodity</span></div>
-    <div class="trendbar" id="hpbasis" style="margin:8px 0 2px">
+    <div class="trendbar" id="hpsvc" style="margin:8px 0 2px">
+      <button data-hs="space" aria-pressed="true">SPACE HEATING</button>
+      <button data-hs="dhw">HOT WATER</button>
+      <button data-hs="blend">AS DELIVERED</button>
+    </div>
+    <div class="trendbar" id="hpbasis" style="margin:6px 0 2px">
       <button data-hb="wholesale" aria-pressed="true">WHOLESALE</button>
       <button data-hb="retail">AT THE METER</button>
     </div>
@@ -987,7 +992,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.33.0';
+const SITE_VERSION = '8.34.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -2334,11 +2339,24 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
     // retail is what a household actually pays and includes the policy and
     // network costs that fall on electricity far harder than on gas. The
     // distance between the two IS the argument, so both have to be reachable.
+    // THREE SERVICES. Space heating rides the weather-compensated flow; hot
+    // water needs its cylinder temperature whatever the weather, so none of
+    // the flow-reduction benefit is available to it; AS DELIVERED blends the
+    // two by the mix actually being served that day, and is the only one that
+    // moves with the load. Gas differs by service too, since a cylinder
+    // boiler loses its latent recovery.
+    let SVC = 'space';
     let BASIS = 'wholesale';
     const bbar = document.getElementById('hpbasis');
     if(!hp.retail) bbar.style.display = 'none';
-    const src = k => (BASIS === 'retail' && hp.retail)
-                     ? (hp.retail[k] || []) : (hp.routes[k] || []);
+    const svcbar = document.getElementById('hpsvc');
+    if(!hp.dhw) svcbar.style.display = 'none';
+    const src = k => {
+      if(BASIS === 'retail' && hp.retail) return hp.retail[k] || [];
+      if(SVC === 'dhw' && hp.dhw) return hp.dhw[k] || [];
+      if(SVC === 'blend' && hp.blend) return hp.blend[k] || [];
+      return hp.routes[k] || [];
+    };
     function draw(w){
       const n = Math.min(w, HAVE);
       const x = hp.dates.slice(-n);
@@ -2370,6 +2388,22 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
         (hp.routes.gas ? ' Gas boiler heat \u00a3' +
           (hp.routes.gas.filter(v=>v!=null).slice(-1)[0] || 0).toFixed(0) +
           '.' : '') +
+        (SVC === 'dhw'
+          ? ' <b>Hot water.</b> A cylinder needs its temperature whatever the ' +
+            'weather, so the lift never shrinks and none of the ' +
+            'flow-reduction benefit is available. The heat-pump advantage is ' +
+            'much smaller here than on space heating, and roughly the same in ' +
+            'January as in July. Gas is at the SAP summer efficiency, because ' +
+            'a boiler serving only a cylinder loses its latent recovery. '
+          : SVC === 'blend'
+          ? ' <b>As delivered.</b> The two services blended by the mix ' +
+            'actually being served each day \u2014 space heat on the ' +
+            'degree-day curve, hot water flat \u2014 as a harmonic mean of ' +
+            'cost per unit delivered. This is the only view that moves with ' +
+            'the load, and it is where the separate hot-water efficiency ' +
+            'shows: it tracks space heating through the winter and hot water ' +
+            'through the summer, when almost nothing else is being asked for. '
+          : '') +
         ' The electric routes are one electricity price divided by each ' +
         'route\u2019s <b>own COP on that day\u2019s temperature</b>, not by a ' +
         'fixed seasonal factor \u2014 so they spread apart in cold weather ' +
@@ -2417,15 +2451,28 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       WIN = +b.dataset.hw;
       draw(WIN);
     });
+    const SVCLBL = {space:'space heating', dhw:'hot water',
+                    blend:'as delivered, both services blended'};
+    function relabel(){
+      document.getElementById('hpbasislbl').textContent =
+        '\u2014 ' + SVCLBL[SVC] + ', ' +
+        (BASIS === 'retail' ? 'at the meter on the Ofgem cap'
+                            : 'wholesale commodity');
+    }
+    svcbar.addEventListener('click', ev => {
+      const b = ev.target.closest('button'); if(!b) return;
+      svcbar.querySelectorAll('button').forEach(x =>
+        x.setAttribute('aria-pressed', String(x === b)));
+      SVC = b.dataset.hs;
+      relabel();
+      draw(WIN);
+    });
     bbar.addEventListener('click', ev => {
       const b = ev.target.closest('button'); if(!b) return;
       bbar.querySelectorAll('button').forEach(x =>
         x.setAttribute('aria-pressed', String(x === b)));
       BASIS = b.dataset.hb;
-      document.getElementById('hpbasislbl').textContent =
-        BASIS === 'retail'
-          ? '\u2014 by route, at the meter on the Ofgem cap'
-          : '\u2014 by route, wholesale commodity';
+      relabel();
       draw(WIN);
     });
     draw(365);
