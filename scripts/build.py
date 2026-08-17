@@ -309,6 +309,33 @@ EFF = {"gas": 0.835, "oil": 0.82, "bio": 0.70, "solid": 0.55,
 # keep their single figure rather than inheriting an invented ratio.
 EFF_DHW = {"gas": 0.73, "oil": 0.71}
 
+# UNDEMEANED COOLING MODEL, published as a comparison line 17 Aug 2026.
+#
+# The Tier 1 bars are the ECUK annual anchor shaped by cooling degree days.
+# This is the SECOND, independent estimate: a whole-year regression of observed
+# GB daily electricity demand on a constant, weekday/weekend, heating degree
+# days, a convex cooling limb, embedded solar, holiday and shutdown terms and a
+# linear trend, fitted on UNDEMEANED data so the level survives. Because it
+# models the baseline rather than removing it, it recovers a level that the
+# within-class centred estimator cannot (see the methodology, 4.5 and 4.6).
+#
+# Only the COOLING LIMB is carried here. On the full 800-day record with solar
+# controlled it is 0.6109 GWh of electricity per (degC above 11.0) squared,
+# giving 4.56 TWh/yr against the ECUK cooling anchor of 4.78 - 95%.
+#
+# PINNED to the fit that produced it, because a coefficient without its vintage
+# is not reproducible: re-derive with analysis/fit_cooling.py and update all
+# four fields together. The base specification without the calendar terms gives
+# a balance point of 12.0 and 3.59 TWh, 75% of the anchor; the spread between
+# 75% and 95% is the honest uncertainty on this line.
+UNDEMEANED_FIT = {
+    "k_elec_GWh_per_degC2": 0.6109,   # cooling limb coefficient
+    "balance_point_C": 11.0,
+    "fitted_on": "2026-08-17",
+    "record": "800 days, 2024-06-07 to 2026-08-15, 9 regressors, R2 0.918",
+    "share_of_ecuk_anchor_pct": 95,
+}
+
 UK_POP_M = 68.0   # population convention per the July 2026 cross-calibration †
 HP_ELEC_TWH = 2.0   # hydronic-domestic subset consistent with the ECUK
                     # elec-space anchors. NOT the DUKES 2026 ambient-heat
@@ -1803,19 +1830,19 @@ def main():
                              "COP leaves it almost intact. It is the "
                              "extensive margin, each building a step and the "
                              "fleet the integral of those steps. Tested "
-                             "against moist-air enthalpy days, which move the "
-                             "quadratic term by +7% when latent load would "
-                             "have made it fall. Rerun on corrected data "
-                             "the quadratic term FALLS 25% - the opposite "
-                             "result on the same test - so latent load may "
-                             "account for part of the bend. That rerun joined "
-                             "humidity on only half the record and is not yet "
-                             "conclusive. WHAT CAUSES THE CONVEXITY IS OPEN: "
-                             "the extensive margin remains the leading "
-                             "reading, on the response steepening rather than "
-                             "saturating and on the bend surviving division "
-                             "by the falling COP, but it is no longer "
-                             "established by excluding moisture (17 Aug 2026). "
+                             "against moist-air enthalpy days on the full "
+                             "800-day record with embedded solar carried as a "
+                             "control: dewpoint adds 0.0006 to R2 and enthalpy "
+                             "days add 0.0000, against 0.031 for bank "
+                             "holidays, and the quadratic term moves only 3% "
+                             "when they enter. Humidity is a null and the bend "
+                             "is the extensive margin. The test could have "
+                             "failed: two earlier mis-specified runs moved the "
+                             "quadratic by 25 and 27 points in opposite "
+                             "directions, and it took three attempts - after a "
+                             "double-counted solar term, an omitted solar "
+                             "control, and a half-record fetch - to obtain a "
+                             "null worth having (17 Aug 2026). "
                              "evidence. The centring "
                              "removes the LEVEL along with the confound, so "
                              "this recovers about a seventh of the ECUK "
@@ -2113,7 +2140,11 @@ def main():
         # was structurally zero. Saturation would show as a concave curve; this
         # one is convex. The band was measuring a phenomenon this data says
         # does not happen.
-        tier_daily = {"dates": [], "t1_GWh": [], "t2_GWh": []}
+        # Daily population-weighted mean temperature, already published by
+        # fetch_degree_days - the same series the degree days are derived from,
+        # so the two estimates are evaluated on identical weather.
+        tmean_by_date = dict(zip(dd["dates"], dd["gb_mean_temp"]))
+        tier_daily = {"dates": [], "t1_GWh": [], "t2_GWh": [], "t1_alt_GWh": []}
         for d_ in sorted(cdd_def)[-(WINDOW_DAYS + 5):]:
             i = idx12.get(d_)
             tier_daily["dates"].append(d_)
@@ -2126,6 +2157,16 @@ def main():
             # electricity multiplied up by the fleet EER.
             tier_daily["t2_GWh"].append(
                 round(cdd_def[d_] * 24.0 * per_degCh, 2))
+            # SECOND ESTIMATE, same day, independent method. The undemeaned
+            # regression's cooling limb, evaluated on that day's mean
+            # temperature and converted to thermal on the same EER the Tier 1
+            # bars use, so the two are directly comparable.
+            tmean = tmean_by_date.get(d_)
+            tier_daily["t1_alt_GWh"].append(
+                round(UNDEMEANED_FIT["k_elec_GWh_per_degC2"]
+                      * max(0.0, tmean - UNDEMEANED_FIT["balance_point_C"]) ** 2
+                      * COOL_EER, 2)
+                if tmean is not None else None)
 
         central = scen["central"]["latent_thermal_GWh"]
         comfort_deficit = {
