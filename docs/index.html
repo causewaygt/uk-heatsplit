@@ -744,13 +744,26 @@
       11 Aug 2026, with the computation kept as a diagnostic: a non-zero value
       would mean the curve had turned concave, which is the evidence that would
       bring it back.<br><br>
-      <b>Humidity.</b> Latent load rises about 7% per kelvin, so moist-air
-      enthalpy days were a plausible explanation for the convexity. Fetched,
-      fitted and rejected: dewpoint adds 0.0014 to R² and enthalpy days
-      add 0.0001, against 0.046 for bank holidays. The quadratic term moved
-      <b>+7%</b> when latent load would have made it fall. The bend is the
-      extensive margin — each building is a step, and the fleet is the
-      integral of those steps.</p>
+      <b>Humidity — the first test was wrong, and the rerun
+      is not yet conclusive.</b> Latent load rises with absolute moisture, so
+      moist-air enthalpy days were a plausible explanation for the convexity.
+      The original test reported a null: the quadratic term moved <b>+7%</b>
+      where latent load would have made it fall. That test ran on a series
+      which double-counted embedded solar, and the contamination biases toward
+      a null — solar correlates with temperature in summer daylight, and
+      humid days are cloudier, so moisture was left proxying for the very
+      variable that had been counted twice. Rerun on corrected data the
+      quadratic term <b>falls 25%</b>, the opposite result on the same test.
+      But that rerun joined humidity on only half the record, and its dewpoint
+      and enthalpy terms disagree in sign despite being near-identical
+      constructs, so neither reading can yet be published. <b>What causes the
+      convexity is open.</b> The extensive margin — each building a step,
+      the fleet the integral of those steps — remains the leading
+      explanation, supported by the response steepening rather than saturating
+      and by the bend surviving division by the falling COP. It is no longer
+      established by excluding moisture. The humidity fetch has been extended
+      to match the store, and the test will be rerun on the full
+      record†.</p>
     </div></details>
 
     <div class="h2lab">The geocooling dividend <span class="qual">— if a fifth of today’s cooling were ground-served</span></div>
@@ -1052,7 +1065,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.38.0';
+const SITE_VERSION = '8.39.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -2175,9 +2188,12 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       'thing and is mostly LOAD, not plant: dividing out the falling COP ' +
       'leaves the convexity almost intact. It is the extensive margin \u2014 ' +
       'each building is a step, and the fleet is the integral of those steps. ' +
-      'Tested: adding moist-air enthalpy days to the daily regression moves ' +
-      'the quadratic term by +7%, when latent load would have made it fall, ' +
-      'and adds 0.0001 to R\u00b2. Humidity is a published null here.';
+      'The FIRST humidity test reported a null; rerun on ' +
+      'corrected data the quadratic term falls 25% rather than rising 7%, ' +
+      'which is the opposite result on the same test. That rerun covered ' +
+      'only half the record, so what causes the convexity is open \u2014 the ' +
+      'extensive margin remains the leading reading, but not because ' +
+      'moisture was excluded\u2020.';
   })();
 
   // The method fold's anchor paragraph, written from the payload so the split
