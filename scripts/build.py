@@ -119,7 +119,64 @@ COOL_BASE = "15.5"
 DEFICIT_BASE = "20.0"
 
 ECUK_UK_GAS_SPACE_HEAT_TWH_2024 = 258.1
-GB_SHARE_OF_UK_GAS_HEAT = 0.985   # NI excluded from GB LDZ; estimate
+# Retained for the gas space-heat calibration anchor only, and now sourced to
+# the same NISRA figures as the per-fuel table below rather than sitting at a
+# slightly different value.
+GB_SHARE_OF_UK_GAS_HEAT = 0.988   # NI not on the GB LDZ system; estimate
+
+# PER-FUEL GB SHARES, added 17 Aug 2026 after peer review, and revised the
+# same day when the first derivation proved too aggressive.
+#
+# Until now the gas-specific 0.985 above was applied to EVERY fuel and end use
+# when scaling the UK ECUK annuals to GB. That factor is a statement about the
+# GAS NETWORK - Northern Ireland is not on the GB LDZ system - and it does not
+# transfer to a fuel whose NI penetration is nothing like its GB penetration.
+#
+# OIL, the material case. Two independent routes, reconciled:
+#   NIHE/BRE "Energy consumption in NI's housing stock: 2016" (BREDEM on the
+#   House Condition Survey) gives NI domestic primary space heating 10,700 GWh
+#   with oil at 76%, and water heating 3,500 GWh with oil at 2,700 - so 10.8
+#   TWh of NI oil heat on a 2016 basis, 21% of the UK's 51.0 TWh.
+#   The Irish Heat Split sibling estimates 8.3 TWh on a trailing-twelve-month
+#   basis, 16%.
+# Those are not in conflict: they are nine years apart in the one jurisdiction
+# where oil is retreating fastest. NISRA puts the oil share of NI homes at 61%
+# in 2024/25 against 68% on the 2016 basis, and nine years of fabric and boiler
+# improvement plus the weather difference between a trailing window and the
+# 2016 year closes the rest - 10.8 x 0.90 x 0.93 x 0.97 = 8.8 against 8.3, a
+# 5% residual.
+#
+# The site reports a trailing window, so the current-basis figure is the right
+# one: NI at about 17% of UK oil heat, GB share 0.83. A FIRST attempt used 0.69,
+# derived from household counts alone (61% of 0.80m NI homes against ~1.1m GB
+# oil homes), which ignored consumption per household and overstated the
+# correction - NI homes are smaller and newer than the GB off-grid stock, which
+# skews rural and large.
+#
+# Two known biases, opposed: the oil share is still falling, which argues
+# lower; and NIHE covers DOMESTIC only, so NI non-domestic oil sits on top,
+# which argues higher.
+#
+# Other fuels, all dagger: NI ~0.80m households of ~28.4m UK (2021 census).
+#   gas    NISRA 36% of NI homes; GB gas-connected ~23m      -> 0.99
+#   solid  NI low as primary, higher as secondary            -> 0.89
+#   everything else: no NI-specific driver, so the household share -> 0.97
+GB_SHARE = {
+    "gas": 0.988,
+    "oil": 0.830,
+    "solid": 0.893,
+    "default": 0.972,
+}
+
+
+def gb_share(key):
+    """GB share of a UK annual, by fuel. See GB_SHARE above."""
+    for k in ("oil", "solid"):
+        if key.startswith(k):
+            return GB_SHARE[k]
+    if key.startswith("gas"):
+        return GB_SHARE["gas"]
+    return GB_SHARE["default"]
 ECUK_ANCHOR_STATUS = ("ECUK 2025 U3+U5, calendar 2024, UK; GB share and "
                       "weather normalisation applied")
 
@@ -290,7 +347,40 @@ HP_FLAT_SHARE = 0.15   # HP hot-water runs year-round (assumption)
 GSHP_SPF = 3.24   # Energy Systems Catapult in-situ GSHP average
 ASHP_SPF = 2.80   # ESC Electrification of Heat median
 PASSIVE_COOL_COP = 20.0  # illustrative mid-range of 15-30
-GEO_NETWORK_SCOP = 5.0   # networked geothermal (shared ambient loop)
+# NETWORKED GEOTHERMAL SEASONAL PERFORMANCE FACTOR.
+#
+# SYSTEM BOUNDARY, stated explicitly 17 Aug 2026 after peer review. This is a
+# WHOLE-SYSTEM figure on the same basis as the SEPEMO H4 boundary the
+# air-source and ground-source anchors use, so the comparison is like-for-like
+# rather than a monitored H4 SPF against an optimistic plant-only COP.
+#
+# INSIDE the boundary - all electricity metered at the network supply point:
+#   building heat pumps and their auxiliaries
+#   district ambient-loop circulation
+#   source-side and primary-loop circulation
+#   production and injection well pumping, where a doublet is used
+#   controls and BMS
+#   seasonal store charging and recovery losses, as a round-trip penalty
+# The denominator is heat DELIVERED AT THE BUILDING BOUNDARY, so distribution
+# heat losses are inside the boundary too.
+#
+# OUTSIDE the boundary:
+#   groundwater treatment, where required - not modelled, would reduce SPF
+#   customer-side emitters and internal distribution
+#   embodied energy and construction
+#
+# 5.0 IS AN ESTIMATE, NOT A MEASUREMENT, and it is the single assumption most
+# of the site's strongest conclusions rest on. No monitored UK ambient-loop
+# network fleet exists to anchor it. It is internally consistent with the
+# 19.6 C source temperature at the same Carnot fraction as the two monitored
+# routes (see retro.py), but that consistency is how the source was derived
+# and is not independent evidence for either - see the methodology, 10.3.
+#
+# The parasitic load is the part most likely to be optimistic: European
+# ambient-loop and ATES schemes commonly report 5-15% of delivered heat going
+# to circulation, and at the upper end of that range a plant-level 5.6 becomes
+# a whole-system 5.0. That is the arithmetic this figure assumes.
+GEO_NETWORK_SCOP = 5.0   # whole-system, H4-equivalent boundary - estimate
 
 # Indigenous (UK-origin) shares of purchased energy - flagged estimates:
 #  gas ~42% UK (DUKES 2026 supply pool); oil ~30%; bio ~80% (domestic
@@ -337,11 +427,11 @@ def compute_week(gas_space_wk, hdd_wk, cdd_wk, hdd_12m, cdd_12m, p):
     live and backfilled weeks are comparable by construction (spec: 'same
     estimators'). Emissions need a grid CI and live in
     compute_week_emissions()."""
-    g = GB_SHARE_OF_UK_GAS_HEAT
     f_flat = 7.0 / 365.0
     f_h = (hdd_wk / hdd_12m) if hdd_12m else 0.0
     f_c = (cdd_wk / cdd_12m) if cdd_12m else 0.0
-    A = {k: v * g * 1000.0 for k, v in ANNUAL_TWH.items()}  # GWh, GB
+    # Per-fuel GB shares, not one gas-network factor for everything.
+    A = {k: v * gb_share(k) * 1000.0 for k, v in ANNUAL_TWH.items()}  # GWh, GB
 
     # Oil is one bar on the page but TWO loads on two different curves, and
     # from 13 Aug 2026 two different efficiencies. Kept separate through the
@@ -387,7 +477,7 @@ def compute_week(gas_space_wk, hdd_wk, cdd_wk, hdd_12m, cdd_12m, p):
     # (Energy Systems Catapult EoH median ASHP 2.80; GSHP 3.24).
     # Cooling: EER 3.0 (assumption) on the CDD-shaped half; ventilation
     # counted at 1.0 (fan energy delivers a service, not multiplied).
-    hp_elec_wk = HP_ELEC_TWH * g * 1000.0 * (
+    hp_elec_wk = HP_ELEC_TWH * GB_SHARE["default"] * 1000.0 * (
         (1 - HP_FLAT_SHARE) * f_h + HP_FLAT_SHARE * f_flat)
     hp_elec_wk = min(hp_elec_wk, mix["elec_heat"])       # cannot exceed segment
     resistive_wk = mix["elec_heat"] - hp_elec_wk
@@ -1013,8 +1103,8 @@ def main():
                      weekly["cdd_total"], hdd_12m, cdd_12m, p)
     mix, useful = r["mix"], r["useful"]
     f_flat, f_h, f_c = r["f_flat"], r["f_h"], r["f_c"]
-    g = GB_SHARE_OF_UK_GAS_HEAT
-    A = {k: v * g * 1000.0 for k, v in ANNUAL_TWH.items()}  # GWh, GB
+    # Per-fuel GB shares, not one gas-network factor for everything.
+    A = {k: v * gb_share(k) * 1000.0 for k, v in ANNUAL_TWH.items()}  # GWh, GB
 
     weekly_mix = {
         "components_GWh": mix,
@@ -1087,8 +1177,11 @@ def main():
                                     # 0.05-0.1 - no national statistic exists
     }
     geo_today = GEO["today_gshp_TWh"] + GEO["today_deep_TWh"]
-    geo_week = geo_today * g * 1000.0 * (0.85 * f_h + 0.15 * f_flat)
-    geo_cool_week = GEO["today_cool_TWh"] * g * 1000.0 * f_c
+    # Geothermal and heat pumps have no NI-specific driver, so they take the
+    # household share rather than the gas-network factor.
+    geo_week = (geo_today * GB_SHARE["default"] * 1000.0
+                * (0.85 * f_h + 0.15 * f_flat))
+    geo_cool_week = GEO["today_cool_TWh"] * GB_SHARE["default"] * 1000.0 * f_c
     heat_week_total = (mix["gas_space"] + mix["gas_dhw"] + mix["oil"]
                        + mix["elec_heat"] + mix["bio_other"]
                        + mix["heat_networks"] + mix["solid"])
@@ -1634,13 +1727,35 @@ def main():
                 den = sum(x * x for x, y in lows)
                 slope_l = num / den if den else 0.0
                 slope_ok = slope_l > 0
+                # CEILING FIX, 11 Aug 2026, and the fit is computed HERE -
+                # above the weekly loop - so the weekly headline and the daily
+                # series use ONE estimator. Until 17 Aug 2026 the fit sat
+                # thirty lines below and the weekly loop still read the binned
+                # curve, so the same metric had two implementations: the daily
+                # chart was continuous and the weekly bar was the old shelf.
+                # Found in peer review.
+                #
+                # The binned curve tops out at a shelf: the old top bin held
+                # every day from CDD 4 to CDD 8 at one value, so 15 days a year
+                # were served the same figure whatever the weather. Fitted
+                # continuously instead - the same quadratic form the undemeaned
+                # regression independently arrives at, so one shape is used
+                # throughout. Also discards the negative low bin, which was
+                # noise, and that is stated rather than hidden.
+                num = den = 0.0
+                mids = {1: 0.5, 2: 1.5, 3: 2.5, 4: 3.5, 5: 5.5}
+                for b_, v_ in curve.items():
+                    x_ = mids.get(int(b_), float(b_))
+                    num += x_ * x_ * v_
+                    den += x_ ** 4
+                k_cool = (num / den) if den else 0.0
+
                 wk_deliv = 0.0
                 wk_latent = 0.0
                 for d_ in wk:
                     c = dd["cdd"][COOL_BASE][dd_idx[d_]]
-                    b = 0 if c == 0 else min(5, int(c) + 1)
-                    wk_deliv += max(0.0, curve.get(
-                        b, curve.get(max(curve), 0.0))) if b > 0 else 0.0
+                    # SAME continuous quadratic as the daily series below.
+                    wk_deliv += max(0.0, k_cool * c * c)
                     wk_latent += slope_l * c if slope_ok else 0.0
                 # Daily tier 1 and 2 across the whole record, so the three
                 # tiers can be drawn as a stacked column per day rather than
@@ -1650,21 +1765,6 @@ def main():
                 # degree days - not the gas window. The curve reaches back two
                 # summers; clipping the series to gas would have thrown away
                 # May and June 2025 and broken the 24-month view.
-                # CEILING FIX, 11 Aug 2026. The binned curve tops out at a
-                # shelf: the old top bin held every day from CDD 4 to CDD 8 at
-                # one value, so 15 days a year were served the same figure
-                # whatever the weather. Fitted continuously instead - the same
-                # quadratic form the undemeaned regression independently
-                # arrives at, so one shape is used throughout. Also discards
-                # the negative low bin, which was noise, and that is stated
-                # rather than hidden. Annual total rises about 26%.
-                num = den = 0.0
-                mids = {1: 0.5, 2: 1.5, 3: 2.5, 4: 3.5, 5: 5.5}
-                for b_, v_ in curve.items():
-                    x_ = mids.get(int(b_), float(b_))
-                    num += x_ * x_ * v_
-                    den += x_ ** 4
-                k_cool = (num / den) if den else 0.0
                 daily_t12 = {"dates": [], "delivered_GWh": [], "unmet_GWh": [],
                              "k_quadratic": round(k_cool, 4)}
                 for d_ in sorted(cdd_by_date):
@@ -1705,12 +1805,17 @@ def main():
                              "fleet the integral of those steps. Tested "
                              "against moist-air enthalpy days, which move the "
                              "quadratic term by +7% when latent load would "
-                             "have made it fall - but that test ran on a "
-                             "series that double-counted embedded solar, and "
-                             "the contamination biases TOWARD a null rather "
-                             "than away from it, so the humidity result is "
-                             "withdrawn pending a rerun (17 Aug 2026). The "
-                             "extensive-margin reading stands on its other "
+                             "have made it fall. Rerun on corrected data "
+                             "the quadratic term FALLS 25% - the opposite "
+                             "result on the same test - so latent load may "
+                             "account for part of the bend. That rerun joined "
+                             "humidity on only half the record and is not yet "
+                             "conclusive. WHAT CAUSES THE CONVEXITY IS OPEN: "
+                             "the extensive margin remains the leading "
+                             "reading, on the response steepening rather than "
+                             "saturating and on the bend surviving division "
+                             "by the falling COP, but it is no longer "
+                             "established by excluding moisture (17 Aug 2026). "
                              "evidence. The centring "
                              "removes the LEVEL along with the confound, so "
                              "this recovers about a seventh of the ECUK "
