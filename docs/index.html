@@ -555,9 +555,25 @@
       proceed, the resulting register with published system performance would
       be the UK's first mandatory geothermal data source — this panel is
       designed to ingest it from ~2027.</p>
-    <p><b>Northern Ireland.</b> NI is not on the GB network shown here. NI heating
-      is estimated annually from subnational consumption statistics scaled by NI
-      degree days.</p>
+    <p><b>Northern Ireland, and the UK-to-GB step.</b> NI is
+      not on the GB network shown here. NI heating is estimated annually from
+      subnational consumption statistics shaped by NI degree days, and that
+      estimate now has a source: NIHE and BRE modelled NI domestic heat at
+      14.2 TWh (10,700 GWh primary space heating plus 3,500 GWh water) from the
+      House Condition Survey, which is within 2% of the figure this site was
+      already carrying.
+      <b>The annual figures behind every other series are UK totals from ECUK,
+      scaled to GB per fuel.</b> Until 17 August 2026 a single gas-network
+      factor of 0.985 was applied to all of them, which is a statement about
+      the GB gas grid and does not transfer. It was wrong for oil, where
+      NI holds a far larger share than its population: NIHE put NI oil heat at
+      10.8 TWh on a 2016 basis, and the Irish sibling site estimates 8.3 TWh on
+      a trailing twelve months — not a conflict but nine years apart, with
+      NISRA showing the oil share of NI homes falling from 68% to 61% over that
+      period. On the current basis NI holds about 17% of UK oil heat, so the
+      shares are now per fuel: gas 0.988, <b>oil 0.830</b>, solid fuel 0.893,
+      everything else the household share of 0.972†. GB oil heat falls
+      about 16%. Found in peer review.</p>
     <p id="trendpara" style="display:none"><b>Trends.</b> <span id="trendnote">—</span></p>
     <p><b>Indigenous share &amp; 20% what-if.</b> <span id="indignote">—</span></p>
     <p><b>Calibration.</b> <span id="calib">—</span></p>
@@ -1065,7 +1081,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.39.0';
+const SITE_VERSION = '8.41.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
