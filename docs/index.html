@@ -707,9 +707,12 @@
       own month and day type before fitting. That removes the holiday and
       seasonal confound — August demand is depressed exactly when it is
       hottest — but it removes the <b>level</b> along with it, because the
-      monthly mean contains most of the cooling. So the curve recovers about a
-      <b>seventh</b> of the anchored figure and is a lower bound by
-      construction, not a contradiction of it.
+      monthly mean contains most of the cooling. So the published curve
+      recovers about a <b>third</b> of the anchored figure and is a lower
+      bound by construction, not a contradiction of it. That share has moved
+      as the estimator improved — it was a seventh before the binned
+      ceiling was replaced by a continuous fit — so it is recomputed from
+      the payload rather than quoted from memory†.
       Modelling the baseline explicitly instead — constant, day type,
       holidays, a heating limb and a convex cooling limb, fitted on undemeaned
       daily data — keeps the intercept, and recovers <b>74%</b> of the
@@ -719,19 +722,6 @@
       could be the anchor running high, the fit running low, or the shape being
       wrong, and 400 days cannot tell them apart.</p>
 
-    <div class="h2lab" style="margin-top:4px">Withdrawn: the diurnal separation <span class="qual">— what it claimed, and why it is gone</span></div>
-    <p class="costnote">Until 17 August 2026 this fold opened with a chart
-      separating comfort from process cooling by hour: an overnight floor of
-      0.261 GW/°C rising to 0.676 at noon, offered as evidence that a
-      continuously running refrigeration load is separable from daytime comfort
-      cooling. <b>It was an artefact.</b> The demand series already contains
-      embedded solar, and the analysis added it a second time — which
-      manufactures a correlation with temperature in exactly the daylight hours
-      where a cooling signal would appear. Corrected, the profile is flat:
-      0.26 at 04:00 and 0.24 at noon, a ratio of 0.93 rather than 2.6. There is
-      no daytime separation in this data. The chart and its claim are withdrawn,
-      and Tier 0 in the legend above is now supported only by the bottom-up
-      count, not by any grid measurement. Found in peer review.</p>
     <div class="h2lab" style="margin-top:26px">The observed response curve <span class="qual">— what the equipped fleet draws as it warms</span></div>
     <div class="billline" id="coolobsline"></div>
     <div id="coolcurve" style="width:100%;height:300px"></div>
@@ -744,7 +734,19 @@
       <div class="billline" id="reconline"></div>
       <p class="costnote" id="reconnote"></p>
     </div>
-    <div class="h2lab" style="margin-top:26px">Tested and rejected <span class="qual">— three things that did not survive</span></div>
+    <div class="h2lab" style="margin-top:26px">Tested and rejected <span class="qual">— four things that did not survive, and one that did</span></div>
+    <p class="costnote"><b>The diurnal separation.</b> Until 17 August 2026
+      this fold opened with a chart separating comfort from process cooling
+      by hour: an overnight floor of 0.261 GW/°C rising to 0.676 at noon,
+      offered as evidence that a continuously running refrigeration load is
+      separable from daytime comfort cooling. <b>It was an artefact.</b> The
+      demand series already contains embedded solar and the analysis added it
+      a second time, which manufactures a correlation with temperature in
+      exactly the daylight hours where a cooling signal would appear.
+      Corrected, the profile is flat — 0.26 at 04:00 against 0.24 at noon,
+      a ratio of 0.93 rather than 2.6. There is no daytime separation in this
+      data. Tier 0 above is now supported by the bottom-up count alone, not by
+      any grid measurement. Found in peer review.</p>
     <p class="costnote"><b>Slope to level.</b> Refrigeration power is
       proportional to the lift, so a measured slope of demand against ambient
       should integrate to a level without needing the intercept. It does not
@@ -760,8 +762,7 @@
       11 Aug 2026, with the computation kept as a diagnostic: a non-zero value
       would mean the curve had turned concave, which is the evidence that would
       bring it back.<br><br>
-      <b>Humidity — tested and rejected, on a test that could
-      have failed.</b> Latent load rises with absolute moisture, so moist-air
+      <b>Humidity, on a test that could have failed.</b> Latent load rises with absolute moisture, so moist-air
       enthalpy days were a plausible explanation for the convexity. On the full
       800-day record with embedded solar carried as a control, <b>dewpoint adds
       0.0006 to R² and enthalpy days add 0.0000</b> — against 0.031 for
@@ -775,6 +776,18 @@
       directions. It took three attempts to obtain a null worth having, after a
       double-counted solar term, an omitted solar control that left moisture
       proxying for it, and a workflow that fetched half the record†.</p>
+    
+    <p class="costnote"><b>And three routes tried offline, not published here.</b>
+      Recovering the level that within-class centring removes was attempted
+      five ways in all. Two more failed: fitting a balance point as the vertex
+      of a V, which turns out to place its kink wherever the middle of the data
+      is — the fitted vertex tracks each hour’s own mean temperature with
+      R² 0.97 — and borrowing a level from the gas side, which establishes that
+      balance points are spread across the stock but yields a shape without a
+      scale. One remains open: comparing weekday with weekend demand at the
+      same temperature, which gives 10 to 39% of the anchor and passes a night
+      placebo. None is used in any published figure. All are documented in the
+      methodology†.</p>
     </div></details>
 
     <div class="h2lab">The geocooling dividend <span class="qual">— if a fifth of today’s cooling were ground-served</span></div>
@@ -1095,7 +1108,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.47.1';
+const SITE_VERSION = '8.48.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
