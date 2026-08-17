@@ -2,7 +2,7 @@ name: Update heat split
 
 on:
   schedule:
-    - cron: '43 3 * * *'
+    - cron: "43 3 * * *"
   workflow_dispatch:
 
 permissions:
@@ -22,10 +22,23 @@ jobs:
 
       - name: Build data.json
         run: python scripts/build.py
-        
+
+      # OFFLINE ANALYSIS, not part of the site. build.py writes
+      # analysis/gas_daily.json as a by-product; this reads it while it still
+      # exists on the runner, so nothing derived has to be committed.
+      #
+      # continue-on-error because this is an experiment sitting inside a
+      # production build: if the estimator throws, the site must still publish
+      # and the failure marker below must not fire.
       - name: Balance-point spread (offline)
-        run: python3 analysis/fit_balance_spread.py analysis/gas_daily.json
-        
+        continue-on-error: true
+        run: |
+          if [ -f analysis/gas_daily.json ]; then
+            python3 analysis/fit_balance_spread.py analysis/gas_daily.json
+          else
+            echo "no analysis/gas_daily.json - build.py did not write it"
+          fi
+
       - name: Commit and push
         run: |
           git config user.name "heatsplit-bot"
