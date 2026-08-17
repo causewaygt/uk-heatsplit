@@ -77,8 +77,11 @@ def daily_from_retro(store):
         if T[i] is None or D[i] is None:
             continue
         ts = t0 + dt.timedelta(hours=i)
+        # demand_GW is ALREADY underlying - see the note in retro.py. Adding
+        # embedded solar here double-counted it and inflated every daytime
+        # slope. Peer review, 17 Aug 2026.
         s = (S[i] or 0.0) if i < len(S) else 0.0
-        buckets.setdefault(ts.date(), []).append((T[i], D[i] + s, s))
+        buckets.setdefault(ts.date(), []).append((T[i], D[i], s))
     rows = []
     for d_, v in sorted(buckets.items()):
         if len(v) < 20:
