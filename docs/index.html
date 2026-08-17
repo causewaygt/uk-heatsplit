@@ -1095,7 +1095,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.45.3';
+const SITE_VERSION = '8.47.1';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -2178,7 +2178,7 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       if(has(cut(td.t1_alt_GWh))){
         traces.push({
           x: dates, y: cut(td.t1_alt_GWh),
-          name: 'Tier 1 \u00b7 second estimate, from grid demand',
+          name: 'Whole equipped fleet \u00b7 second estimate',
           type: 'scatter', mode: 'lines',
           line: {color: css('--paper'), width: 2, dash: 'dot'},
           hovertemplate: '%{x}<br>%{y:.1f} GWh thermal' +
@@ -2208,16 +2208,27 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
         '</b><span style="color:var(--muted)"> \u2014 ' + note + '</span></div></div>';
       document.getElementById('tierlegend').innerHTML =
         '<div style="font-size:13px;line-height:1.5;margin-top:12px">' +
+        '<div style="color:var(--muted);margin-bottom:10px">' +
+        '<b>The anchor these tiers are measured against</b> is the national ' +
+        'statistic: ECUK reports about <b>4,800 GWh a year</b> of electricity ' +
+        'for cooling in services buildings, which is roughly <b>14,400 GWh of ' +
+        'delivered cooling</b> once the refrigeration cycle is applied. It ' +
+        'counts what metered buildings actually consumed. Each tier below ' +
+        'states whether it sits inside that figure or outside it \u2014 they ' +
+        'are not all additions to it.</div>' +
         key(css('--cool'), 'Tier 1 measured response', t1,
-            'the weather-varying slice of the equipped fleet\u2019s draw. This ' +
-            'sits INSIDE the ECUK anchor above, not beside it \u2014 it is ' +
-            'about a seventh of it, because the method centres within each ' +
-            'month and cannot see cooling that runs steadily through July') +
+            'the weather-VARYING slice of the equipped fleet\u2019s draw, ' +
+            'measured from grid demand. <b>INSIDE the anchor, not beside ' +
+            'it</b> \u2014 about a third of it. The method centres within ' +
+            'each calendar month, so cooling that runs steadily through July ' +
+            'sits in the July average and is invisible to it. The remaining ' +
+            'two thirds are real and are not shown here\u2020.') +
         key(css('--ember'), 'Tier 2 no equipment', t2,
             'buildings with no cooling at all, central scenario \u2014 a ' +
             'thermal load computed from building physics, so unlike tier 1 it ' +
-            'never touches an efficiency. OUTSIDE the anchor: a building that ' +
-            'consumes nothing cannot be counted by a consumption survey') +
+            'never touches an efficiency. <b>OUTSIDE the anchor</b>, and ' +
+            'therefore genuinely additional to it: a building that consumes ' +
+            'nothing cannot be counted by a survey of consumption.') +
         key('transparent;border:1px dashed ' + css('--ash'),
             'Tier 0 process cooling', null,
             'data centres, cold stores, retail and food refrigeration \u2014 of ' +
@@ -2229,19 +2240,22 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
             'METHOD below.') +
         (has(td.t1_alt_GWh)
           ? key(css('--paper') + ';height:2px;margin-top:5px',
-                'Tier 1 \u00b7 second estimate, from grid demand', null,
-                'the dotted line is <b>the same quantity as the blue bars, ' +
-                'measured a different way</b> \u2014 not another tier. The ' +
-                'bars are the ECUK annual anchor spread across the year by ' +
-                'cooling degree days. The line is a whole-year regression of ' +
-                'observed GB electricity demand on temperature, fitted ' +
-                '<b>undemeaned</b> so the level survives, controlling for ' +
-                'embedded solar, holidays, the Christmas shutdown and a ' +
-                'trend. Over a year it integrates to <b>95%</b> of the ECUK ' +
-                'anchor on its full specification and 75% on the plain one; ' +
-                'that spread is the honest uncertainty. The published figures ' +
-                'remain the ECUK-anchored bars \u2014 this is corroboration, ' +
-                'not a replacement\u2020.')
+                'The whole equipped fleet, second estimate', null,
+                'the dotted line is <b>not another tier, and not the same ' +
+                'quantity as the blue bars</b>. The bars are the ' +
+                'weather-VARYING slice the centred method can see. The line ' +
+                'is an independent estimate of the equipped fleet\u2019s ' +
+                '<b>whole</b> cooling load \u2014 a year-round regression of ' +
+                'observed GB demand on temperature, fitted <b>undemeaned</b> ' +
+                'so the level survives, controlling for embedded solar, ' +
+                'holidays, the Christmas shutdown and a trend. <b>The gap ' +
+                'between the line and the blue bars is the point:</b> it is ' +
+                'roughly what centring within each month removes. Over a ' +
+                'year the line integrates to 95% of the ECUK anchor on its ' +
+                'full specification and 75% on the plain one; that spread is ' +
+                'the honest uncertainty. The published figures remain the ' +
+                'ECUK-anchored bars \u2014 this is corroboration, not a ' +
+                'replacement\u2020.')
           : '') +
         '</div>';
       document.getElementById('tierdailynote').textContent = '';
