@@ -856,6 +856,35 @@ def build_history(prev, dd, base, slope, target):
     hdd_by_date = dict(zip(dd["dates"], dd["hdd"][base]))
     cdd_by_date = dict(zip(dd["dates"], dd["cdd"][COOL_BASE]))
 
+    # Daily gas-and-temperature pair, dumped for offline analysis. Both series
+    # are already in scope here for the segmented regression, so writing them
+    # out costs nothing and unblocks questions about the pair that the kinked
+    # model cannot be asked - in particular whether balance points are spread
+    # across the stock rather than shared. See analysis/fit_balance_spread.py.
+    #
+    # NOT used by anything on the build path. If this block fails the build
+    # continues: it is a by-product, not a dependency.
+    try:
+        _tmap = dict(zip(dd["dates"], dd["gb_mean_temp"]))
+        _gt = {"dates": [], "temp_C": [], "gas_GWh": []}
+        for _d in dd["dates"]:
+            _g = gas["ldz_sum"].get(_d)
+            _t = _tmap.get(_d)
+            if _g is not None and _t is not None:
+                _gt["dates"].append(_d)
+                _gt["temp_C"].append(_t)
+                _gt["gas_GWh"].append(_g)
+        os.makedirs("analysis", exist_ok=True)
+        with open("analysis/gas_daily.json", "w") as _f:
+            json.dump(_gt, _f)
+        print("gas_daily.json: %d paired days, %s to %s"
+              % (len(_gt["dates"]),
+                 _gt["dates"][0] if _gt["dates"] else "-",
+                 _gt["dates"][-1] if _gt["dates"] else "-"))
+    except Exception:
+        traceback.print_exc()
+
+
     # trailing-365d degree-day sums ending any date (prefix sums)
     dd_dates = dd["dates"]
     cum_h, cum_c = [0.0], [0.0]
