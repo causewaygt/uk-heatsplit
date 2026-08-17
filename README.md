@@ -401,7 +401,16 @@ heating. The blended view is a harmonic mean weighted by the service mix
 actually served that day, and is the only one that moves with the load. **The spark-gap ticker carries both bases** for the same
 reason.
 
-**Seven defects were found and declared**, and are tabulated in §13 of the
-methodology. Three new build gates were added as a direct result.
+**Twelve defects were found and declared**, and are tabulated in §13 of the
+methodology. Four came from an external peer review on 17 August 2026 and are
+the most serious: embedded solar was added twice in three cooling diagnostics,
+which made the diurnal comfort/process separation an artefact and invalidated
+the 74% cooling reconciliation — both now withdrawn; the network source
+temperature was presented as an independent check on the Carnot fraction when
+it is derived to produce that agreement; the front end added the air-source
+approach temperature instead of subtracting it; and "electrification limit"
+implied capacity-adequacy modelling the calculation does not do. Three new
+build gates were added earlier in v8, and none of them would have caught these:
+a slope diagnostic has no plausible range to gate against.
 
 *A Causeway Energies public-interest tool — https://causewaygt.com*
