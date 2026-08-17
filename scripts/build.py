@@ -350,6 +350,19 @@ def compute_week(gas_space_wk, hdd_wk, cdd_wk, hdd_12m, cdd_12m, p):
     oil_space_wk = A["oil_space"] * f_h
     oil_dhw_wk = A["oil_dhw"] * f_flat
 
+    # ONE SPLIT, BOTH CHAINS. The purchased and useful sides previously
+    # disagreed: this dict used a 50/50 flat/weather split while the useful
+    # conversion below used the sourced BEES 54:46 ventilation:cooling split.
+    # Same annual, two answers. Found in peer review, 17 Aug 2026 - the 54:46
+    # correction had propagated to the useful side only.
+    #
+    # Ventilation runs whenever buildings are occupied and does not respond to
+    # temperature, so it takes the FLAT shape; cooling is weather-driven and
+    # takes the COOLING shape. The shares are the ones sourced at VENT_SHARE
+    # and COOL_SHARE, not a half-and-half approximation of them.
+    vent_elec = A["cooling_vent"] * VENT_SHARE * f_flat
+    cool_elec = A["cooling_vent"] * COOL_SHARE * f_c
+
     mix = {
         "gas_space": round(gas_space_wk, 0),                # live estimate
         "gas_dhw": round(A["gas_dhw"] * f_flat, 0),
@@ -358,7 +371,7 @@ def compute_week(gas_space_wk, hdd_wk, cdd_wk, hdd_12m, cdd_12m, p):
         "bio_other": round(A["bio_space"] * f_h + A["bio_dhw"] * f_flat, 0),
         "heat_networks": round(A["heat_networks"] * f_h, 0),
         "solid": round(A["solid"] * f_h, 0),
-        "cooling": round(A["cooling_vent"] * (0.5 * f_flat + 0.5 * f_c), 0),
+        "cooling": round(vent_elec + cool_elec, 0),
     }
     combustion = (mix["gas_space"] + mix["gas_dhw"] + mix["oil"]
                   + mix["bio_other"] + mix["solid"])
@@ -381,11 +394,8 @@ def compute_week(gas_space_wk, hdd_wk, cdd_wk, hdd_12m, cdd_12m, p):
     hp_heat_wk = hp_elec_wk * HP_SPF
     hp_ambient_wk = hp_heat_wk - hp_elec_wk
 
-    # Ventilation runs whenever buildings are occupied and does not respond to
-    # temperature, so it takes the flat shape. Cooling is weather-driven and
-    # takes the cooling shape.
-    vent_elec = A["cooling_vent"] * VENT_SHARE * f_flat
-    cool_elec = A["cooling_vent"] * COOL_SHARE * f_c
+    # vent_elec and cool_elec are computed once, above the mix, and reused
+    # here - so the purchased and useful sides cannot drift apart again.
     vent_useful = vent_elec * 1.0        # air movement, no COP - see above
     cool_useful = cool_elec * COOL_EER   # cooling service only
 
@@ -1695,8 +1705,13 @@ def main():
                              "fleet the integral of those steps. Tested "
                              "against moist-air enthalpy days, which move the "
                              "quadratic term by +7% when latent load would "
-                             "have made it fall and add 0.0001 to R2 - "
-                             "humidity is a published null here. The centring "
+                             "have made it fall - but that test ran on a "
+                             "series that double-counted embedded solar, and "
+                             "the contamination biases TOWARD a null rather "
+                             "than away from it, so the humidity result is "
+                             "withdrawn pending a rerun (17 Aug 2026). The "
+                             "extensive-margin reading stands on its other "
+                             "evidence. The centring "
                              "removes the LEVEL along with the confound, so "
                              "this recovers about a seventh of the ECUK "
                              "anchor and is a lower bound by construction; "
