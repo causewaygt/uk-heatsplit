@@ -132,10 +132,16 @@ setTimeout(() => {
   if (p3) {
     const share = num(p3.querySelector(".fig").textContent);
     const cl = p3.querySelector(".claim").textContent;
+    // Wording changed at v8.37: "fit inside the grid Britain already has"
+    // implied capacity-adequacy modelling the calculation does not do. The
+    // claim is now a statement about the winters on record. The assertion
+    // still pins claim to figure - only the phrasing moved.
     chk("point 03 claim matches its own figure",
-        share >= 100 ? /fit inside the grid/.test(cl)
-                     : /come close to fitting/.test(cl),
+        share >= 100 ? /leave the national margin intact/.test(cl)
+                     : /come close to leaving the national margin/.test(cl),
         share + "% -> " + cl);
+    chk("point 03 is scoped to the observed record, not to adequacy",
+        /winters on record/i.test(cl));
     chk("point 03 states the no-peaking assumption",
         /gas peaking/i.test(p3.querySelector(".qual").textContent));
   }
