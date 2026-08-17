@@ -1876,7 +1876,7 @@ def main():
                              "null worth having (17 Aug 2026). "
                              "evidence. The centring "
                              "removes the LEVEL along with the confound, so "
-                             "this recovers about a seventh of the ECUK "
+                             "this recovers about a THIRD of the ECUK "
                              "anchor and is a lower bound by construction; "
                              "modelling the baseline explicitly on undemeaned "
                              "daily data recovers 74%. A third tier, "
