@@ -1267,7 +1267,13 @@ def diurnal_slope(store):
         ts = t0 + dt.timedelta(hours=i)
         if ts.month not in (6, 7, 8):
             continue
-        rows.append((ts, T[i], D[i] + ((S[i] or 0.0) if i < len(S) else 0.0)))
+        # demand_GW is ALREADY underlying: NESO ND plus embedded wind AND
+        # solar (see fetch_hourly_system). Adding solar here counted it twice
+        # and manufactured a correlation with temperature in daylight hours -
+        # which is exactly where a cooling signal would appear. Found in peer
+        # review, 17 Aug 2026. Do not "add embedded generation back": it is
+        # already in the series.
+        rows.append((ts, T[i], D[i]))
     if len(rows) < 400:
         return None
 
@@ -1364,7 +1370,13 @@ def night_elbow(store):
         ts = t0 + dt.timedelta(hours=i)
         if ts.month not in (5, 6, 7, 8, 9) or not (1 <= ts.hour <= 5):
             continue
-        rows.append((ts, T[i], D[i] + ((S[i] or 0.0) if i < len(S) else 0.0)))
+        # demand_GW is ALREADY underlying: NESO ND plus embedded wind AND
+        # solar (see fetch_hourly_system). Adding solar here counted it twice
+        # and manufactured a correlation with temperature in daylight hours -
+        # which is exactly where a cooling signal would appear. Found in peer
+        # review, 17 Aug 2026. Do not "add embedded generation back": it is
+        # already in the series.
+        rows.append((ts, T[i], D[i]))
     if len(rows) < 200:
         return None
 
