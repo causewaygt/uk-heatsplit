@@ -78,10 +78,13 @@ setTimeout(() => {
   // connections. At zero cooling the case is the old one, 2.05 - and the
   // check below pins that too, so the cooling contribution stays visible
   // rather than being absorbed into a new baseline.
-  chk("default benefit-cost ratio is 2.53", near(c.bcr, 2.53, 0.02), c.bcr.toFixed(3));
-  chk("default net present social value is about +30bn", near(c.npsv, 30, 1),
+  // Moved 17 Aug 2026 when pre-FID development capital came inside the
+  // appraisal at 7.4% of the subsurface increment - a peer-review finding.
+  // The ratio falls about 6%; the case does not turn on it.
+  chk("default benefit-cost ratio is 2.37", near(c.bcr, 2.37, 0.02), c.bcr.toFixed(3));
+  chk("default net present social value is about +28bn", near(c.npsv, 28, 1),
       c.npsv.toFixed(1));
-  chk("default social cost is about 19bn", near(c.cost, 19, 1), c.cost.toFixed(1));
+  chk("default social cost is about 21bn", near(c.cost, 21, 1), c.cost.toFixed(1));
   chk("six levers, no more", D.querySelectorAll("#capitalpanel input[type=range]").length === 6);
   // The cooling lever must be able to go to zero and leave the heat case
   // standing on its own. A lever that improves both sides of the ratio at
@@ -91,8 +94,8 @@ setTimeout(() => {
     if(!lv){ chk("cooling lever exists", false); return; }
     lv.value = 0; lv.dispatchEvent(new w.Event("input"));
     const zero = w.capitalModel.compute();
-    chk("at zero cooling the heat case stands alone at 2.05",
-        near(zero.bcr, 2.05, 0.02), zero.bcr.toFixed(3));
+    chk("at zero cooling the heat case stands alone at 1.91",
+        near(zero.bcr, 1.91, 0.02), zero.bcr.toFixed(3));
     lv.value = 30; lv.dispatchEvent(new w.Event("input"));
   })();
 
@@ -152,8 +155,14 @@ setTimeout(() => {
   const txt = el("capitalpanel").textContent;
   for (const [what, re] of [
     ["it is published against interest", /published against interest/],
-    ["pre-FID development capital is excluded", /Pre-FID development capital is excluded/],
-    ["the European risk funds are named, and the UK gap", /the UK has none/],
+    // Reversed 17 Aug 2026: devex is now INSIDE the appraisal, so the panel
+    // must say so rather than explaining its exclusion. The blend and the
+    // success-rate division are the parts a reader has to be able to check.
+    ["pre-FID development capital is inside the figures",
+     /development capital is now INSIDE/i],
+    ["the devex blend is stated", /shallow underground storage and closed loop at/i],
+    ["the success-rate division is explained", /did not proceed/i],
+    ["the European risk funds are named, and the UK gap", /The UK has\s+none/i],
     ["the TS1 sizing basis is cited", /TS1 requirement 1\.7\.15/],
     // The financing sub-panel came out on 10 Aug 2026: Annex A compares
     // EXCHEQUER costs, and a heat network is a commercial asset funded by heat
