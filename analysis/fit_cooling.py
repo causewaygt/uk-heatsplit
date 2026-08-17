@@ -172,6 +172,15 @@ def main(retro_path, hum_path=None):
     if hum_path:
         hit = attach_humidity(rows, json.load(open(hum_path)))
         have_hum = hit >= 60
+        cov = 100.0 * hit / max(1, len(rows))
+        if have_hum and cov < 95.0:
+            print("  WARNING: humidity covers %.0f%% of the record (%d of %d "
+                  "days). The dewpoint and enthalpy terms are fitted on that "
+                  "subset while every other term uses the whole record, so "
+                  "their incremental R2 is NOT comparable with the others and "
+                  "the quadratic comparison is contaminated by sample "
+                  "differences. Extend the fetch before drawing a conclusion."
+                  % (cov, hit, len(rows)))
         print("humidity joined on %d of %d days%s\n"
               % (hit, len(rows), "" if have_hum else "  - TOO FEW, skipping"))
     else:
@@ -183,18 +192,30 @@ def main(retro_path, hum_path=None):
     print("ECUK cooling anchor %.2f TWh/yr (%.0f%% of %.1f)\n"
           % (ANCHOR_TWH, 100 * COOL_SHARE, ECUK_COOL_VENT_TWH))
 
-    base = scan_tc(rows, [])
+    # SOLAR IS NOW CARRIED IN THE BASE, from 17 Aug 2026. It was previously
+    # excluded because it entered with "the wrong sign for a lighting effect".
+    # That reasoning was void: it rested on a dependent variable that
+    # double-counted embedded solar, which added roughly one spurious unit to
+    # the coefficient. Corrected, solar enters at about -0.69 with the largest
+    # incremental R2 of any control (+0.041), and the negative sign is
+    # physically sensible - embedded PV displaces metered demand.
+    #
+    # Carrying it in the base matters for the humidity test specifically:
+    # solar and moisture are negatively correlated (humid days are cloudier),
+    # so a base that omits solar leaves moisture proxying for it.
+    BASE_CONTROLS = [("solar", "solar")]
+
+    base = scan_tc(rows, BASE_CONTROLS)
     if not base:
         print("base model failed to fit")
         return
     Tc0, r20, b0, _, n0 = base
     cool0 = cooling_twh(rows, Tc0, b0[3], n0)
-    print("BASE  const + weekend + HDD + convex cooling limb")
+    print("BASE  const + weekend + HDD + convex cooling limb + SOLAR")
     print("  balance point %.1f degC   R2 %.4f   cooling %.2f TWh/yr "
           "(%.0f%% of anchor)\n" % (Tc0, r20, cool0, 100 * cool0 / ANCHOR_TWH))
 
     tests = [
-        ("solar (embedded PV)", [("solar", "solar")]),
         ("bank holidays", [("hol", "hol")]),
         ("Christmas shutdown", [("xmas", "xmas")]),
         ("August activity dip", [("aug", "aug")]),
@@ -207,8 +228,13 @@ def main(retro_path, hum_path=None):
     print("EACH TERM SEPARATELY, against that same base\n")
     print("  %-34s %8s %9s %9s %11s" %
           ("term", "R2", "dR2", "Tc", "cooling TWh"))
+    # Each term is fitted as BASE PLUS the term, not the term alone, so dR2
+    # is genuinely incremental against the same reference. Before 17 Aug 2026
+    # solar was in this list rather than the base, and each term was fitted
+    # without it - so every dR2 was measured against a base that omitted the
+    # single strongest control.
     for lab, extra in tests:
-        r = scan_tc(rows, extra)
+        r = scan_tc(rows, BASE_CONTROLS + extra)
         if not r:
             print("  %-34s  did not fit" % lab)
             continue
@@ -217,7 +243,7 @@ def main(retro_path, hum_path=None):
         print("  %-34s %8.4f %+9.4f %9.1f %11.2f   coef %+.4f"
               % (lab, r2, r2 - r20, Tc, c, b[4]))
 
-    allx = [e for _, ex in tests for e in ex]
+    allx = BASE_CONTROLS + [e for _, ex in tests for e in ex]
     r = scan_tc(rows, allx)
     if r:
         Tc, r2, b, names, n = r
@@ -237,7 +263,7 @@ def main(retro_path, hum_path=None):
         print("  fall materially. If the quadratic barely moves, the bend is")
         print("  the EXTENSIVE MARGIN - more buildings switching on - and the")
         print("  extensive-margin reading stands.")
-        r = scan_tc(rows, [("enth", "enth")])
+        r = scan_tc(rows, BASE_CONTROLS + [("enth", "enth")])
         if r:
             print("  quadratic coef: %.4f base -> %.4f with enthalpy  (%+.0f%%)"
                   % (b0[3], r[2][3], 100 * (r[2][3] / b0[3] - 1)))

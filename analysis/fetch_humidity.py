@@ -120,7 +120,16 @@ def _fetch_hourly(start, end, retries=4):
     raise last
 
 
-def fetch_humidity(days=400):
+def fetch_humidity(days=800):
+    """Default raised 400 -> 800 on 17 Aug 2026 to match the retro store.
+
+    The first corrected rerun joined humidity on only 400 of 800 days, so the
+    dewpoint and enthalpy terms were fitted on half the record while every
+    other term used all of it - which makes their incremental R2 not
+    comparable with the rest and is the most likely explanation for dewpoint
+    and enthalpy disagreeing in sign. Match the store or the comparison is
+    not a comparison.
+    """
     """Population-weighted daily mean dewpoint and enthalpy days for GB."""
     end = dt.date.today() - dt.timedelta(days=1)
     start = end - dt.timedelta(days=days)
@@ -191,7 +200,7 @@ def _selftest():
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--days", type=int, default=400,
+    ap.add_argument("--days", type=int, default=800,
                     help="days of history to fetch (default 400)")
     ap.add_argument("--out", default="humidity.json",
                     help="where to write the series (default humidity.json)")
