@@ -634,7 +634,7 @@
     <div class="h2lab" id="rt_bindlbl" hidden>The tightest hour of the year <span class="qual">— what Britain’s power stations would have to cover with the new fifth of electrified heat†</span></div>
     <div class="statrow" id="rt_bind"></div>
     <div id="rt_bindbars" style="width:100%;height:300px;margin-top:12px" hidden></div>
-    <div class="h2lab" id="rt_limlbl" hidden>How far could Britain electrify its heat inside today’s fleet? <span class="qual">— †</span></div>
+    <div class="h2lab" id="rt_limlbl" hidden>How would electrified heat have sat against national capacity, in the winters on record? <span class="qual">— †</span></div>
     <div class="statrow limrow" id="rt_lim"></div>
     <div id="rt_limbars" style="width:100%;height:320px;margin-top:12px" hidden></div>
     <p class="costnote" id="rt_limnote"></p>
@@ -703,9 +703,19 @@
       could be the anchor running high, the fit running low, or the shape being
       wrong, and 400 days cannot tell them apart.</p>
 
-    <div class="h2lab" id="diurnallab" style="margin-top:4px" hidden>What is comfort, and what is not <span class="qual">— demand response to temperature, hour by hour</span></div>
-    <div id="diurnal" style="height:260px;margin:8px 0 4px"></div>
-    <p class="costnote" id="diurnalnote"></p>
+    <div class="h2lab" style="margin-top:4px">Withdrawn: the diurnal separation <span class="qual">— what it claimed, and why it is gone</span></div>
+    <p class="costnote">Until 17 August 2026 this fold opened with a chart
+      separating comfort from process cooling by hour: an overnight floor of
+      0.261 GW/°C rising to 0.676 at noon, offered as evidence that a
+      continuously running refrigeration load is separable from daytime comfort
+      cooling. <b>It was an artefact.</b> The demand series already contains
+      embedded solar, and the analysis added it a second time — which
+      manufactures a correlation with temperature in exactly the daylight hours
+      where a cooling signal would appear. Corrected, the profile is flat:
+      0.26 at 04:00 and 0.24 at noon, a ratio of 0.93 rather than 2.6. There is
+      no daytime separation in this data. The chart and its claim are withdrawn,
+      and Tier 0 in the legend above is now supported only by the bottom-up
+      count, not by any grid measurement. Found in peer review.</p>
     <div class="h2lab" style="margin-top:26px">The observed response curve <span class="qual">— what the equipped fleet draws as it warms</span></div>
     <div class="billline" id="coolobsline"></div>
     <div id="coolcurve" style="width:100%;height:300px"></div>
@@ -998,7 +1008,7 @@
       the 5.0 and the 19.6 °C are Causeway estimates, and every network
       figure inherits them.</p>
     <p class="costnote">Both routes are first named in Section 3, “How far
-      could Britain electrify its heat inside today’s fleet?”, and
+      would electrified heat have sat against national capacity?”, and
       appear again in Section 2’s price chart and Section 6’s value
       case.</p>
   </section>
@@ -1042,7 +1052,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.36.0';
+const SITE_VERSION = '8.37.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1762,7 +1772,8 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
        // The number is computed; the sentence describing it must be too.
        // This went stale once already when the limit moved below 100%.
        claim: lim.routes.network.share_pct >= 100
-         ? 'Only geothermal networks fit inside the grid Britain already has.'
+         ? 'Against the winters on record, only geothermal networks leave the ' +
+            'national margin intact.'
          : 'Only geothermal networks come close to fitting inside the grid ' +
            'Britain already has.',
        qual:'Of all building heat, electrified through networks without ' +
@@ -1773,7 +1784,7 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
             'A peak test, not an energy test: it assumes no gas peaking, and ' +
             'a peak test, not an energy test: it assumes no gas peaking. ' +
             'Two winters on record, each measured against its own fleet.',
-       ev:'the electrification limit'},
+       ev:'the capacity headroom test'},
 
       // POINT 04, rebuilt 11 Aug 2026. Was COP 20 over EER 3 - a quotient of
       // two daggered constants that restated with nothing. Now a like-for-like
@@ -2096,8 +2107,9 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
             'order <b>26 TWh a year</b>\u2020 of cooling service, running flat all ' +
             'year. <b>Not plotted:</b> at roughly 72 GWh a day it is four times ' +
             'the other three combined and would flatten them. Bottom-up ' +
-            'estimate, not measured from the grid. The separation is evidenced ' +
-            'under METHOD below.') +
+            'estimate, not measured from the grid\u2020. The diurnal separation that ' +
+            'previously evidenced this was withdrawn on 17 Aug 2026 \u2014 see ' +
+            'METHOD below.') +
         '</div>';
       document.getElementById('tierdailynote').textContent = '';
     }
@@ -2109,54 +2121,6 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       drawTiers(+b.dataset.tw);
     });
     drawTiers(365);
-  })();
-
-  // ---- what is comfort and what is not ------------------------------------
-  // The separation the tiers rest on. Comfort cooling peaks with the afternoon
-  // and is near-absent at 4am; process cooling runs all night and its
-  // compressors still work harder as the air warms. So the slope of demand
-  // against temperature, hour by hour, splits them without knowing either
-  // level. Deliberately NOT extrapolated to a level - see the note.
-  (() => {
-    const dn = (d.whatif_routes || {}).diurnal;
-    const box = document.getElementById('diurnal');
-    if(!dn || !dn.profile || !dn.profile.length){
-      if(box) box.style.display = 'none';
-      return;
-    }
-    document.getElementById('diurnallab').hidden = false;
-    const hrs = dn.profile.map(p => String(p.hour).padStart(2,'0') + ':00');
-    const flo = dn.night_floor_GW_per_C;
-    Plotly.newPlot('diurnal', [
-      {x:hrs, y:dn.profile.map(p=>Math.min(p.slope_GW_per_C, flo)),
-       type:'bar', name:'runs all night \u2014 process',
-       marker:{color:css('--ash')}, hovertemplate:'%{x}<extra>process floor</extra>'},
-      {x:hrs, y:dn.profile.map(p=>Math.max(0, p.slope_GW_per_C - flo)),
-       type:'bar', name:'daytime excess \u2014 comfort',
-       marker:{color:css('--cool')},
-       hovertemplate:'%{x}<br>+%{y:.3f} GW/\u00b0C above the floor<extra></extra>'}
-    ], {
-      barmode:'stack', bargap:0.15,
-      paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
-      font:{family:'Lato', color:css('--muted'), size:12},
-      margin:{l:60,r:16,t:46,b:40},
-      xaxis:{gridcolor:css('--line'), tickangle:0, dtick:2},
-      yaxis:{title:'GW per \u00b0C', gridcolor:css('--line'), zeroline:false},
-      legend:{orientation:'h', y:1.02, yanchor:'bottom', yanchor:'bottom'}
-    }, {displayModeBar:false, responsive:true});
-    document.getElementById('diurnalnote').textContent =
-      'Summer demand regressed on outdoor air temperature, separately for each ' +
-      'hour, over ' + fmt(dn.summer_hours) + ' hours and demeaned within year, ' +
-      'month, day type and hour. The floor of ' + dn.night_floor_GW_per_C +
-      ' GW/\u00b0C runs at 4am when no one is cooling an office \u2014 that is ' +
-      'refrigeration and process plant working harder as the air warms, and it ' +
-      'is what tier 0 consists of. The ' + dn.comfort_excess_GW_per_C +
-      ' GW/\u00b0C peak above it is comfort. ' + 'Level is not inferred from this: below about 15 \u00b0C the ' +
-      'response goes flat, so the slope cannot be extrapolated back to a ' +
-      'level. That flattening is a NIGHT-DATA finding, where comfort cooling ' +
-      'is absent and plant behaviour plausibly explains it. It does not ' +
-      'transfer to the daily response curve below, whose convexity survives ' +
-      'dividing out the COP and is therefore load, not plant.';
   })();
 
   // ---- the night elbow, both summers --------------------------------------
@@ -3637,14 +3601,20 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
 
     const cal = WR.calibration, eta = cal.eta;
     const fAt = cal.flow_at || [15, -5];
-    const src = cal.sources || {air_approach: -3, ground_c: 8, network_c: 19.6};
+    // air_approach is published as a MAGNITUDE (+3 K). It must be
+    // SUBTRACTED from outdoor air to give the evaporating source. The chart
+    // previously added it, and the fallback carried -3 so the bug only
+    // appeared once the real payload arrived. Found in peer review,
+    // 17 Aug 2026. Fallback now carries the same sign as the payload.
+    const src = cal.sources || {air_approach: 3, ground_c: 8, network_c: 19.6};
+    const airSrc = t => t - Math.abs(src.air_approach);
     const flow = t => cal.flow[0] + (cal.flow[1]-cal.flow[0]) *
                       Math.min(1, Math.max(0, (fAt[0]-t)/(fAt[0]-fAt[1])));
     const carnot = (tf, tsrc) => (tf+273.15)/Math.max(5, tf-tsrc);
     const dfr = t => 1 - cal.defrost_max*Math.exp(-(((t-2)/3)**2));
     const ts = Array.from({length:61}, (_,i) => -10 + i*0.5);
     Plotly.newPlot('rt_cop', [
-      {x:ts, y:ts.map(t => Math.max(1, eta.ashp*carnot(flow(t), t+src.air_approach)*dfr(t))),
+      {x:ts, y:ts.map(t => Math.max(1, eta.ashp*carnot(flow(t), airSrc(t))*dfr(t))),
        name:RN.ashp, line:{color:RC.ashp, width:2}},
       {x:ts, y:ts.map(t => Math.max(1, eta.shallow*carnot(flow(t), src.ground_c))),
        name:RN.shallow, line:{color:RC.shallow, width:2}},
@@ -3673,13 +3643,15 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       src.ground_c + '\u00b0C, network ' + src.network_c + '\u00b0C\u2020 ' +
       '\u2014 a UTES and intermediate-doublet blend recharged by summer ' +
       'cooling rejection, not virgin ground, and derived rather than ' +
-      'measured: it is the source at which all three routes share one ' +
-      'Carnot fraction (' +
+      'measured. <b>It is chosen so that the network route reproduces its ' +
+      'assumed SPF of 5.0 at the same Carnot fraction as the other two, so ' +
+      'the agreement of the three fractions (' +
       ['ashp','shallow','network'].map(r => (eta[r]||0).toFixed(3)).join(' / ') +
-      '). A fraction is a statement about machine quality, which does not ' +
-      'differ by route; what differs is the source, which the Carnot term ' +
-      'already carries. The build refuses to publish if the three drift ' +
-      'more than 15% apart.';
+      ') is not independent evidence for either quantity</b> - it is how the ' +
+      'source was derived. The pair is internally consistent and physically ' +
+      'plausible; neither is separately measured, and both are Causeway ' +
+      'estimates\u2020. The 15% drift gate remains a wiring check, not a ' +
+      'validation.';
   })();
 }).catch(()=>{document.getElementById('stamp').textContent='data.json not found — run the workflow once';});
 
