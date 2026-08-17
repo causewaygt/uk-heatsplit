@@ -1013,7 +1013,7 @@
         technologies by depth and output temperature. Shallow geothermal
         heating, cooling and storage and deep geothermal heating and storage
         are in scope; deep geothermal power is not."
-        style="width:100%;height:auto;border-radius:4px;background:#fff">
+        style="width:100%;height:auto;border-radius:4px">
       <figcaption class="costnote" style="margin-top:8px">Figure: BGS
         classification modified by Todd et al. 2025,
         <a href="https://doi.org/10.1144/geoenergy2025-057"
@@ -1095,7 +1095,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.45.0';
+const SITE_VERSION = '8.45.3';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1875,8 +1875,8 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
        claim: lim.routes.network.share_pct >= 100
          ? 'Against the winters on record, only geothermal networks leave the ' +
             'national margin intact.'
-         : 'Only geothermal networks come close to fitting inside the grid ' +
-           'Britain already has.',
+         : 'Against the winters on record, only geothermal networks come ' +
+           'close to leaving the national margin intact.',
        qual:'Of all building heat, electrified through networks without ' +
             'exceeding today\u2019s winter capacity \u2014 against ' +
             nf(lim.routes.shallow.share_pct,0) + '% ground source and ' +
