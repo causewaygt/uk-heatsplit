@@ -827,10 +827,10 @@
   </section>
 
   <section>
-    <h1 class="sect">6. Value for money? How geothermal would improve the UK’s heat networks</h1>
+    <h1 class="sect">6. Value for money? An illustrative appraisal of geothermal against an air-source-led network</h1>
       <div id="capitalpanel" style="display:none">
 
-        <div class="kind">Based on government heat network plans and appraisal guidance</div>
+        <div class="kind">One counterfactual, on Green Book conventions — not a full appraisal</div>
 
         <p class="basis"><b>This does not ask whether to build the networks.</b>
           Government has committed to heat networks supplying about 20% of UK heat by
@@ -839,6 +839,25 @@
           are in that number either way. What is still open is what sits at the head
           of them. The model compares geothermal as the source and store of thermal
           energy to an air-source heat pump system.</p>
+
+        <p class="basis" style="border-color:var(--ash)"><b>What this appraisal
+          is, and is not.</b> It is <b>one counterfactual</b>: geothermal
+          against an air-source-led network with separate air-cooled chillers.
+          That is a real and increasingly likely alternative, because zoning is
+          designating networks without settling their source — but it is
+          not the only one. A network can also be fed by industrial waste heat,
+          river or sewer heat, data-centre rejection, large water-source heat
+          pumps, energy from waste, or a hybrid of several. <b>Nothing here
+          establishes that geothermal is the preferred national source</b>; it
+          establishes how geothermal compares with one named alternative on
+          Green Book conventions.
+          It is also <b>not a full Green Book appraisal</b>. It applies Green
+          Book conventions — the sixty-year horizon, the declining discount
+          rate, DESNZ carbon values, optimism bias — to the increment
+          between two sources. It does not carry a full options appraisal, a
+          distributional analysis, or unmonetisable effects, all of which the
+          Green Book also asks for. Added 17 August 2026 after peer
+          review.</p>
 
         <p class="plain" id="plain"></p>
         <p class="sub" id="sub"></p>
@@ -1081,7 +1100,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.41.0';
+const SITE_VERSION = '8.43.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1402,6 +1421,40 @@ fetch('data.json').then(r=>r.json()).then(d=>{
 // Ratio 1:3 not 1:7 - ECUK's all-services figure understates network-connected
 // commercial stock. BRE/DECC put ~65% of UK office floor area air-conditioned
 // at ~40 kWh/m2/yr of cooling against ~90-130 for space heat.
+// PRE-FID DEVELOPMENT CAPITAL, brought inside the appraisal 17 Aug 2026 after
+// peer review. It was previously excluded on the ground that a developer bears
+// it at a development return rather than infrastructure capital at financial
+// close. That is a FINANCING argument: a social cost-benefit analysis counts a
+// resource cost regardless of who carries it, and must count the prospects
+// that never reached close.
+//
+// Blended across the two things this scenario actually is:
+//   shallow UTES / closed loop    4% of capex, ~100% success, 60% weight
+//   intermediate doublet         10% of capex,   80% success, 40% weight
+// Social devex = devex / success, because money spent on prospects that did
+// not proceed is still a resource cost per delivered MW.
+//   0.60 x 4.00% + 0.40 x 12.50% = 7.40%
+//
+// A closed loop is INSTALLED, not found, so it carries no resource risk and
+// its development cost is design, permitting and thermal response testing.
+// The doublet carries real risk. 10% is scenario-wide rather than
+// project-specific: Causeway's own hospital case runs at 15%, but two further
+// hospital projects are de-risked by legacy oil and gas data - a UK-specific
+// asset rather than a general condition.
+//
+// BENCHMARKS. Rystad's geothermal economics model puts pre-FID at about 2% of
+// global capex, against 47% subsurface and just over half surface facilities -
+// but that counts only projects reaching FID and is dominated by large deep
+// power schemes, where European geothermal district heating averages about
+// 10 MWth and fixed development cost is a larger fraction. Rystad well failure
+// rates run under 10% in Germany and Hungary to 30% in the Netherlands; UK
+// maturity - 20 MWt of geothermal heat today - sits nearer the Dutch end,
+// hence 80% rather than 90%.
+const DEVEX_SHALLOW = 0.04, DEVEX_INTER = 0.10;
+const DEVEX_INTER_SUCCESS = 0.80, DEVEX_INTER_SHARE = 0.40;
+const DEVEX_PCT = (1 - DEVEX_INTER_SHARE) * DEVEX_SHALLOW
+                + DEVEX_INTER_SHARE * (DEVEX_INTER / DEVEX_INTER_SUCCESS);
+
 const COOL_H2C = 3.0;
 // 450 h from BSRIA's 87 W/m2 office cooling load into BRE's 40 kWh/m2/yr.
 // A LOWER figure raises the implied peak and the capex, so this is the
@@ -1523,8 +1576,11 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
     let cost=0;
     // COST carries only what THIS option spends: the heat increment plus the
     // increment to make the same loop deliver cooling.
+    // Devex sits on the SUBSURFACE increment, not on the cooling increment -
+    // the cooling kit is specified, not explored for.
+    const devexBn = capNow() * DEVEX_PCT;
     for(let t=1;t<=BUILD;t++)
-      cost+=((capNow()+cb.incBn)*(1+S.ob/100)/BUILD)*stpr(t-0.5);
+      cost+=((capNow()+cb.incBn+devexBn)*(1+S.ob/100)/BUILD)*stpr(t-0.5);
     // AVOIDED CHILLER PLANT is a BENEFIT, not a negative cost. Netting an
     // avoided counterfactual cost off the denominator drives the cost toward
     // zero and the ratio toward infinity - at 100% cooling that gave a BCR of
@@ -1658,16 +1714,37 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       'is choosing how to fund its own network \u2014 not to a programme ' +
       'government is enabling rather than procuring. Causeway Energies develops ' +
       'geothermal networks, so this panel is published against interest.';
-    el('devex').textContent=
-      'Pre-FID development capital is excluded from the figures above. Resource ' +
-      'assessment, seismic, exploration drilling and permits sit outside the ' +
-      'increment and are taken by a developer at a development return, not by ' +
-      'infrastructure capital at financial close. In more mature European ' +
-      'geothermal sectors that exposure is underwritten by shared instruments ' +
-      'rather than carried alone \u2014 the Netherlands, France, Germany, ' +
-      'Denmark, Iceland and Switzerland all operate national resource risk ' +
-      'funds, and the UK has none. The success rate of prospects reaching ' +
-      'close, not the percentage spent, is what sets its true cost.';
+    el('devex').innerHTML=
+      '<b>Pre-FID development capital is now INSIDE the figures above</b>, at ' +
+      (100 * DEVEX_PCT).toFixed(1) + '% of the subsurface increment \u2014 ' +
+      gbp(capNow() * DEVEX_PCT) + ' before optimism bias. It was previously ' +
+      'excluded on the ground that a developer carries it at a development ' +
+      'return rather than infrastructure capital at financial close. That is ' +
+      'a financing argument: a social appraisal counts a resource cost ' +
+      'whoever bears it, and must count the prospects that never reached ' +
+      'close. Brought in after peer review. ' +
+      '<b>The blend\u2020:</b> shallow underground storage and closed loop at ' +
+      '4% of capex on roughly full success, 60% of the scenario; intermediate ' +
+      'doublets at 10% on an 80% success rate, 40%. Dividing by the success ' +
+      'rate is the point \u2014 money spent on prospects that did not proceed ' +
+      'is still a cost per delivered megawatt \u2014 so the doublet enters at ' +
+      '12.5% and the blend at ' + (100 * DEVEX_PCT).toFixed(1) + '%. A closed ' +
+      'loop is installed rather than found and carries no resource risk; a ' +
+      'doublet does. The 10% is scenario-wide, not project-specific: ' +
+      'Causeway\u2019s own hospital case runs at 15%, and two further hospital ' +
+      'projects are de-risked by legacy oil and gas data \u2014 a UK-specific ' +
+      'asset, not a general condition. ' +
+      '<b>Against the benchmarks:</b> Rystad put pre-FID at about 2% of global ' +
+      'geothermal capex, but that counts only schemes reaching final ' +
+      'investment decision and is dominated by large deep power projects; ' +
+      'European geothermal district heating averages about 10 MWth, where ' +
+      'fixed development cost is a larger share. Well failure rates run under ' +
+      '10% in Germany and Hungary to 30% in the Netherlands, and UK maturity ' +
+      '\u2014 20 MWt of geothermal heat today \u2014 sits nearer the Dutch ' +
+      'end. In more mature markets that exposure is underwritten by shared ' +
+      'instruments: the Netherlands, France, Germany, Denmark, Iceland and ' +
+      'Switzerland all operate national resource risk funds. <b>The UK has ' +
+      'none</b>, which is why the success rate falls on the developer.';
   }
   ['cap','ob','pk','sizing','loss','cool'].forEach(k=>{
     el('lv_'+k).addEventListener('input',e=>{ S[k]=+e.target.value; render(); });
@@ -1868,8 +1945,8 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
         n:'06', fig: cap.bcr.toFixed(2), unit:'benefit-cost ratio',
         warn: cap.bcr < 1, href:'#capitalpanel',
         claim: cap.bcr >= 1
-          ? 'Making UK heat networks geothermal pays for itself, on the ' +
-            'government\u2019s own appraisal rules.'
+          ? 'Against an air-source-led network, geothermal pays for ' +
+            'itself on Green Book conventions.'
           : 'On the government\u2019s own appraisal rules it does not yet pay ' +
             'for itself \u2014 and the reasons are nameable.',
         qual:'\u00a3' + Math.round(cap.ben) + 'bn of social benefit over 60 ' +
@@ -3666,7 +3743,16 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       WR.basis + ' ' + st.basis + (ss ? ' ' + ss.basis : '') +
       (sv ? ' ' + sv.basis + ' ' + sv.displaced_note : '') + ' ' +
       '\u03b7 calibrated so each route ' +
-      'integrates to its published SPF anchor (2.80 / 3.24 / 5.0); the ' +
+      'integrates to its published SPF anchor (2.80 / 3.24 / 5.0), all three ' +
+      'on a WHOLE-SYSTEM boundary: electricity metered at the supply point ' +
+      'over heat delivered at the building boundary, so pumping, ' +
+      'circulation, controls, distribution losses and store round-trip are ' +
+      'all inside it \u2014 the same basis as the monitored H4 figures the ' +
+      'first two come from, and not a plant-only COP\u2020. The network ' +
+      'parasitic load is the part most likely to be optimistic: a plant-level ' +
+      '5.6 becomes a whole-system 5.0 at about 10% of delivered heat going to ' +
+      'circulation, which is mid-range for European ambient-loop and aquifer ' +
+      'storage schemes. The ' +
       'air-source defrost band\u2020 is shaped on the monitored fleet, ' +
       'level re-anchored.';
     document.getElementById('rt_note').textContent = rtBase +
