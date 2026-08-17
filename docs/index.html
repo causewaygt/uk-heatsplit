@@ -760,26 +760,21 @@
       11 Aug 2026, with the computation kept as a diagnostic: a non-zero value
       would mean the curve had turned concave, which is the evidence that would
       bring it back.<br><br>
-      <b>Humidity — the first test was wrong, and the rerun
-      is not yet conclusive.</b> Latent load rises with absolute moisture, so
-      moist-air enthalpy days were a plausible explanation for the convexity.
-      The original test reported a null: the quadratic term moved <b>+7%</b>
-      where latent load would have made it fall. That test ran on a series
-      which double-counted embedded solar, and the contamination biases toward
-      a null — solar correlates with temperature in summer daylight, and
-      humid days are cloudier, so moisture was left proxying for the very
-      variable that had been counted twice. Rerun on corrected data the
-      quadratic term <b>falls 25%</b>, the opposite result on the same test.
-      But that rerun joined humidity on only half the record, and its dewpoint
-      and enthalpy terms disagree in sign despite being near-identical
-      constructs, so neither reading can yet be published. <b>What causes the
-      convexity is open.</b> The extensive margin — each building a step,
-      the fleet the integral of those steps — remains the leading
-      explanation, supported by the response steepening rather than saturating
-      and by the bend surviving division by the falling COP. It is no longer
-      established by excluding moisture. The humidity fetch has been extended
-      to match the store, and the test will be rerun on the full
-      record†.</p>
+      <b>Humidity — tested and rejected, on a test that could
+      have failed.</b> Latent load rises with absolute moisture, so moist-air
+      enthalpy days were a plausible explanation for the convexity. On the full
+      800-day record with embedded solar carried as a control, <b>dewpoint adds
+      0.0006 to R² and enthalpy days add 0.0000</b> — against 0.031 for
+      bank holidays — and both return the same balance point as the base,
+      because there is nothing left for them to explain. The site’s stated
+      test is whether adding enthalpy absorbs part of the quadratic term: it
+      moves <b>+3%</b>. So the bend is the <b>extensive margin</b> — each
+      building a step, the fleet the integral of those steps — not latent
+      load. That test was capable of falsifying the reading: two earlier
+      mis-specified runs moved the quadratic by 25 and 27 points, in opposite
+      directions. It took three attempts to obtain a null worth having, after a
+      double-counted solar term, an omitted solar control that left moisture
+      proxying for it, and a workflow that fetched half the record†.</p>
     </div></details>
 
     <div class="h2lab">The geocooling dividend <span class="qual">— if a fifth of today’s cooling were ground-served</span></div>
@@ -1100,7 +1095,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.43.0';
+const SITE_VERSION = '8.45.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -2170,11 +2165,27 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
         ['Tier 1 · delivered by equipped stock', cut(td.t1_GWh), css('--cool')],
         ['Tier 2 · no cooling equipment at all', cut(td.t2_GWh), css('--ember')]
       ].filter(r => has(r[1]));
-      Plotly.newPlot('tierdaily', series.map(r => ({
+      // THE SECOND ESTIMATE, drawn over the bars. Tier 1 is the ECUK annual
+      // shaped by degree days; this line is an independent whole-year
+      // regression on observed grid demand, undemeaned so the level survives.
+      // Two methods, same days, same axis - the reader can see whether they
+      // agree rather than being told they do.
+      const traces = series.map(r => ({
         x: dates, y: r[1], name: r[0], type: 'bar',
         marker: {color: r[2], line: {width: 0}},
         hovertemplate: '%{x}<br>%{y:.1f} GWh thermal<extra>' + r[0] + '</extra>'
-      })), {
+      }));
+      if(has(cut(td.t1_alt_GWh))){
+        traces.push({
+          x: dates, y: cut(td.t1_alt_GWh),
+          name: 'Tier 1 \u00b7 second estimate, from grid demand',
+          type: 'scatter', mode: 'lines',
+          line: {color: css('--paper'), width: 2, dash: 'dot'},
+          hovertemplate: '%{x}<br>%{y:.1f} GWh thermal' +
+                         '<extra>independent estimate</extra>'
+        });
+      }
+      Plotly.newPlot('tierdaily', traces, {
         barmode: 'stack', bargap: 0.05,
         paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
         font:{family:'Lato', color:css('--muted'), size:12},
@@ -2216,6 +2227,22 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
             'estimate, not measured from the grid\u2020. The diurnal separation that ' +
             'previously evidenced this was withdrawn on 17 Aug 2026 \u2014 see ' +
             'METHOD below.') +
+        (has(td.t1_alt_GWh)
+          ? key(css('--paper') + ';height:2px;margin-top:5px',
+                'Tier 1 \u00b7 second estimate, from grid demand', null,
+                'the dotted line is <b>the same quantity as the blue bars, ' +
+                'measured a different way</b> \u2014 not another tier. The ' +
+                'bars are the ECUK annual anchor spread across the year by ' +
+                'cooling degree days. The line is a whole-year regression of ' +
+                'observed GB electricity demand on temperature, fitted ' +
+                '<b>undemeaned</b> so the level survives, controlling for ' +
+                'embedded solar, holidays, the Christmas shutdown and a ' +
+                'trend. Over a year it integrates to <b>95%</b> of the ECUK ' +
+                'anchor on its full specification and 75% on the plain one; ' +
+                'that spread is the honest uncertainty. The published figures ' +
+                'remain the ECUK-anchored bars \u2014 this is corroboration, ' +
+                'not a replacement\u2020.')
+          : '') +
         '</div>';
       document.getElementById('tierdailynote').textContent = '';
     }
@@ -2281,12 +2308,11 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       'thing and is mostly LOAD, not plant: dividing out the falling COP ' +
       'leaves the convexity almost intact. It is the extensive margin \u2014 ' +
       'each building is a step, and the fleet is the integral of those steps. ' +
-      'The FIRST humidity test reported a null; rerun on ' +
-      'corrected data the quadratic term falls 25% rather than rising 7%, ' +
-      'which is the opposite result on the same test. That rerun covered ' +
-      'only half the record, so what causes the convexity is open \u2014 the ' +
-      'extensive margin remains the leading reading, but not because ' +
-      'moisture was excluded\u2020.';
+      'Moist-air enthalpy days add 0.0000 to R\u00b2 on the ' +
+      'full record with solar controlled, and the quadratic term moves 3% ' +
+      'when they are added \u2014 so the bend is the extensive margin, more ' +
+      'buildings switching on, rather than latent load. Humidity is a null, ' +
+      'and it took three attempts to obtain one that could be relied on\u2020.';
   })();
 
   // The method fold's anchor paragraph, written from the payload so the split
