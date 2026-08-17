@@ -954,6 +954,55 @@
   <h1 class="sect" style="margin-top:44px">Footnotes</h1>
 
   <section>
+    <h2>Geothermal archetypes</h2>
+    <figure style="margin:0 0 16px">
+      <img src="geothermal-archetypes.png" alt="Classification of geothermal
+        technologies by depth and output temperature. Shallow geothermal
+        heating, cooling and storage and deep geothermal heating and storage
+        are in scope; deep geothermal power is not."
+        style="width:100%;height:auto;border-radius:4px;background:#fff">
+      <figcaption class="costnote" style="margin-top:8px">Figure: BGS
+        classification modified by Todd et al. 2025,
+        <a href="https://doi.org/10.1144/geoenergy2025-057"
+           style="color:var(--geo)">doi.org/10.1144/geoenergy2025-057</a>.</figcaption>
+    </figure>
+    <p class="costnote">The site models heat and storage, not power. Everything
+      inside the green boundary is in scope; the deep, high-temperature systems
+      on the right are not, because their output is electricity and this site is
+      about what heats and cools buildings.</p>
+    <p class="costnote"><b>Ground source (SPF 3.24)</b> is the shallow column on
+      the left — open-loop doublets, closed-loop borehole arrays and mine
+      water energy, drawing on ground and shallow aquifers at 10–17 °C.
+      It is modelled here as <b>heat only or heat dominated</b>: a source
+      temperature of 8 °C after a 3 K brine approach, weather-compensated
+      flow, and no credit for anything the ground gets back. That is
+      deliberately the conservative end of what shallow geothermal can do, and
+      it is the route with a monitored UK fleet behind it — the seasonal
+      performance factor comes from Energy Systems Catapult in-situ measurement
+      of more than 1,700 installations.</p>
+    <p class="costnote"><b>Geothermal network (SPF 5.0†)</b> is a blend of
+      two things in the figure. Shallow underground thermal energy storage on
+      the left, where summer heat rejected by cooling and waste heat from data
+      centres and other sources is banked in the ground and drawn back in
+      winter; and intermediate geothermal — the hydrothermal direct-use
+      column — where the geology suits it. Both feed a shared ambient loop
+      with heat pumps at each building.</p>
+    <p class="costnote">The difference between the two routes is mostly
+      <b>what the loop is sitting at</b>. A network loop is modelled at
+      19.6 °C†, not the 8 °C of a passive ground array, because it
+      is a <b>charged</b> loop: the cooling season and the rejected waste heat
+      have put energy into it. That shortens the lift, which is what a heat
+      pump’s efficiency actually depends on.</p>
+    <p class="costnote"><b>This is the least evidenced route on the site.</b>
+      There is no monitored UK network fleet to anchor an SPF against, so both
+      the 5.0 and the 19.6 °C are Causeway estimates, and every network
+      figure inherits them.</p>
+    <p class="costnote">Both routes are first named in Section 3, “How far
+      could Britain electrify its heat inside today’s fleet?”, and
+      appear again in Section 2’s price chart and Section 6’s value
+      case.</p>
+  </section>
+  <section>
     <h2>Northern Ireland</h2>
     <p class="costnote" id="nipanel">—</p>
   </section>
@@ -993,7 +1042,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.35.1';
+const SITE_VERSION = '8.36.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
