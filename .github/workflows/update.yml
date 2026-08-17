@@ -22,7 +22,10 @@ jobs:
 
       - name: Build data.json
         run: python scripts/build.py
-
+        
+      - name: Balance-point spread (offline)
+        run: python3 analysis/fit_balance_spread.py analysis/gas_daily.json
+        
       - name: Commit and push
         run: |
           git config user.name "heatsplit-bot"
