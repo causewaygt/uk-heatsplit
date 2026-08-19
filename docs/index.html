@@ -1150,7 +1150,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.50.0';
+const SITE_VERSION = '8.51.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -3166,7 +3166,13 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
         if(bl) bl.textContent = '';
         return;
       }
-      const sumN = {5: 4, 13: 12, 53: 52}[win];
+      // 105 (24 months) was MISSING from this map until 17 Aug 2026, so
+      // sumN came back undefined, slice(-undefined) returned the whole array
+      // and the 24-month totals silently equalled whatever the record held.
+      // The label map below always had 105, which is why the heading changed
+      // and the numbers did not. Keep the two maps in step.
+      const sumN = {5: 4, 13: 12, 53: 52, 105: 104}[win];
+      if(!sumN) return;                       // unknown window: do nothing
       const rows = hist.slice(-sumN), n = rows.length;
       const label = 'over the last ' + {5:'4 weeks',13:'12 weeks',
                                         53:'12 months',
@@ -3201,17 +3207,13 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
           ? ' \u2014 totals ' + label + ', shares of the window, not of one week'
           : '';
         if(!okF){
-          balbar.addEventListener('click', ev => {
-      const b = ev.target.closest('button'); if(!b) return;
-      balbar.querySelectorAll('button').forEach(x =>
-        x.setAttribute('aria-pressed', String(x === b)));
-      BAL = b.dataset.bw;
-      document.getElementById('balancesection').firstChild.nodeValue =
-        BAL === 'wf' ? 'ENERGY IN \u2014 with a fifth served geothermally'
-                     : 'ENERGY IN \u2014 fuel & electricity purchased';
-      window.drawEnergyBars(LAST);
-    });
-    window.drawEnergyBars(null);
+          // Not enough complete weeks to aggregate the bars: fall back to the
+          // current week. A duplicated block landed here on 12 Aug 2026 - a
+          // str.replace without a count matched window.drawEnergyBars(null)
+          // in two places - and referenced `balbar` from another scope, so
+          // setHero threw on EVERY window click and no window total ever
+          // updated. Removed 17 Aug 2026.
+          window.drawEnergyBars(null);
         } else {
           const inC = {}, outC = {};
           let tIn = 0, tOut = 0, lost = 0, comb = 0;
