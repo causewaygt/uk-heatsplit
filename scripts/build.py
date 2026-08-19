@@ -815,7 +815,7 @@ ANCHOR_YEAR = 2024   # ECUK vintage the space-heat anchor is drawn from;
 #                      the ratio drifts (found 8 Aug 2026: hdd_2024 fell
 #                      2137 -> 2048 in six days, ratio 1.092 -> 1.047,
 #                      purely because the window had rolled past 11 Jan).
-HISTORY_SCHEMA = 7   # 2: indig_pct at one decimal (restated Jul 2026)
+HISTORY_SCHEMA = 8   # 2: indig_pct at one decimal (restated Jul 2026)
                      # 3: per-week heat/cool split of purchased energy
                      #    (restated Aug 2026, same stored-CI mechanism)
                      # 4: what-if heat/cool split per week (Aug 2026)
@@ -824,12 +824,30 @@ HISTORY_SCHEMA = 7   # 2: indig_pct at one decimal (restated Jul 2026)
                      # 7: per-fuel in/useful block on every entry, so the
                      #    energy bars can be re-totalled over a trend
                      #    window (Irish sibling's fix, ported 7 Aug 2026)
+                     # 8: ventilation as its own per-week field, so the
+                     #    trend layer can report it apart from cooling
+                     #    (17 Aug 2026)
 
 # ANCHOR_EPOCH tracks a changed BASIS rather than new FIELDS: bump it
 # whenever a constant changes what a past week WOULD have computed, and
 # every recomputable stored week is restated. Schema adds fields; epoch
 # rewrites values. (Irish handover, trap 2.)
-ANCHOR_EPOCH = 1     # 1: introduced 8 Aug 2026 with the anchor-year fix.
+# Set True for ONE run to force a full restatement regardless of the stored
+# epoch. Needed when a previous run advanced the epoch without completing the
+# restatement - which was possible until 19 Aug 2026, when the markers were
+# reordered to write only on success. Return to False afterwards.
+FORCE_RESTATE = False
+
+ANCHOR_EPOCH = 2     # 1: introduced 8 Aug 2026 with the anchor-year fix.
+                     # 2: 17 Aug 2026. Ventilation removed from "cooling"
+                     #    throughout. Every stored week computed before this
+                     #    carries cooling AND ventilation in its cooling
+                     #    figure - roughly double the corrected value - and
+                     #    a what-if that displaced a fifth of national fan
+                     #    energy with ground cooling. A pure BASIS change:
+                     #    the same week now computes a different number, so
+                     #    epoch rather than schema. Restates every week still
+                     #    inside the live gas window.
                      #    No basis change has been made since, so this
                      #    has not yet been bumped - the next entry goes
                      #    here, NOT on the schema list above.
@@ -911,9 +929,17 @@ def build_history(prev, dd, base, slope, target):
     # force; all other fields re-round identically. Weeks outside the
     # window keep their integer value - unrecomputable, and stated.
     restate = set()
-    if schema_prev < HISTORY_SCHEMA or epoch_prev < ANCHOR_EPOCH:
+    if (FORCE_RESTATE or schema_prev < HISTORY_SCHEMA
+            or epoch_prev < ANCHOR_EPOCH):
         restate = set(w for w in complete if w in hist_prev) - set(todo)
         todo = sorted(set(todo) | restate)
+    # A restatement was previously INVISIBLE in the log, so there was no way
+    # to tell whether one had run, been skipped, or silently covered nothing.
+    # Printed every run from 19 Aug 2026.
+    print("history: schema %d -> %d, epoch %d -> %d | %d stored, %d complete, "
+          "%d to compute of which %d restated"
+          % (schema_prev, HISTORY_SCHEMA, epoch_prev, ANCHOR_EPOCH,
+             len(hist_prev), len(complete), len(todo), len(restate)))
     built = dict(hist_prev)
     ci_failures = 0
     for we in todo:
@@ -945,13 +971,15 @@ def build_history(prev, dd, base, slope, target):
         built[we] = {
             "week_ending": we,
             "purchased_GWh": round(r["total_in"], 0),
-            "heat_GWh": round(r["total_in"] - r["mix"]["cooling"], 0),
+            "heat_GWh": round(r["total_in"] - r["mix"]["cooling"]
+                              - r["mix"]["ventilation"], 0),
             "cooling_GWh": round(r["cool_elec_wk"], 0),
             "ventilation_GWh": round(r["vent_elec_wk"], 0),
             "indig_pct": r["indig_services_now"],
             "bill_Mgbp": round(sum(r["bill"].values()), 0),
             "bill_heat_Mgbp": round(sum(v for k, v in r["bill"].items()
-                                        if k != "cooling"), 0),
+                                        if k not in ("cooling",
+                                                     "ventilation")), 0),
             "bill_cool_Mgbp": round(r["bill"]["cooling"], 0),
             "emissions_kt": e["week_kt"],
             "emissions_heat_kt": e["week_heat_kt"],
@@ -1508,7 +1536,8 @@ def main():
     # --- headline stats: indigenous share + 20% geothermal what-if -------------
     headlines = {
         "purchased_GWh": round(r["total_in"], 0),
-        "heat_GWh": round(r["total_in"] - r["mix"]["cooling"], 0),
+        "heat_GWh": round(r["total_in"] - r["mix"]["cooling"]
+                              - r["mix"]["ventilation"], 0),
         "cooling_GWh": round(r["cool_elec_wk"], 0),
         "ventilation_GWh": round(r["vent_elec_wk"], 0),
         "indigenous_pct": round(r["indig_services_now"]),  # services basis (hero, int)
@@ -1729,10 +1758,18 @@ def main():
 
     # --- ticker history (phase 1): live weekly hero four + what-if twins -------
     try:
+        # ORDER MATTERS. These markers are what tell the NEXT run that a
+        # restatement has already happened, so they must be written only
+        # after build_history has actually succeeded. Written first, a
+        # throw inside build_history - and a 110-week restatement pass is
+        # exactly when one is likely - would advance the epoch while the
+        # history fell back to the carried-forward copy, and the correction
+        # would never be retried. Reordered 19 Aug 2026.
+        _hist = build_history(prev, dd, base,
+                              best["slope_GWh_per_HDD"], target)
+        out["history"] = _hist
         out["history_schema"] = HISTORY_SCHEMA
         out["anchor_epoch"] = ANCHOR_EPOCH
-        out["history"] = build_history(prev, dd, base,
-                                       best["slope_GWh_per_HDD"], target)
         out["history_note"] = (
             "Weekly hero-number history for the ticker. Calendar weeks "
             "(Mon-Sun) computed with the same estimators as the live "
