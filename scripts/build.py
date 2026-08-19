@@ -488,7 +488,18 @@ def compute_week(gas_space_wk, hdd_wk, cdd_wk, hdd_12m, cdd_12m, p):
         "bio_other": round(A["bio_space"] * f_h + A["bio_dhw"] * f_flat, 0),
         "heat_networks": round(A["heat_networks"] * f_h, 0),
         "solid": round(A["solid"] * f_h, 0),
-        "cooling": round(vent_elec + cool_elec, 0),
+        # COOLING ONLY. Ventilation is a separate component below.
+        #
+        # These were one line until 17 Aug 2026, and combining them was not
+        # merely a labelling problem. Fans move air, not heat: there is no
+        # coefficient of performance to apply, and a geothermal network cannot
+        # displace them. But the 20% what-if was reducing mix["cooling"] by a
+        # fifth and replacing it with near-passive ground cooling - which,
+        # with ventilation inside that figure, claimed a fifth of Britain's
+        # fan energy could be served by a borehole. It cannot. Splitting the
+        # two removes that from the saving.
+        "cooling": round(cool_elec, 0),
+        "ventilation": round(vent_elec, 0),
     }
     combustion = (mix["gas_space"] + mix["gas_dhw"] + mix["oil"]
                   + mix["bio_other"] + mix["solid"])
@@ -555,6 +566,8 @@ def compute_week(gas_space_wk, hdd_wk, cdd_wk, hdd_12m, cdd_12m, p):
         "heat_networks": round(_cost_m(mix["heat_networks"],
                                        p["heat_networks"]), 0),
         "solid": round(_cost_m(mix["solid"], p["solid"]), 0),
+        "ventilation": round(_cost_m(mix["ventilation"],
+                                     _blend(p, "elec", "cooling")), 1),
         "cooling": round(_cost_m(mix["cooling"],
                                  _blend(p, "elec", "cooling")), 0),
     }
@@ -578,7 +591,7 @@ def compute_week(gas_space_wk, hdd_wk, cdd_wk, hdd_12m, cdd_12m, p):
     indig_now = _indig_pct(mix["gas_space"] + mix["gas_dhw"], mix["oil"],
                            mix["bio_other"], mix["solid"],
                            mix["heat_networks"],
-                           mix["elec_heat"] + mix["cooling"], total_in)
+                           mix["elec_heat"] + mix["cooling"] + mix["ventilation"], total_in)
 
     # services basis: indigenous share of useful heat & cool DELIVERED.
     # Each service inherits the indigenous share of its energy input;
@@ -614,7 +627,10 @@ def compute_week(gas_space_wk, hdd_wk, cdd_wk, hdd_12m, cdd_12m, p):
         "bio": mix["bio_other"] * (1 - R),
         "solid": mix["solid"] * (1 - R),
         "hn": mix["heat_networks"] * (1 - R),
+        # ventilation is NOT reduced: a geothermal network does not displace
+        # fans, so the full fan load carries through the what-if unchanged.
         "elec": (mix["elec_heat"] * (1 - R) + mix["cooling"] * (1 - R)
+                 + mix["ventilation"]
                  + heat_repl_elec + cool_repl_elec),
     }
     new_total = sum(adj.values())
@@ -683,6 +699,9 @@ def compute_week(gas_space_wk, hdd_wk, cdd_wk, hdd_12m, cdd_12m, p):
     return {
         "f_flat": f_flat, "f_h": f_h, "f_c": f_c,
         "mix": mix, "combustion": combustion, "total": total,
+        # the two halves of mix["cooling"], so the headline can name them
+        "vent_elec_wk": round(vent_elec, 0),
+        "cool_elec_wk": round(cool_elec, 0),
         "useful": useful, "wasted": wasted,
         "bill": bill, "bill_heat": bill_heat, "bill_cool": bill_cool,
         "useful_heat_wk": useful_heat_wk,
@@ -711,8 +730,13 @@ def compute_week_emissions(r, grid_ci):
         "heat_networks": mix["heat_networks"] * CF["heat_networks"],
         "elec_heat": mix["elec_heat"] * grid_ci,
         "cooling": mix["cooling"] * grid_ci,
+        "ventilation": mix["ventilation"] * grid_ci,
     }
-    em_heat = sum(v for k, v in em.items() if k != "cooling")
+    # ventilation is neither heat nor cooling: it is fan energy. Excluded
+    # from the heat figure, reported on its own, and NOT removed by the
+    # what-if below - a geothermal network does not displace fans.
+    em_heat = sum(v for k, v in em.items()
+                  if k not in ("cooling", "ventilation"))
     em_total = sum(em.values())
     # what-if: same 20% shift as the cost what-if
     em_removed = R_SHIFT * (em["gas"] + em["oil"] + em["bio_other"]
@@ -922,7 +946,8 @@ def build_history(prev, dd, base, slope, target):
             "week_ending": we,
             "purchased_GWh": round(r["total_in"], 0),
             "heat_GWh": round(r["total_in"] - r["mix"]["cooling"], 0),
-            "cooling_GWh": round(r["mix"]["cooling"], 0),
+            "cooling_GWh": round(r["cool_elec_wk"], 0),
+            "ventilation_GWh": round(r["vent_elec_wk"], 0),
             "indig_pct": r["indig_services_now"],
             "bill_Mgbp": round(sum(r["bill"].values()), 0),
             "bill_heat_Mgbp": round(sum(v for k, v in r["bill"].items()
@@ -1484,7 +1509,8 @@ def main():
     headlines = {
         "purchased_GWh": round(r["total_in"], 0),
         "heat_GWh": round(r["total_in"] - r["mix"]["cooling"], 0),
-        "cooling_GWh": round(r["mix"]["cooling"], 0),
+        "cooling_GWh": round(r["cool_elec_wk"], 0),
+        "ventilation_GWh": round(r["vent_elec_wk"], 0),
         "indigenous_pct": round(r["indig_services_now"]),  # services basis (hero, int)
         "indigenous_basis": "services",
         "indigenous_purchased_pct": r["indig_now"],   # purchased basis (methods)
