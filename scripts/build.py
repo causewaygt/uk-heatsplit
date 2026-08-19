@@ -836,7 +836,7 @@ HISTORY_SCHEMA = 8   # 2: indig_pct at one decimal (restated Jul 2026)
 # epoch. Needed when a previous run advanced the epoch without completing the
 # restatement - which was possible until 19 Aug 2026, when the markers were
 # reordered to write only on success. Return to False afterwards.
-FORCE_RESTATE = True
+FORCE_RESTATE = False
 
 ANCHOR_EPOCH = 2     # 1: introduced 8 Aug 2026 with the anchor-year fix.
                      # 2: 17 Aug 2026. Ventilation removed from "cooling"
