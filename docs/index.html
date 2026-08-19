@@ -734,6 +734,48 @@
       <div class="billline" id="reconline"></div>
       <p class="costnote" id="reconnote"></p>
     </div>
+    <div class="h2lab" style="margin-top:26px">Tier 0, and how big it really is <span class="qual">— process cooling, built bottom up</span></div>
+    <p class="costnote">Tier 0 was carried for months as a bare “of order
+      26 TWh a year” with no derivation anywhere. It now has one, and the
+      exercise moved the number’s meaning more than its magnitude.</p>
+    <p class="costnote"><b>The food cold chain</b> is anchored on Foster, Brown
+      and Evans, <i>Carbon emissions from refrigeration used in the UK food
+      industry</i> (International Journal of Refrigeration, 2023), which puts
+      the entire UK food cold chain at <b>29.1 TWh of electricity</b> on 2019
+      data. <b>10.75 TWh of that is domestic fridge-freezers</b> and belongs in
+      the household tier, not here. Stripping it out leaves 15–18 TWh:
+      retail refrigeration 6.91, food service 4.16–9.28 (the widest single
+      uncertainty), food and drink manufacturing 3.08, cold stores 1.32,
+      agriculture 0.40.</p>
+    <p class="costnote"><b>Data centres are much smaller than their billing
+      suggests.</b> DESNZ’s June 2026 Energy Trends feature puts GB data
+      centres at <b>4.5 TWh</b> of grid electricity in 2024, 2% of the 249.2
+      TWh consumed. Cooling is only the overhead above the IT load: at a UK
+      power usage effectiveness of 1.5–1.8 that is roughly
+      <b>1–1.5 TWh</b>. Trade press reporting 5.8% of national electricity
+      is a capacity-based figure on a different scope, not the metered
+      number†. Adding non-food industrial refrigeration — chemicals
+      and pharmaceuticals at 0.88 TWh, from the DESNZ-funded TICR project
+      — gives <b>17–22 TWh of electricity</b>, or <b>25–45 TWh of
+      delivered cooling</b> once each component is converted at its own
+      efficiency: supermarket display about 2 to 2.5, cold stores and
+      manufacturing 2.5 to 3, data centre cooling service roughly the IT load
+      it removes.</p>
+    <p class="costnote"><b>So 26 TWh is defensible as a service figure and
+      wrong as an electricity one</b> — and the site had never said which
+      it was. It sits at the low end of the service range. Two cautions carried
+      forward: the cold-chain data is 2019 and the retail figures trace to
+      studies from 2007–2016, making this the stalest evidence on the page;
+      and roughly 1 to 1.5 TWh of data centre cooling may already sit inside
+      the ECUK services cooling line above, since data centres are
+      services-sector buildings — a fifth of the anchor, potentially
+      counted twice†.</p>
+    <p class="costnote"><b>The scale is the point.</b> At 17–22 TWh of
+      electricity, process cooling is <b>three and a half to four and a half
+      times the entire comfort-cooling anchor</b> of 4.8 TWh. Britain spends
+      far more electricity keeping product cold than keeping people cool, and
+      none of it is in ECUK’s services cooling line.</p>
+
     <div class="h2lab" style="margin-top:26px">Tested and rejected <span class="qual">— four things that did not survive, and one that did</span></div>
     <p class="costnote"><b>The diurnal separation.</b> Until 17 August 2026
       this fold opened with a chart separating comfort from process cooling
@@ -1108,7 +1150,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.48.0';
+const SITE_VERSION = '8.50.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1141,7 +1183,8 @@ fetch('data.json').then(r=>r.json()).then(d=>{
       ["solid","Solid fuel","--solid"],
       ["heat_networks","Heat networks","--dh"],
       ["elec_heat","Electric heating","--elec"],
-      ["cooling","Cooling & ventilation (electricity)","--cool"],
+      ["cooling","Cooling (electricity)","--cool"],
+      ["ventilation","Ventilation \u2014 fans (electricity)","--ash"],
     ];
     const OUT_DEF = u ? [
       ["gas_space","Gas — space heating","--ember"],
@@ -1165,9 +1208,16 @@ fetch('data.json').then(r=>r.json()).then(d=>{
     if(hh && hh.indigenous_pct != null){
       document.getElementById('st_indig').textContent = hh.indigenous_pct + '%';
       if(hh.heat_GWh != null && hh.cooling_GWh != null){
+        // Ventilation is named SEPARATELY from 17 Aug 2026. It was previously
+        // folded into "cooling", which made this headline and the cooling
+        // panel use one word for two quantities - the panel excludes
+        // ventilation entirely, because fans move air rather than heat.
+        // The three must still sum to the purchased total.
         document.getElementById('st_energy_cap').textContent =
           'GWh of heating & cooling energy purchased this week (heat ' +
-          fmt(hh.heat_GWh) + ' \u00b7 cooling ' + fmt(hh.cooling_GWh) + ')';
+          fmt(hh.heat_GWh) + ' \u00b7 cooling ' + fmt(hh.cooling_GWh) +
+          (hh.ventilation_GWh != null
+             ? ' \u00b7 ventilation ' + fmt(hh.ventilation_GWh) : '') + ')';
       }
     }
     if(d.cost && d.cost.national_week_total_Mgbp != null){
