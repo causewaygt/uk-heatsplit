@@ -1154,7 +1154,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.56.1';
+const SITE_VERSION = '8.57.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -2214,7 +2214,8 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
        qual:'Geothermal serves ' + uk.share_pct + '% of UK buildings heat, ' +
             'against ' + nl.share_pct + '% in the Netherlands and ' +
             se.share_pct + '% in Sweden \u2014 whose existing fleet already ' +
-            'serves about the share this site\u2019s 20% what-if proposes. ' +
+            'serves NEARLY TWICE the share this site\u2019s 20% what-if ' +
+            'proposes. ' +
             hw.per_person_W + ' installed thermal watts per person here, ' +
             hw.sweden_per_person_W + ' there. All the technology is proven: ' +
             'geothermal scaling is a diffusion challenge, not an innovation ' +
@@ -3038,7 +3039,7 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
     document.getElementById('eb_need').innerHTML =
       (hw.whatif_MWth / 1000).toFixed(1) + '<small> GWth</small>';
     document.getElementById('eb_need_cap').textContent =
-      'installed capacity the 20% what-if requires at ' + fmt(hw.eflh) +
+      'installed capacity the 20% what-if requires at ' + fmt(hw.uk_flh) +
       ' equivalent full-load hours†';
     const cats = ['United Kingdom'].concat(hw.comparators.map(c =>
       c.name + '†'));
@@ -3103,18 +3104,25 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       'EGC 2025 country update), the blue sliver is deeper geothermal '+
       '(Gateshead, Eden and peers, ~' + hw.uk_deep_MWth + ' MWth†), '+
       'and the hatched stack is what serving 20% of delivered buildings '+
-      'heat requires at ' + fmt(hw.eflh) + ' equivalent full-load '+
-      'hours† — ' + (hw.whatif_MWth/1000).toFixed(1) + ' GWth '+
+      'heat requires at the UK fleet\u2019s OWN ' + fmt(hw.uk_flh) +
+      ' equivalent full-load hours \u2014 reported by EGC 2025, not '+
+      'assumed \u2014 ' + (hw.whatif_MWth/1000).toFixed(1) + ' GWth '+
       'against ' + fmt(hw.uk_gshp_MWth + hw.uk_deep_MWth) + ' MWth '+
       'installed. Today\u2019s entire UK stock is the sliver at the base. '+
       'The three bars on the right are not scenarios but installed reality '+
       'elsewhere†: even Sweden\u2019s fleet — the largest in '+
-      'Europe, in a country of 10.5 million — covers barely a quarter '+
+      'Europe, in a country of 10.5 million \u2014 covers a modest share '+
       'of the UK requirement, which is the scale argument in one picture: '+
       'the what-if is unremarkable per person (Sweden already runs ' +
       hw.sweden_per_person_W + ' W/person against the UK\u2019s ' +
       hw.per_person_W.toFixed(0) + ') and enormous only because Britain '+
-      'has never started. ' + hw.note + ' Constants shared with the '+
+      'has never started. ' + hw.note + ' A finding rather than a conversion: UK '+
+      'systems run ' + fmt(hw.uk_flh) + ' full-load hours against a '+
+      'European average of 2,420, and the Netherlands only 1,095 \u2014 '+
+      'mild maritime winters, short heating seasons, and probably some '+
+      'oversizing. Fewer hours means MORE capacity to serve the same heat, '+
+      'so using the reported figure moves this bar AGAINST the site\u2019s '+
+      'own argument. ' + hw.note + ' Constants shared with the '+
       'Irish sibling.' +
       (sh ? ' The lower chart is the calibration: ' + sh.note + ' ' +
             sh.boiler_flow_note : '');
