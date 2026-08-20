@@ -1119,20 +1119,63 @@ def fetch_hourly_system(start_day, end_day):
 # ===========================================================================
 # B.2 - netting, hourly stress re-base, the ceiling, the binding hour
 # ===========================================================================
+# ECONOMY 7 SHARE OF RESISTIVE HEAT, derived 20 Aug 2026 (dagger).
+#
+# DESNZ postcode-level electricity 2024 gives 2.11m Economy 7 meters of 28.24m
+# domestic, consuming 9.69 TWh of 94.45 TWh - 10.3% of domestic electricity,
+# down from 23% in the 2013 vintage of the same series.
+#
+# The mean of 4,603 kWh/yr per Economy 7 meter is the informative number. A
+# fully electrically heated home uses 8,000-15,000 kWh/yr and a gas-heated one
+# about 2,800, so solving the mixture puts only a fifth to a third of Economy 7
+# households on electric heat. Most hold the meter for hot water, or as a
+# legacy of a system since replaced. That gives roughly 3.8 TWh of night-
+# shifted electric heat, about 22% of the 17.5 TWh of domestic electric heat -
+# and the figure is stable across the assumed per-home consumption, because a
+# higher figure implies proportionately fewer homes.
+E7_SHARE_OF_RESISTIVE = 0.22   # dagger - see the methodology, 10.5
+E7_HOURS = (0, 7)              # midnight to 07:00, the common switching window
+
+
 def _displaced_gw(store):
     """Hourly electricity the what-if REMOVES from observed demand: the
-    fifth of existing resistive space heating, shaped like space heat.
-    Route-independent (the displaced kit is the same whichever route
-    replaces it)."""
+    fifth of existing resistive space heating, split between a space-heat
+    shape and an Economy 7 night block. Route-independent (the displaced
+    kit is the same whichever route replaces it).
+
+    WHY THE SPLIT MATTERS. Shaping all of it like space heat credits the
+    what-if with displacing load at the winter peak. Economy 7 load ran
+    seven hours earlier, so there is nothing to displace when the system
+    is tight - and on this record the binding hour falls at midday, where
+    an Economy 7 credit is exactly zero.
+    """
     cal = store["calibration"]
     res = cal.get("resistive_space_TWh", 0.0)
     if not res:
         return [0.0] * store["n_hours"]
     dhw_h = cal["dhw_annual_TWh"] * 1000.0 / 8760.0
     space_u = cal["space_annual_TWh"] * 1000.0
-    return [R_SHIFT * res * 1000.0
-            * max(0.0, q - dhw_h) / space_u
-            for q in store["heat_GWh"]]
+    total = R_SHIFT * res * 1000.0
+
+    # The space-shaped part, at its FULL weight first, so the two shapes can
+    # be split by energy afterwards rather than by a scaling factor that has
+    # to be derived. Deriving it was wrong on the first attempt - the store
+    # spans 1.1 years, so a sum of per-hour shares is not 1.0 - and an
+    # explicit split cannot make that mistake.
+    full = [total * max(0.0, q - dhw_h) / space_u for q in store["heat_GWh"]]
+    e_tot = sum(full)
+    shaped = [(1.0 - E7_SHARE_OF_RESISTIVE) * v for v in full]
+
+    # The Economy 7 part: a flat block over the switching window carrying
+    # exactly E7_SHARE_OF_RESISTIVE of the same energy, so only its TIMING
+    # differs from the shape it replaces.
+    t0 = dt.datetime.fromisoformat(store["start_day"])
+    in_block = [1.0 if E7_HOURS[0] <= (t0 + dt.timedelta(hours=i)).hour
+                < E7_HOURS[1] else 0.0 for i in range(store["n_hours"])]
+    n_block = sum(in_block) or 1.0
+    e7 = [E7_SHARE_OF_RESISTIVE * e_tot * b / n_block for b in in_block]
+
+    return [a + b for a, b in zip(shaped, e7)]
 
 
 def _elec_limits(store, D, W, S, disp, gross, winter, _iso):
@@ -1481,7 +1524,12 @@ def heat_price_series(store, sap_series=None, retail_series=None,
         wtd.setdefault(d_, []).append((v, h))
         if i < len(T) and T[i] is not None:
             temps.setdefault(d_, []).append(T[i])
-    ROUTE_KEYS = ("ashp", "shallow", "network")
+    # Resistive is included as a ceiling, not as a candidate. Its COP is 1.0
+    # on every service and at every temperature - it does not care what flow
+    # temperature it is asked for, which is exactly why it is the expensive
+    # option and why the same line serves space heating, hot water and the
+    # blend. It is the 24.6 TWh/yr the what-if displaces a fifth of.
+    ROUTE_KEYS = ("ashp", "shallow", "network", "resistive")
     out = {"dates": [], "elec_flat_gbp_mwh": [], "elec_heat_wtd_gbp_mwh": [],
            "temp_C": [], "routes": {k: [] for k in ROUTE_KEYS},
            "cop": {k: [] for k in ROUTE_KEYS},
@@ -1504,6 +1552,12 @@ def heat_price_series(store, sap_series=None, retail_series=None,
         out["elec_heat_wtd_gbp_mwh"].append(round(wm, 2))
         out["temp_C"].append(round(tm, 2))
         for k in ROUTE_KEYS:
+            if k == "resistive":
+                out["cop"][k].append(1.0)
+                out["cop_dhw"][k].append(1.0)
+                out["routes"][k].append(round(fm, 2))
+                out["dhw"][k].append(round(fm, 2))
+                continue
             c = route_cop(k, tm, etas.get(k, 0.33))
             out["cop"][k].append(round(c, 2))
             out["routes"][k].append(round(fm / c, 2))
@@ -1605,7 +1659,7 @@ def heat_price_series(store, sap_series=None, retail_series=None,
         out["retail_dhw"] = {}
         out["retail_blend"] = {}
         ss = out["space_share"]
-        for k in ("gas", "ashp", "shallow", "network"):
+        for k in ("gas", "ashp", "shallow", "network", "resistive"):
             src = retail_series.get(k) or []
             unit = [(src[idx[d_]] if d_ in idx and idx[d_] < len(src) else None)
                     for d_ in out["dates"]]
