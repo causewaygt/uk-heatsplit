@@ -1354,8 +1354,44 @@ def main():
             + ANNUAL_TWH["heat_networks"] * EFF["heat_networks"]
             + max(0.0, elec_heat_all - HP_ELEC_TWH) * EFF["resistive"]
             + HP_ELEC_TWH * HP_SPF)
-        EFLH = 2000.0
-        whatif_MWth = 0.20 * useful_heat_annual * 1e6 / EFLH
+        # REPORTED OUTPUT, NOT A LOAD FACTOR. Until 20 Aug 2026 this block
+        # converted installed capacity to annual output at a flat 2,000
+        # equivalent full-load hours for every country. NO COUNTRY IN THE
+        # COMPARISON RUNS 2,000 HOURS, and EGC 2025 Table 4 - the same paper
+        # the comparator capacities already came from - reports the annual
+        # production and the full-load hours alongside the capacity. The
+        # column was simply not taken.
+        #
+        # The errors ran in OPPOSITE directions: the UK overstated by 20%,
+        # the Netherlands by 83%, Sweden UNDERSTATED by 43%. So the gap
+        # between the home country and the benchmark was drawn far narrower
+        # than it is, and every error flattered the home country - which is
+        # how it survived review on this site and the Irish sibling both.
+        # Found by the Irish sibling, 20 Aug 2026.
+        #
+        # EGC 2025 Country Update Summary (Sanner, Antics, Baresi,
+        # Urchueguia & Dumas), Table 4: Ground Source Heat Pump Use in
+        # Europe in 2024. FLH is GWh/MWth and is carried so it can be
+        # checked rather than trusted.
+        REFERENCE_OUTPUT = {
+            "United Kingdom": {"units": 55210, "MWth": 861,
+                               "GWh": 1430, "flh": 1661},
+            "France":         {"units": 209021, "MWth": 2293,
+                               "GWh": 4750, "flh": 2072},
+            "Netherlands":    {"units": 163169, "MWth": 2486,
+                               "GWh": 2722, "flh": 1095},
+            "Sweden":         {"units": 690000, "MWth": 8120,
+                               "GWh": 28400, "flh": 3498},
+        }
+        REFERENCE_SOURCE = ("EGC 2025 Country Update Summary (Sanner, "
+                            "Antics, Baresi, Urchueguia & Dumas), Table 4: "
+                            "Ground Source Heat Pump Use in Europe in 2024")
+        # The what-if uses the UK's OWN full-load hours, not a European
+        # convention. Fewer hours means MORE capacity to serve the same
+        # heat, so this moves against the site's own interest - which is
+        # the reason to trust it.
+        UK_FLH = REFERENCE_OUTPUT["United Kingdom"]["flh"]
+        whatif_MWth = 0.20 * useful_heat_annual * 1e6 / UK_FLH
         UK_GSHP_MWTH, UK_DEEP_MWTH = 861.0, 10.0
         geothermal["hardware"] = {
             "uk_gshp_MWth": UK_GSHP_MWTH,        # EGC 2025 CU Table 4:
@@ -1364,7 +1400,9 @@ def main():
                                                  # others, order-of † (EGC
                                                  # Table 3 reports only 1.4)
             "whatif_MWth": round(whatif_MWth, 0),
-            "eflh": EFLH,
+            "reference_output": REFERENCE_OUTPUT,
+            "reference_source": REFERENCE_SOURCE,
+            "uk_flh": UK_FLH,
             "useful_heat_annual_TWh": round(useful_heat_annual, 1),
             "per_person_W": round((UK_GSHP_MWTH + UK_DEEP_MWTH) * 1e6
                                   / (UK_POP_M * 1e6), 1),
@@ -1381,16 +1419,18 @@ def main():
                 {"name": "Sweden", "gshp_MWth": 8120, "deep_MWth": 47},
             ],
             "note": ("Installed thermal capacity basis. The what-if bar "
-                     "prices the 20% strip in hardware at " +
-                     str(int(EFLH)) + " equivalent full-load hours" + EST +
-                     ". Comparator capacities: EGC 2025 country updates "
+                     "prices the 20% strip in hardware at the UK fleet's "
+                     "own " + str(int(UK_FLH)) + " equivalent full-load "
+                     "hours, reported rather than assumed. Comparator "
+                     "capacities and output: EGC 2025 country updates "
                      "(Sanner et al., Tables 3-4, end-2024) - GSHP fleet "
                      "plus deep direct use; the Netherlands' deep "
                      "capacity is almost entirely greenhouse heat, not "
                      "buildings."),
         }
         # Calibration: the same fleets as a share of each country's OWN
-        # buildings heat, one EFLH convention. National heat anchors are
+        # buildings heat, computed from REPORTED annual output rather than
+        # from capacity times a load factor. National heat anchors are
         # input-basis estimates †: UK live from this model (space + DHW);
         # France ~350 TWh (IEA/Heat Roadmap order), Netherlands ~115 TWh
         # (residential space heating alone 85 TWh in 2016 + DHW +
@@ -1405,16 +1445,22 @@ def main():
                        + ANNUAL_TWH["oil_dhw"] + ANNUAL_TWH["bio_dhw"])
         NAT_HEAT_TWH = {"France": 350.0, "Netherlands": 115.0,
                         "Sweden": 80.0}
+        # Reported GWh over national heat. No load-hour term appears here:
+        # test_panel5.js fails if one reappears, and is proven to catch it
+        # because restoring the 2,000-hour convention returns Sweden to the
+        # 20.4% this site published before the error was found.
         shares = [{"name": "United Kingdom",
                    "national_heat_TWh": round(uk_nat_heat, 0),
-                   "share_pct": round(100 * (UK_GSHP_MWTH + UK_DEEP_MWTH)
-                                      * EFLH / 1e6 / uk_nat_heat, 1)}]
+                   "reported_GWh": REFERENCE_OUTPUT["United Kingdom"]["GWh"],
+                   "share_pct": round(
+                       100 * REFERENCE_OUTPUT["United Kingdom"]["GWh"] / 1000.0
+                       / uk_nat_heat, 2)}]
         for c in geothermal["hardware"]["comparators"]:
-            tot = c["gshp_MWth"] + c["deep_MWth"]
             nat = NAT_HEAT_TWH[c["name"]]
+            g = REFERENCE_OUTPUT[c["name"]]["GWh"]
             shares.append({"name": c["name"], "national_heat_TWh": nat,
-                           "share_pct": round(100 * tot * EFLH / 1e6
-                                              / nat, 1)})
+                           "reported_GWh": g,
+                           "share_pct": round(100 * g / 1000.0 / nat, 2)})
         geothermal["hardware"]["share_of_national_heat"] = {
             "countries": shares,
             "whatif_pct": 20.0,
@@ -1425,7 +1471,7 @@ def main():
                                  "what-if is about one year of that "
                                  "replacement flow, redirected."),
             "note": ("Each country's installed geothermal fleet at " +
-                     str(int(EFLH)) + " equivalent full-load hours" + EST +
+                     str(int(UK_FLH)) + " equivalent full-load hours" + EST +
                      ", as a share of its own buildings heat (space + hot "
                      "water, input basis; national anchors are estimates" +
                      EST + " - UK live from this model, others of order "
