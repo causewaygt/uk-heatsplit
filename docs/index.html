@@ -478,6 +478,7 @@
     <div class="legendgrp"><span class="legendhdr">ENERGY OUT — USEFUL</span>
       <div class="legend" id="uselegend"></div></div>
     <div class="combline" id="combline"></div>
+    <button class="pngbtn" onclick="exportBars('The energy balance','what Britain bought for heat and cooling, and what it delivered')">⬇ PNG FOR SLIDES</button>
   </div>
 
     <details class="fold" id="fold_start"><summary>METHOD —
@@ -1153,7 +1154,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.53.1';
+const SITE_VERSION = '8.56.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1185,7 +1186,7 @@ const EXPORT_LOGO = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAACgCAYAA
 // freely without weakening the greyscale case.
 const PRINT_MAP = {
   '--paper': '#1a1a1a', '--muted': '#5c6672', '--line': '#dcdcd6',
-  '--ash': '#7a8089',
+  '--ash': '#6b7178',   // resistive  - grey,      luminance 0.15
   '--ember': '#a82d16',   // gas        - deep red,  luminance 0.10
   '--elec':  '#0f4373',   // air-source - deep blue, luminance 0.05
   '--cool':  '#9a690c',   // ground     - gold,      luminance 0.17
@@ -1214,6 +1215,102 @@ function recolour(o){
   }
   return o;
 }
+// The energy balance is HTML segments, not Plotly, so it is redrawn on canvas
+// from the state drawEnergyBars records. Same paper, same furniture as
+// exportChart, so the two sit together in a deck.
+window.exportBars = async function(title, sub){
+  const B = window.LAST_BARS;
+  if(!B || !B.inC) return;
+  const W = 1600, H = 900, PAD = 48, HEAD = 132, FOOT = 96;
+  const c = document.createElement('canvas');
+  c.width = W * 2; c.height = H * 2;
+  const x = c.getContext('2d'); x.scale(2, 2);
+  x.fillStyle = '#ffffff'; x.fillRect(0, 0, W, H);
+
+  x.fillStyle = '#1a1a1a';
+  x.font = '700 44px Lato, system-ui, sans-serif';
+  x.fillText(title || 'The energy balance', PAD, 62);
+  x.fillStyle = '#5c6672';
+  x.font = '400 25px Lato, system-ui, sans-serif';
+  x.fillText(sub || ('what was bought, and what it delivered \u2014 ' + B.when), PAD, 98);
+
+  const BX = PAD, BW = W - 2 * PAD, BH = 92;
+  const rows = [
+    ['ENERGY IN \u2014 fuel & electricity purchased', B.inDef, B.inC, 0, B.tIn, 'GWh in'],
+    ['USEFUL OUT \u2014 after losses and ambient harvest', B.outDef, B.outC,
+     B.lost, B.tOut, 'GWh delivered']
+  ];
+  let y = HEAD + 26;
+  const legend = [];
+  rows.forEach(([lab, def, comp, lost, tot, unit]) => {
+    if(!comp) return;
+    x.fillStyle = '#3d4148';
+    x.font = '600 19px Lato, system-ui, sans-serif';
+    x.fillText(lab, BX, y);
+    x.fillStyle = '#1a1a1a';
+    x.font = '700 34px Lato, system-ui, sans-serif';
+    const tt = fmt(tot) + ' ';
+    x.fillText(tt, BX, y + 52);
+    const tw = x.measureText(tt).width;
+    x.fillStyle = '#7a8089';
+    x.font = '400 19px Lato, system-ui, sans-serif';
+    x.fillText(unit, BX + tw, y + 52);
+    const x0 = BX + 250, w0 = BW - 250;
+    let cx = x0;
+    def.forEach(([key, label, varname]) => {
+      const v = comp[key] || 0;
+      if(v <= 0) return;
+      const seg = w0 * v / B.sc;
+      x.fillStyle = printColour(css(varname));
+      x.fillRect(cx, y + 12, Math.max(seg, 0.5), BH * 0.62);
+      if(!legend.some(l => l[0] === label)) legend.push([label, printColour(css(varname))]);
+      cx += seg;
+    });
+    if(lost > 0){
+      const seg = w0 * lost / B.sc;
+      x.save();
+      x.fillStyle = '#c9c4bb';
+      x.fillRect(cx, y + 12, seg, BH * 0.62);
+      x.strokeStyle = '#ffffff'; x.lineWidth = 2;
+      for(let d = 0; d < seg + BH; d += 11){
+        x.beginPath(); x.moveTo(cx + d, y + 12 + BH * 0.62);
+        x.lineTo(cx + d - BH * 0.62, y + 12); x.stroke();
+      }
+      x.restore();
+      if(!legend.some(l => l[0] === 'Lost in conversion'))
+        legend.push(['Lost in conversion', '#c9c4bb']);
+    }
+    y += BH + 78;
+  });
+
+  // legend, wrapping across the width
+  let lx = BX, ly2 = y + 6;
+  x.font = '400 18px Lato, system-ui, sans-serif';
+  legend.forEach(([label, col]) => {
+    const wdt = x.measureText(label).width + 42;
+    if(lx + wdt > BX + BW){ lx = BX; ly2 += 30; }
+    x.fillStyle = col; x.fillRect(lx, ly2 - 12, 15, 15);
+    x.fillStyle = '#3d4148'; x.fillText(label, lx + 23, ly2);
+    lx += wdt;
+  });
+
+  const logo = new Image();
+  await new Promise(r => { logo.onload = r; logo.onerror = r; logo.src = EXPORT_LOGO; });
+  const LS = 60, fy = H - FOOT + 14;
+  try { x.drawImage(logo, PAD, fy, LS, LS); } catch(e){}
+  x.fillStyle = '#3d4148';
+  x.font = '600 21px Lato, system-ui, sans-serif';
+  x.fillText('UK Heat Split \u00b7 Causeway Energies', PAD + LS + 18, fy + 26);
+  x.fillStyle = '#7a8089';
+  x.font = '400 16px Lato, system-ui, sans-serif';
+  x.fillText('Chart CC BY 4.0 \u00b7 Data: OGL v3.0 (DESNZ, NESO, National Gas) '
+             + '\u00b7 causewaygt.github.io/uk-heatsplit', PAD + LS + 18, fy + 52);
+  const a = document.createElement('a');
+  a.download = 'uk-heat-split-energy-balance'
+             + (B.wf ? '-whatif' : '') + '-'
+             + new Date().toISOString().slice(0, 10) + '.png';
+  a.href = c.toDataURL('image/png'); a.click();
+};
 window.exportChart = async function(id, title, sub){
   const gd = document.getElementById(id);
   if(!gd || !gd.data || !window.Plotly) return;
@@ -1464,6 +1561,10 @@ fetch('data.json').then(r=>r.json()).then(d=>{
 
     function drawWhatIfBars(){
       const sc = Math.max(wfb.mix_total_GWh, wfb.useful_total_GWh) || 1;
+      window.LAST_BARS = {inDef: WF_IN_DEF, inC: wfb.mix, outDef: OUT_DEF,
+                          outC: (u ? u.components_GWh : null),
+                          tIn: wfb.mix_total_GWh, tOut: wfb.useful_total_GWh,
+                          lost: 0, when: 'this week', sc: sc, wf: true};
       document.getElementById('mixlegend').innerHTML = '';
       document.getElementById('uselegend').innerHTML = '';
       Object.keys(seen).forEach(k => { delete seen[k]; });
@@ -1502,6 +1603,11 @@ fetch('data.json').then(r=>r.json()).then(d=>{
       const lost = W ? agg.wasted : (u ? u.wasted_GWh : 0);
       const when = W ? agg.when : 'this week';
       const sc   = Math.max(tIn, tOut) || 1;
+      // The bars are HTML segments, so Plotly.toImage cannot see them. Record
+      // what they were built from and let the exporter redraw on canvas.
+      window.LAST_BARS = {inDef: IN_DEF, inC: inC, outDef: OUT_DEF, outC: outC,
+                          tIn: tIn, tOut: tOut, lost: lost, when: when, sc: sc,
+                          wf: false};
       document.getElementById('mixlegend').innerHTML = '';
       document.getElementById('uselegend').innerHTML = '';
       Object.keys(seen).forEach(k => { delete seen[k]; });
@@ -2675,11 +2781,20 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
     // Gas first in the legend and heaviest on the page: it is the line the
     // other three are measured against, and the one that crosses them.
     const KEYS = (hp.routes.gas ? ['gas'] : [])
-                 .concat(['ashp','shallow','network']);
+                 .concat(['ashp','shallow','network'])
+                 .concat(hp.routes.resistive ? ['resistive'] : []);
+    // Resistive is drawn as a CEILING, not as a candidate route. Its
+    // coefficient of performance is 1.0 on every service and at every
+    // temperature - it does not care what flow temperature it is asked for -
+    // so it is one flat line whichever service is selected, and every other
+    // route sits under it. It is also the 24.6 TWh/yr the 20% what-if
+    // displaces a fifth of, so it belongs on the chart that prices heat.
     const NAME = {gas:'Gas boiler', ashp:'Air-source heat pump',
-                  shallow:'Ground source', network:'Geothermal network'};
+                  shallow:'Ground source', network:'Geothermal network',
+                  resistive:'Resistive electric \u2014 the ceiling'};
     const COL  = {gas:css('--ember'), ashp:css('--elec'),
-                  shallow:css('--cool'), network:css('--geo')};
+                  shallow:css('--cool'), network:css('--geo'),
+                  resistive:css('--ash')};
     const fmtW = {28:'four weeks', 84:'twelve weeks', 365:'twelve months',
                   730:'twenty-four months'};
     // Two bases, one chart. Wholesale isolates the fuel and the efficiency;
@@ -2718,7 +2833,8 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       const tr = KEYS.filter(k => src(k).length).map(k => ({
         x: x, y: src(k).slice(-n), name: NAME[k], mode:'lines',
         connectgaps: false,
-        line:{color:COL[k], width: k === 'gas' ? 2.8 : 2.2},
+        line:{color:COL[k], width: k === 'gas' ? 2.8 : 2.2,
+              dash: k === 'resistive' ? 'dot' : 'solid'},
         hovertemplate:'%{x}<br>\u00a3%{y:.1f}/MWh<extra>' + NAME[k] + '</extra>'
       }));
       Plotly.newPlot('hpchart', tr, {
