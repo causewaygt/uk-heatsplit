@@ -1153,7 +1153,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.53.0';
+const SITE_VERSION = '8.53.1';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1173,18 +1173,22 @@ const EXPORT_LOGO = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAACgCAYAA
 // Hues are PRESERVED and only darkened for white, and the four route colours
 // are additionally separated in LUMINANCE so the chart survives greyscale
 // printing and the commoner forms of colour blindness. Two earlier faults are
-// worth recording: --elec is a gold (#d9a441) and was mapped to a blue, which
-// collided with --cool and made air-source and ground source nearly
-// indistinguishable; and once that was fixed, ground and network sat 1.01
-// apart in luminance - different hues, identical in greyscale. The worst
-// pairwise luminance contrast is now 1.44, and every route is at least
-// 3.2:1 against white.
+// worth recording: --elec and --cool were first mapped to two blues, which
+// made air-source and ground source nearly indistinguishable; and once that
+// was fixed, ground and network sat 1.01 apart in luminance - different hues,
+// identical in greyscale. The worst pairwise luminance contrast is now 1.44,
+// and every route is at least 3.2:1 against white.
+//
+// NOTE the print assignment is deliberately NOT the screen one: air-source
+// takes the blue (it is the electric route) and ground source the gold. The
+// luminance separation is a property of the SET, so the two can be swapped
+// freely without weakening the greyscale case.
 const PRINT_MAP = {
   '--paper': '#1a1a1a', '--muted': '#5c6672', '--line': '#dcdcd6',
   '--ash': '#7a8089',
   '--ember': '#a82d16',   // gas        - deep red,  luminance 0.10
-  '--elec':  '#9a690c',   // air-source - GOLD,      luminance 0.17
-  '--cool':  '#0f4373',   // ground     - deep blue, luminance 0.05
+  '--elec':  '#0f4373',   // air-source - deep blue, luminance 0.05
+  '--cool':  '#9a690c',   // ground     - gold,      luminance 0.17
   '--geo':   '#37a532',   // network    - green,     luminance 0.28
   '--gasdhw': '#2f7d79', '--oil': '#8a3f28', '--bio': '#5f7a28',
   '--dh': '#6a5a9c', '--solid': '#4a3d30'
