@@ -1660,7 +1660,14 @@ def heat_price_series(store, sap_series=None, retail_series=None,
         out["retail_blend"] = {}
         ss = out["space_share"]
         for k in ("gas", "ashp", "shallow", "network", "resistive"):
+            # Resistive is priced from the SAME raw electricity unit price as
+            # the heat-pump routes - build.py has no separate series for it,
+            # and without this fallback the trace exists with every value
+            # null: a legend entry, no line, and no effect on the y axis,
+            # which is exactly how it first shipped.
             src = retail_series.get(k) or []
+            if k == "resistive" and not src:
+                src = retail_series.get("ashp") or []
             unit = [(src[idx[d_]] if d_ in idx and idx[d_] < len(src) else None)
                     for d_ in out["dates"]]
             if k == "gas":
