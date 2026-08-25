@@ -927,8 +927,13 @@
           <p class="dealnote" id="dealnote"></p>
         </div>
 
+        <div class="h2lab" style="margin-top:14px">Benefits</div>
         <div class="compbar" id="compbar"></div>
         <div class="key" id="key"></div>
+
+        <div class="h2lab" style="margin-top:14px">Costs</div>
+        <div class="compbar" id="costbar"></div>
+        <div class="key" id="costkey"></div>
         <p class="caveat" id="invar"></p>
 
         <div class="levers">
@@ -1154,7 +1159,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.57.0';
+const SITE_VERSION = '8.59.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1463,11 +1468,18 @@ fetch('data.json').then(r=>r.json()).then(d=>{
       const w = hh.whatif_20pct_geothermal;
       document.getElementById('wf_energy').textContent = fmt(w.purchased_GWh);
       if(w.heat_GWh != null && w.cooling_GWh != null){
+        // The route's OWN electricity is named, so the saving can be seen to
+        // be NET rather than gross. It is inside the what-if bill already -
+        // but a difference of two bills does not show its own workings, and
+        // "is this net?" is the first question a reader should ask.
         document.getElementById('wf_energy_cap').textContent =
           'GWh purchased (heat ' + fmt(w.heat_GWh) + ' \u00b7 cooling ' +
           fmt(w.cooling_GWh) + ' \u00b7 saves ' +
           fmt(hh.purchased_GWh - w.purchased_GWh) +
-          ' GWh this week) \u2014 the ground supplies the rest free';
+          ' GWh this week) \u2014 net of the '
+          + (w.route_elec_GWh != null ? fmt(w.route_elec_GWh) + ' GWh' : '')
+          + ' of electricity the geothermal route itself buys; '
+          + 'the ground supplies the rest free';
       }
       document.getElementById('wf_indig').textContent =
         (w.indigenous_pct != null ? w.indigenous_pct + '%' : '—');
@@ -1868,8 +1880,22 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
     // Devex sits on the SUBSURFACE increment, not on the cooling increment -
     // the cooling kit is specified, not explored for.
     const devexBn = capNow() * DEVEX_PCT;
-    for(let t=1;t<=BUILD;t++)
-      cost+=((capNow()+cb.incBn+devexBn)*(1+S.ob/100)/BUILD)*stpr(t-0.5);
+    // The cost is accumulated as one number, but it has four parts and a
+    // reader is entitled to see them - not least because the optimism-bias
+    // slider moves the total without changing any physical quantity, which
+    // is invisible unless the bias is drawn as its own band. Each part is
+    // discounted over the same build profile, so the shares below are exact
+    // rather than an undiscounted approximation.
+    let c_sub=0, c_cool=0, c_devex=0, c_ob=0;
+    const obF = S.ob/100;
+    for(let t=1;t<=BUILD;t++){
+      const df = stpr(t-0.5)/BUILD;
+      c_sub   += capNow()   * df;
+      c_cool  += cb.incBn   * df;
+      c_devex += devexBn    * df;
+      c_ob    += (capNow()+cb.incBn+devexBn) * obF * df;
+    }
+    cost = c_sub + c_cool + c_devex + c_ob;
     // AVOIDED CHILLER PLANT is a BENEFIT, not a negative cost. Netting an
     // avoided counterfactual cost off the denominator drives the cost toward
     // zero and the ratio toward infinity - at 100% cooling that gave a BCR of
@@ -1881,7 +1907,8 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       if(t<HORIZON) chill+=cb.chillerBn*stpr(Math.max(0.5,t));
     }
     const ben=en+ca+aq+pk+chill;
-    return {en,ca,aq,pk,chill,ben,cost,bcr:ben/cost,npsv:ben-cost,cool:cb};
+    return {en,ca,aq,pk,chill,ben,cost,bcr:ben/cost,npsv:ben-cost,cool:cb,
+            c_sub,c_cool,c_devex,c_ob};
 }
 
   const el=id=>document.getElementById(id);
@@ -1936,6 +1963,22 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       '<span style="white-space:nowrap"><i style="background:'+p[2]+'"></i>'+p[0]+
       ' '+gbp(p[1])+' <span style="color:var(--ash)">'+
       Math.round(100*p[1]/a.ben)+'%</span></span>').join('');
+    // COSTS, on the same footing as the benefits above. Optimism bias is
+    // drawn as its OWN band rather than folded into the others: it is the
+    // one lever that changes the total without changing any physical
+    // quantity, and a reader moving that slider should see what it moves.
+    const cparts=[['Subsurface increment',a.c_sub,'var(--cool)'],
+                  ['Cooling increment',a.c_cool,'var(--gasdhw)'],
+                  ['Development risk',a.c_devex,'var(--geo)'],
+                  ['Optimism bias',a.c_ob,'var(--ash)']]
+                  .filter(p=>p[1]>0.005);
+    el('costbar').innerHTML=cparts.map(p=>
+      '<span style="width:'+(100*p[1]/a.cost)+'%;background:'+p[2]+'"></span>').join('');
+    el('costkey').innerHTML=cparts.map(p=>
+      '<span style="white-space:nowrap"><i style="background:'+p[2]+'"></i>'+p[0]+
+      ' '+gbp(p[1])+' <span style="color:var(--ash)">'+
+      Math.round(100*p[1]/a.cost)+'%</span></span>').join('');
+
     el('invar').textContent=
       'The ratio does not depend on how large you think the programme is. ' +
       'Benefits and costs both scale with heat delivered, so halving or doubling ' +
