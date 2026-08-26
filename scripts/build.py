@@ -198,7 +198,10 @@ ANNUAL_TWH = {
 # --- prices ------------------------------------------------------------------
 # Ofgem price cap, GB direct-debit average unit rates incl VAT, p/kWh, by
 # cap-period start date. Sourced: Ofgem quarterly announcements.
-# EXTEND QUARTERLY (next: 1 Oct 2026 rates, announced by ~26 Aug 2026).
+# EXTEND QUARTERLY (next: 1 Jan 2027 rates, announced by ~25 Nov 2026).
+# NOTE for that row: electricity VAT is suspended only to 31 Mar 2027,
+# so the January row is still a 0% VAT figure and the APRIL 2027 row
+# returns to 5%. Check which basis Ofgem quotes before entering either.
 # Ticker correctness rule 1: a backfilled week is priced at the cap IN FORCE
 # that week, never today's. cap_prices() resolves the period from the date.
 # If the live gas window ever reaches before the first row, extend backwards
@@ -221,6 +224,25 @@ CAP_HISTORY = [
     ("2026-01-01", 5.93, 27.69),
     ("2026-04-01", 5.74, 24.67),
     ("2026-07-01", 7.33, 26.11),
+    # 1 Oct 2026: cap +3.6% to GBP 1,723 (Ofgem rounds to 4%), announced
+    # 26 Aug 2026. Gas 7.33 -> 7.97 (+8.7%), electricity 26.11 -> 26.32.
+    #
+    # THE ELECTRICITY FIGURES ARE NOT LIKE FOR LIKE, and this is the one
+    # quarter where the table's "incl VAT" convention needs saying out loud.
+    # VAT on electricity is SUSPENDED from 1 Oct 2026 to 31 Mar 2027, so
+    # July's 26.11 includes 5% and October's 26.32 includes 0%. Ex VAT the
+    # move is 24.87 -> 26.32, an underlying rise of 5.8% against a quoted
+    # 0.8%. Gas keeps its 5% throughout.
+    #
+    # The value stored is what a household PAYS, which is the convention of
+    # this table and the right basis for a bill. Two consequences to expect
+    # rather than debug: the electric routes will look almost flat this
+    # quarter while their underlying cost rose 5.8%, and on 1 Apr 2027 when
+    # VAT returns there will be a 5% step with no change in the underlying
+    # price at all. That step is real for the bill and spurious for the
+    # commodity, and the wholesale basis of the heat-price chart is the view
+    # that is unaffected by either.
+    ("2026-10-01", 7.97, 26.32),
 ]
 # Oil/bio/heat-network/solid unit prices are flagged estimates, held flat
 # across the history window (no reliable weekly series; noted in methods).
@@ -634,6 +656,15 @@ def compute_week(gas_space_wk, hdd_wk, cdd_wk, hdd_12m, cdd_12m, p):
                  + heat_repl_elec + cool_repl_elec),
     }
     new_total = sum(adj.values())
+    # PUBLISHED so the saving can be seen to be NET. The headline is a
+    # difference of two bills, and nothing in that difference shows what the
+    # geothermal route itself buys - which invites the reasonable question of
+    # whether the saving is gross. It is not: heat_repl_elec and
+    # cool_repl_elec are inside adj["elec"] above, and therefore inside
+    # bill_20. On the current figures the route consumes about a fifth of the
+    # heat it delivers, roughly GBP 4bn a year, so a gross figure would be
+    # more than double the published saving.
+    wf_route_elec_wk = round(heat_repl_elec + cool_repl_elec, 0)
     # what-if purchased split: cooling = kept cooling electricity + its
     # near-passive replacement; heat = everything else
     wf_cooling = mix["cooling"] * (1 - R) + cool_repl_elec
@@ -706,6 +737,7 @@ def compute_week(gas_space_wk, hdd_wk, cdd_wk, hdd_12m, cdd_12m, p):
         "bill": bill, "bill_heat": bill_heat, "bill_cool": bill_cool,
         "useful_heat_wk": useful_heat_wk,
         "whatif_heat_m": whatif_heat_m, "whatif_cool_m": whatif_cool_m,
+        "wf_route_elec_wk": wf_route_elec_wk,
         "total_in": total_in,
         "indig_now": indig_now, "indig_services_now": indig_services_now,
         "heat_repl_elec": heat_repl_elec, "cool_repl_elec": cool_repl_elec,
@@ -1598,6 +1630,8 @@ def main():
             "indigenous_pct": round(r["indig_services_20"]),  # services basis (hero, int)
             "indigenous_purchased_pct": r["indig_20"],
             "bill_Mgbp": round(r["bill_20"], 0),
+            # the route's OWN electricity, so the saving can be seen to be net
+            "route_elec_GWh": r["wf_route_elec_wk"],
         },
         "indig_note": ("Indigenous share is measured on a SERVICES basis: "
                        "the UK-origin share of useful heat and cooling "
