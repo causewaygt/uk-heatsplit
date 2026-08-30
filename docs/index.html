@@ -602,8 +602,8 @@
       <button data-hw="730">24M</button>
     </div>
     <div id="hpchart" style="height:300px;margin:8px 0 0"></div>
-    <button class="pngbtn" onclick="exportChart('hpchart','What heat costs to make','by route, per MWh of delivered heat')">⬇ PNG FOR SLIDES</button>
     <div id="hpvol" style="height:142px;margin:0 0 4px"></div>
+    <button class="pngbtn" onclick="exportChart('hpchart','What heat costs to make','by route, per MWh of delivered heat \u2014 with the heat actually delivered beneath','hpvol')">⬇ PNG FOR SLIDES</button>
     <details class="fold" id="fold_cost"><summary>METHOD —
       <b>every route priced per useful kWh, with its basis and explanation</b></summary>
     <div class="foldbody">
@@ -1162,7 +1162,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.59.1';
+const SITE_VERSION = '8.60.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1323,7 +1323,13 @@ window.exportBars = async function(title, sub){
              + new Date().toISOString().slice(0, 10) + '.png';
   a.href = c.toDataURL('image/png'); a.click();
 };
-window.exportChart = async function(id, title, sub){
+// Stack a SECOND Plotly chart beneath the first, sharing the same paper and
+// footer. The price chart is only half the story - a price is only as
+// interesting as the volume it prices, and on the page the delivered-service
+// band sits directly under it on the same x axis. An export that dropped the
+// band would carry a January price with nothing to say how much heat was
+// bought at it.
+window.exportChart = async function(id, title, sub, id2, split){
   const gd = document.getElementById(id);
   if(!gd || !gd.data || !window.Plotly) return;
   // 1600x900 at 2x. Type is sized for a 16:9 SLIDE, not for a browser: at
@@ -1352,7 +1358,14 @@ window.exportChart = async function(id, title, sub){
     if(t.marker && t.marker.size) t.marker.size = t.marker.size * 1.5;
     return t;
   });
-  const pw = W - 2 * PAD, ph = H - HEAD - FOOT;
+  const gd2 = id2 ? document.getElementById(id2) : null;
+  const has2 = !!(gd2 && gd2.data && gd2.data.length);
+  // Proportions follow the page: 300px against 142px, so about 68:32.
+  const GAP = has2 ? 22 : 0;
+  const frac = split || 0.68;
+  const pw = W - 2 * PAD, phTot = H - HEAD - FOOT - GAP;
+  const ph = has2 ? Math.round(phTot * frac) : phTot;
+  const ph2 = phTot - ph;
   const url = await Plotly.toImage({data: dat, layout: lay},
     {format: 'png', width: pw, height: ph, scale: 2});
   const c = document.createElement('canvas');
@@ -1370,6 +1383,30 @@ window.exportChart = async function(id, title, sub){
   const img = new Image();
   await new Promise(r => { img.onload = r; img.onerror = r; img.src = url; });
   x.drawImage(img, PAD, HEAD, pw, ph);
+  if(has2){
+    const lay2 = recolour(JSON.parse(JSON.stringify(gd2.layout || {})));
+    lay2.paper_bgcolor = '#ffffff'; lay2.plot_bgcolor = '#ffffff';
+    lay2.font = Object.assign({}, lay2.font,
+      {color: '#1a1a1a', family: 'Lato', size: 18});
+    lay2.margin = {l: 108, r: 40, t: 10, b: 52};
+    if(lay2.legend){ lay2.legend.font = {color: '#1a1a1a', size: 19}; }
+    ['xaxis','yaxis','yaxis2'].forEach(a => {
+      if(!lay2[a]) return;
+      lay2[a].gridcolor = '#dcdcd6';
+      lay2[a].linecolor = '#9a9a94'; lay2[a].linewidth = 1.5;
+      lay2[a].tickfont = {color: '#3d4148', size: 18};
+      if(lay2[a].title) lay2[a].title.font = {color: '#3d4148', size: 19};
+    });
+    const dat2 = recolour(JSON.parse(JSON.stringify(gd2.data))).map(t => {
+      if(t.line && t.line.width) t.line.width = Math.max(2.2, t.line.width*1.7);
+      return t;
+    });
+    const url2 = await Plotly.toImage({data: dat2, layout: lay2},
+      {format: 'png', width: pw, height: ph2, scale: 2});
+    const img2 = new Image();
+    await new Promise(r => { img2.onload = r; img2.onerror = r; img2.src = url2; });
+    x.drawImage(img2, PAD, HEAD + ph + GAP, pw, ph2);
+  }
   const logo = new Image();
   await new Promise(r => { logo.onload = r; logo.onerror = r; logo.src = EXPORT_LOGO; });
   const LS = 60, ly = H - FOOT + 14;
