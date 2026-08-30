@@ -595,6 +595,9 @@
       <button data-hb="wholesale" aria-pressed="true">WHOLESALE</button>
       <button data-hb="retail">AT THE METER</button>
     </div>
+    <p class="costnote" style="margin:4px 0 0;color:var(--ash)">Figures at the
+      right are the <b>heat-weighted mean</b> over the window shown —
+      <span id="hpwmeanlbl"></span>.</p>
     <div class="trendbar" id="hpwin" style="margin:6px 0 2px">
       <button data-hw="28">4W</button>
       <button data-hw="84">12W</button>
@@ -1162,7 +1165,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.60.0';
+const SITE_VERSION = '8.61.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -2925,15 +2928,62 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
               dash: k === 'resistive' ? 'dot' : 'solid'},
         hovertemplate:'%{x}<br>\u00a3%{y:.1f}/MWh<extra>' + NAME[k] + '</extra>'
       }));
+      // HEAT-WEIGHTED MEAN per route, at the right edge, recomputed for the
+      // window on screen. Weighted by the heat actually delivered that day,
+      // not by day, because an unweighted mean flatters whichever route
+      // performs best in mild weather - it puts air-source ABOVE ground
+      // source and inverts the site's own performance ordering. The weight
+      // follows the service selected: space heating, hot water, or both.
+      const wt = (() => {
+        const sp = (hp.space_GWh || []).slice(-n);
+        const hw = (hp.dhw_GWh || []).slice(-n);
+        if(!sp.length && !hw.length) return null;
+        return x.map((_, i) =>
+          (SVC === 'dhw'   ? 0 : (sp[i] || 0)) +
+          (SVC === 'space' ? 0 : (hw[i] || 0)));
+      })();
+      // If the weights sum to zero the mean is undefined, and that is not a
+      // rare case: on SPACE HEATING over a short summer window every day
+      // carries zero space heat, so a naive version returns null for every
+      // route and the labels silently disappear. Fall back to an unweighted
+      // mean and say so in the caption rather than show nothing.
+      let unweighted = false;
+      const wmean = k => {
+        const y = src(k).slice(-n);
+        let num = 0, den = 0, n2 = 0, s2 = 0;
+        for(let i = 0; i < y.length; i++){
+          if(y[i] == null) continue;
+          const w = wt ? (wt[i] || 0) : 1;
+          num += y[i] * w; den += w;
+          s2 += y[i]; n2++;
+        }
+        if(den > 0) return num / den;
+        if(n2 > 0){ unweighted = true; return s2 / n2; }
+        return null;
+      };
+      const anns = KEYS.filter(k => src(k).length).map(k => {
+        const m = wmean(k);
+        if(m == null) return null;
+        return {x: 1, xref: 'paper', xanchor: 'left', y: m, yref: 'y',
+                text: ' ' + Math.round(m), showarrow: false,
+                font: {color: COL[k], size: 12, family: 'JetBrains Mono'}};
+      }).filter(Boolean);
       Plotly.newPlot('hpchart', tr, {
         paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
         font:{family:'Lato', color:css('--muted'), size:12},
-        margin:{l:62,r:16,t:46,b:42},
+        margin:{l:62,r:46,t:46,b:42},
         xaxis:{gridcolor:css('--line'), tickformat: n > 120 ? '%b %y' : '%-d %b'},
         yaxis:{title:'\u00a3 per MWh of delivered heat',
                gridcolor:css('--line'), rangemode:'tozero'},
-        legend:{orientation:'h', y:1.02, yanchor:'bottom'}
+        legend:{orientation:'h', y:1.02, yanchor:'bottom'},
+        annotations: anns
       }, {displayModeBar:false, responsive:true});
+      const wl = document.getElementById('hpwmeanlbl');
+      if(wl) wl.textContent = unweighted
+        ? 'no heat of the selected service was delivered in this window, '
+          + 'so the figures at the right are a plain mean of the days'
+        : 'weighted by the heat delivered each day, not by day, because an '
+          + 'unweighted mean flatters whichever route does best in mild weather';
       // SERVICE VOLUMES, on the same window and the same x axis. A price is
       // only as interesting as the service it prices: in July the whole load
       // is hot water, so the space-heating line is describing something
