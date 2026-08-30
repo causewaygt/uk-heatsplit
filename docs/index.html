@@ -517,7 +517,7 @@
       derated by measured in-situ efficiencies (gas 83.5%, oil 82%, bio 70%,
       solid 55% — the last three are estimates), heat networks shown at delivered
       heat, resistive electric at 100%, heat pumps multiplied by a blended SPF of
-      2.8 (Energy Systems Catapult field data) with the harvested ambient heat
+      2.8 (Electrification of Heat, 742 metered homes) with the harvested ambient heat
       shown in teal, and the weather-driven half of cooling multiplied by an
       assumed EER of 3. Heat-pump electricity is the ECUK 2025 domestic figure
       (2.0 TWh, 2024); non-domestic heat pumps are not yet counted, so the teal
@@ -1100,9 +1100,14 @@
       temperature of 8 °C after a 3 K brine approach, weather-compensated
       flow, and no credit for anything the ground gets back. That is
       deliberately the conservative end of what shallow geothermal can do, and
-      it is the route with a monitored UK fleet behind it — the seasonal
-      performance factor comes from Energy Systems Catapult in-situ measurement
-      of more than 1,700 installations.</p>
+      the seasonal performance factor comes from <i>In-Situ Heat Pump
+      Performance: Analysis of Ofgem Data 2017–22</i> — a DESNZ, RECC and
+      Ground Source Heat Pump Association study of Ofgem metering returns.
+      Its 1,700+ installations cover both technologies; the ground-source
+      sample is roughly 270. <b>No large, recent, representative UK
+      ground-source fleet exists</b>: the three available samples are about
+      270, 37 and 14 installations, so 3.24 is the best available figure
+      rather than a well-evidenced one†.</p>
     <p class="costnote"><b>Geothermal network (SPF 5.0†)</b> is a blend of
       two things in the figure. Shallow underground thermal energy storage on
       the left, where summer heat rejected by cooling and waste heat from data
@@ -1165,7 +1170,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.63.0';
+const SITE_VERSION = '8.65.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -4243,24 +4248,47 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       'over heat delivered at the building boundary, so pumping, ' +
       'circulation, controls, distribution losses and store round-trip are ' +
       'all inside it \u2014 the same basis as the monitored H4 figures the ' +
-      'first two come from, and not a plant-only COP\u2020. The network ' +
+      'first two come from, and not a plant-only COP\u2020. ' +
+      'The network ' +
       'parasitic load is the part most likely to be optimistic: a plant-level ' +
       '5.6 becomes a whole-system 5.0 at about 10% of delivered heat going to ' +
       'circulation, which is mid-range for European ambient-loop and aquifer ' +
       'storage schemes. The ' +
       'air-source defrost band\u2020 is shaped on the monitored fleet, ' +
       'level re-anchored.';
-    document.getElementById('rt_note').textContent = rtBase +
+    // THE ANCHORS ARE A CHOICE, appended unconditionally. It sits here and not
+    // in rtBase above because that expression short-circuits on a payload
+    // carrying basis_short, and this is the assumption a reader most needs.
+    // The assignment is textContent, so no HTML tags: they render literally.
+    const anchorNote =
+      ' THE ANCHORS ARE A CHOICE. Both come from representative samples: ' +
+      'Electrification of Heat recruited 742 households to span the housing ' +
+      'stock, and the Ofgem analysis covers metering returns across 2017-22. ' +
+      'A self-selected, self-monitored fleet gives materially higher ' +
+      'numbers: HeatpumpMonitor.org medians on the trailing year are 3.87 ' +
+      'for air source (569 systems with MID heat metering and circulation ' +
+      'pumping inside the measurement, so a comparable boundary) and 4.15 ' +
+      'for ground source (14 systems). Neither set is wrong; they measure ' +
+      'different populations. This site models a national transition, so it ' +
+      'takes the representative figure \u2014 conservative for air source ' +
+      'and, because the network route is compared against it, the choice ' +
+      'that flatters the geothermal case. The consequence is material: at ' +
+      '2.80 a heat pump at the meter costs about 25% more per useful kWh ' +
+      'than a gas boiler on the current cap; at 3.87 it costs about 9% ' +
+      'less. Whether heat pumps beat boilers on running cost today turns ' +
+      'on which fleet anchors the model, not on prices or method\u2020.';
+    document.getElementById('rt_note').textContent = anchorNote + rtBase +
       ' Sources: air is outdoor less a ' +
       Math.abs(src.air_approach) + ' K approach, shallow ground ' +
       src.ground_c + '\u00b0C, network ' + src.network_c + '\u00b0C\u2020 ' +
       '\u2014 a UTES and intermediate-doublet blend recharged by summer ' +
       'cooling rejection, not virgin ground, and derived rather than ' +
-      'measured. <b>It is chosen so that the network route reproduces its ' +
+      'measured. It is chosen so that the network route reproduces its ' +
       'assumed SPF of 5.0 at the same Carnot fraction as the other two, so ' +
       'the agreement of the three fractions (' +
       ['ashp','shallow','network'].map(r => (eta[r]||0).toFixed(3)).join(' / ') +
-      ') is not independent evidence for either quantity</b> - it is how the ' +
+      ') is not independent evidence for either quantity \u2014 it is how ' +
+      'the ' +
       'source was derived. The pair is internally consistent and physically ' +
       'plausible; neither is separately measured, and both are Causeway ' +
       'estimates\u2020. The 15% drift gate remains a wiring check, not a ' +
