@@ -1165,7 +1165,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.61.0';
+const SITE_VERSION = '8.63.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1199,8 +1199,8 @@ const PRINT_MAP = {
   '--paper': '#1a1a1a', '--muted': '#5c6672', '--line': '#dcdcd6',
   '--ash': '#6b7178',   // resistive  - grey,      luminance 0.15
   '--ember': '#a82d16',   // gas        - deep red,  luminance 0.10
-  '--elec':  '#0f4373',   // air-source - deep blue, luminance 0.05
-  '--cool':  '#9a690c',   // ground     - gold,      luminance 0.17
+  '--cool':  '#0f4373',   // AIR-SOURCE - deep blue, luminance 0.05
+  '--elec':  '#9a690c',   // GROUND     - gold,      luminance 0.17
   '--geo':   '#37a532',   // network    - green,     luminance 0.28
   '--gasdhw': '#2f7d79', '--oil': '#8a3f28', '--bio': '#5f7a28',
   '--dh': '#6a5a9c', '--solid': '#4a3d30'
@@ -2883,8 +2883,11 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
     const NAME = {gas:'Gas boiler', ashp:'Air-source heat pump',
                   shallow:'Ground source', network:'Geothermal network',
                   resistive:'Resistive electric \u2014 the ceiling'};
-    const COL  = {gas:css('--ember'), ashp:css('--elec'),
-                  shallow:css('--cool'), network:css('--geo'),
+    // Air-source takes the BLUE and ground source the gold. Air-source is
+    // the electric route, and this is also what the print palette does, so
+    // screen and export now agree - they did not before.
+    const COL  = {gas:css('--ember'), ashp:css('--cool'),
+                  shallow:css('--elec'), network:css('--geo'),
                   resistive:css('--ash')};
     const fmtW = {28:'four weeks', 84:'twelve weeks', 365:'twelve months',
                   730:'twenty-four months'};
@@ -2964,14 +2967,19 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       const anns = KEYS.filter(k => src(k).length).map(k => {
         const m = wmean(k);
         if(m == null) return null;
-        return {x: 1, xref: 'paper', xanchor: 'left', y: m, yref: 'y',
-                text: ' ' + Math.round(m), showarrow: false,
+        // A short headless tick from the axis to the figure, so each number
+        // is tied to its line rather than floating near it. arrowhead 0 is a
+        // plain rule; ax is the pixel offset of the text from the anchor.
+        return {x: 1, xref: 'paper', y: m, yref: 'y',
+                text: Math.round(m), showarrow: true, arrowhead: 0,
+                arrowcolor: COL[k], arrowwidth: 1.4, arrowsize: 1,
+                ax: 20, ay: 0, xanchor: 'left', yanchor: 'middle',
                 font: {color: COL[k], size: 12, family: 'JetBrains Mono'}};
       }).filter(Boolean);
       Plotly.newPlot('hpchart', tr, {
         paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
         font:{family:'Lato', color:css('--muted'), size:12},
-        margin:{l:62,r:46,t:46,b:42},
+        margin:{l:62,r:58,t:46,b:42},
         xaxis:{gridcolor:css('--line'), tickformat: n > 120 ? '%b %y' : '%-d %b'},
         yaxis:{title:'\u00a3 per MWh of delivered heat',
                gridcolor:css('--line'), rangemode:'tozero'},
