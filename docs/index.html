@@ -725,7 +725,7 @@
       daily data — keeps the intercept, and recovers <b>74%</b> of the
       anchor with a balance point of <b>14.5 °C</b> against the
       <b>15.5 °C</b> the building physics gives. Two independent routes
-      within a quarter of each other. The gap is the honest uncertainty: it
+      within a quarter of each other. The gap is the candid uncertainty: it
       could be the anchor running high, the fit running low, or the shape being
       wrong, and 400 days cannot tell them apart.</p>
 
@@ -1108,13 +1108,25 @@
       ground-source fleet exists</b>: the three available samples are about
       270, 37 and 14 installations, so 3.24 is the best available figure
       rather than a well-evidenced one†.</p>
-    <p class="costnote"><b>Geothermal network (SPF 5.0†)</b> is a blend of
+    <p class="costnote"><b>Future Geothermal (SPF* 5.0†)</b> is a blend of
       two things in the figure. Shallow underground thermal energy storage on
       the left, where summer heat rejected by cooling and waste heat from data
       centres and other sources is banked in the ground and drawn back in
       winter; and intermediate geothermal — the hydrothermal direct-use
       column — where the geology suits it. Both feed a shared ambient loop
       with heat pumps at each building.</p>
+    <p class="costnote"><b>Why SPF* and not SPF.</b> The other routes carry a
+      measured seasonal performance factor from a monitored fleet. This one
+      does not, and no UK fleet exists to give it one. <b>SPF* is an assumed
+      blend across geothermal archetypes</b> — shallow storage and
+      intermediate direct use — expressed as delivered heat over electricity
+      bought, so it spans a route where a heat pump does the lifting and one
+      where a doublet largely does not. It is wired into the model the same
+      way the others are: an assumed average source temperature of 19.6 °C
+      and the same Carnot fraction the two monitored routes calibrate to. The
+      asterisk marks it as derived from those two assumptions rather than
+      observed, and the two are one estimate with two faces — fix either and
+      the other follows†.</p>
     <p class="costnote">The difference between the two routes is mostly
       <b>what the loop is sitting at</b>. A network loop is modelled at
       19.6 °C†, not the 8 °C of a passive ground array, because it
@@ -1170,7 +1182,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.65.0';
+const SITE_VERSION = '8.66.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1982,8 +1994,12 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       '<small>net present social value</small>';
     el('s2').innerHTML=gbp(a.cost)+'<small>social cost, 60 years</small>';
 
-    el('dealnote').innerHTML='Blended geothermal systems at an assumed seasonal factor of '+
-      GEO.spf.toFixed(1)+' against <b>a network-scale air-source energy centre at '+
+    el('dealnote').innerHTML='<b>Geothermal</b> as source and store, at an '+
+      'assumed blended seasonal factor of <b>SPF* '+GEO.spf.toFixed(1)+'</b> '+
+      '\u2014 an assumed blend across geothermal archetypes wired to an '+
+      'assumed '+GEO.src+' \u00b0C source and the same Carnot fraction as the '+
+      'monitored routes, not a measured fleet figure\u2020 \u2014 against '+
+      '<b>a network-scale air-source energy centre at '+
       CF.spf.toFixed(1)+'</b> \u2014 same pipes, same connections, same buildings. '+
       'Both rated at <b>'+S.sizing+'% of the winter peak</b> with top-up gas '+
       'boilers above. At a <b>'+S.loss+'%</b> subsurface shortfall the geothermal '+
@@ -2639,7 +2655,7 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
                 'roughly what centring within each month removes. Over a ' +
                 'year the line integrates to 95% of the ECUK anchor on its ' +
                 'full specification and 75% on the plain one; that spread is ' +
-                'the honest uncertainty. The published figures remain the ' +
+                'the candid uncertainty. The published figures remain the ' +
                 'ECUK-anchored bars \u2014 this is corroboration, not a ' +
                 'replacement\u2020.')
           : '') +
@@ -2886,7 +2902,7 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
     // route sits under it. It is also the 24.6 TWh/yr the 20% what-if
     // displaces a fifth of, so it belongs on the chart that prices heat.
     const NAME = {gas:'Gas boiler', ashp:'Air-source heat pump',
-                  shallow:'Ground source', network:'Geothermal network',
+                  shallow:'Ground source', network:'Future Geothermal \u2014 SPF*',
                   resistive:'Resistive electric \u2014 the ceiling'};
     // Air-source takes the BLUE and ground source the gold. Air-source is
     // the electric route, and this is also what the print palette does, so
@@ -2932,8 +2948,12 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       const tr = KEYS.filter(k => src(k).length).map(k => ({
         x: x, y: src(k).slice(-n), name: NAME[k], mode:'lines',
         connectgaps: false,
+        // Future Geothermal is DASHED and resistive DOTTED: neither is a
+        // route a household can buy today. The first is a forward case on an
+        // assumed blend (SPF*), the second a ceiling nobody chooses.
         line:{color:COL[k], width: k === 'gas' ? 2.8 : 2.2,
-              dash: k === 'resistive' ? 'dot' : 'solid'},
+              dash: k === 'resistive' ? 'dot'
+                    : k === 'network' ? 'dash' : 'solid'},
         hovertemplate:'%{x}<br>\u00a3%{y:.1f}/MWh<extra>' + NAME[k] + '</extra>'
       }));
       // HEAT-WEIGHTED MEAN per route, at the right edge, recomputed for the
@@ -3490,7 +3510,7 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       reg.base_temp + '°C, sensitivity ' + reg.slope_GWh_per_HDD +
       ' GWh per degree day' +
       (reg.resid_se_GWh ? ' (residual SE ±' + fmt(reg.resid_se_GWh) +
-       ' GWh/day — the honest daily uncertainty; R² is flattered by the '+
+       ' GWh/day — the candid daily uncertainty; R² is flattered by the '+
        'annual cycle)' : '');
   }
   const c=d.calibration;
@@ -4243,7 +4263,10 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       WR.basis + ' ' + st.basis + (ss ? ' ' + ss.basis : '') +
       (sv ? ' ' + sv.basis + ' ' + sv.displaced_note : '') + ' ' +
       '\u03b7 calibrated so each route ' +
-      'integrates to its published SPF anchor (2.80 / 3.24 / 5.0), all three ' +
+      'integrates to its published anchor (2.80 / 3.24 / SPF* 5.0 \u2014 the ' +
+      'last an assumed blend across geothermal archetypes, wired to an ' +
+      'assumed 19.6 \u00b0C source and the same Carnot fraction, not a ' +
+      'measured fleet figure), all three ' +
       'on a WHOLE-SYSTEM boundary: electricity metered at the supply point ' +
       'over heat delivered at the building boundary, so pumping, ' +
       'circulation, controls, distribution losses and store round-trip are ' +
@@ -4283,8 +4306,9 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       src.ground_c + '\u00b0C, network ' + src.network_c + '\u00b0C\u2020 ' +
       '\u2014 a UTES and intermediate-doublet blend recharged by summer ' +
       'cooling rejection, not virgin ground, and derived rather than ' +
-      'measured. It is chosen so that the network route reproduces its ' +
-      'assumed SPF of 5.0 at the same Carnot fraction as the other two, so ' +
+      'measured. It is chosen so that the Future Geothermal route ' +
+      'reproduces its assumed SPF* of 5.0 at the same Carnot fraction ' +
+      'as the other two, so ' +
       'the agreement of the three fractions (' +
       ['ashp','shallow','network'].map(r => (eta[r]||0).toFixed(3)).join(' / ') +
       ') is not independent evidence for either quantity \u2014 it is how ' +
