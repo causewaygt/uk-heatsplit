@@ -1184,7 +1184,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.68.0';
+const SITE_VERSION = '8.69.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1268,9 +1268,14 @@ window.exportPanel5 = async function(){
   const gd2 = document.getElementById('emptysharesplot');
   if(!window.Plotly || !gd1 || !gd1.data || !gd1.data.length) return;
   const has2 = !!(gd2 && gd2.data && gd2.data.length);
-  // EXACTLY half a 1600x900 slide, so it drops onto the top or bottom
-  // half without resizing - and resizing is what wrecks type sizes.
-  const W = 1600, H = 450, PAD = 38, HEAD = 70, FOOT = 56, GAP = 28;
+  // PORTRAIT, half a 16:9 slide BY WIDTH - 800x900 - so it sits in the left
+  // or right half of a landscape slide at full height.
+  //
+  // Type sizes are UNCHANGED from the full-width exports, which looks wrong
+  // until you check it: a 1600 px graphic on a 330 mm slide and an 800 px
+  // graphic on 165 mm have the same pixel density, so the same px value
+  // renders at the same physical size. Scaling the type down would shrink it.
+  const W = 800, H = 900, PAD = 30, HEAD = 96, FOOT = 66, GAP = 40;
   const c = document.createElement('canvas');
   c.width = W * 2; c.height = H * 2;
   const x = c.getContext('2d'); x.scale(2, 2);
@@ -1278,23 +1283,26 @@ window.exportPanel5 = async function(){
 
   x.fillStyle = '#1a1a1a';
   x.font = '700 25px Lato, system-ui, sans-serif';
-  x.fillText('The empty bar', PAD, 31);
+  x.fillText('The empty bar', PAD, 32);
   x.fillStyle = '#5c6672';
-  x.font = '400 16px Lato, system-ui, sans-serif';
-  x.fillText('installed hardware against the 20% what-if, and the same fleets '
-             + 'as a share of each country\u2019s own buildings heat', PAD, 54);
+  x.font = '400 15.5px Lato, system-ui, sans-serif';
+  x.fillText('installed hardware against the 20% what-if,', PAD, 56);
+  x.fillText('and the same fleets as a share of national heat', PAD, 76);
 
   const pw = W - 2 * PAD, tot = H - HEAD - FOOT - (has2 ? GAP : 0);
-  const h1 = has2 ? Math.round(tot * 0.60) : tot, h2 = tot - h1;
+  const h1 = has2 ? Math.round(tot * 0.56) : tot, h2 = tot - h1;
   const prep = (gd, sub) => {
     const lay = recolour(JSON.parse(JSON.stringify(gd.layout || {})));
     lay.paper_bgcolor = '#ffffff'; lay.plot_bgcolor = '#ffffff';
     lay.font = Object.assign({}, lay.font,
       {color: '#1a1a1a', family: 'Lato', size: sub ? 17 : 18});
-    lay.margin = {l: 96, r: 26, t: sub ? 22 : 40, b: 42};
+    lay.margin = {l: 74, r: 18, t: sub ? 24 : 46, b: 48};
     if(lay.legend){
-      lay.legend.font = {color: '#1a1a1a', size: 18};
-      lay.legend.y = 1.10; lay.legend.yanchor = 'bottom';
+      // at 800 wide a horizontal legend of three long labels will not fit
+      // on one line, so let Plotly wrap it rather than clip it
+      lay.legend.font = {color: '#1a1a1a', size: 15};
+      lay.legend.y = 1.06; lay.legend.yanchor = 'bottom';
+      lay.legend.orientation = 'h'; lay.legend.x = 0; lay.legend.xanchor = 'left';
     }
     ['xaxis','yaxis','yaxis2'].forEach(a => {
       if(!lay[a]) return;
@@ -1322,8 +1330,7 @@ window.exportPanel5 = async function(){
   if(has2){
     x.fillStyle = '#3d4148';
     x.font = '600 18px Lato, system-ui, sans-serif';
-    x.fillText('The same fleets, calibrated \u2014 share of each country\u2019s '
-               + 'own buildings heat', PAD, HEAD + h1 + 20);
+    x.fillText('The same fleets, calibrated', PAD, HEAD + h1 + 24);
     const u2 = await Plotly.toImage(prep(gd2, true),
       {format: 'png', width: pw, height: h2, scale: 2});
     const i2 = new Image();
@@ -1339,8 +1346,9 @@ window.exportPanel5 = async function(){
   x.fillText('UK Heat Split \u00b7 Causeway Energies', PAD + LS + 12, fy + 15);
   x.fillStyle = '#7a8089';
   x.font = '400 12.5px Lato, system-ui, sans-serif';
-  x.fillText('Chart CC BY 4.0 \u00b7 Data: OGL v3.0 and EGEC 2025 country updates '
-             + '\u00b7 causewaygt.github.io/uk-heatsplit', PAD + LS + 12, fy + 33);
+  x.fillText('Chart CC BY 4.0 \u00b7 OGL v3.0 and EGEC 2025',
+             PAD + LS + 12, fy + 31);
+  x.fillText('causewaygt.github.io/uk-heatsplit', PAD + LS + 12, fy + 47);
   const a = document.createElement('a');
   a.download = 'uk-heat-split-empty-bar-'
              + new Date().toISOString().slice(0, 10) + '.png';
