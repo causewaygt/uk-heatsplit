@@ -874,6 +874,7 @@
         <div id="emptybarplot" style="width:100%;height:300px;margin-top:14px"></div>
         <h2 style="margin-top:26px;font-size:16px">The same fleets, calibrated — share of each country's own buildings heat</h2>
         <div id="emptysharesplot" style="width:100%;height:240px;margin-top:10px"></div>
+        <button class="pngbtn" onclick="exportPanel5()">⬇ PNG FOR SLIDES</button>
     </div>
     <details class="fold" id="fold_geo"><summary>METHOD —
       <b>what the bars price, and where the comparators come from</b></summary>
@@ -1183,7 +1184,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.67.0';
+const SITE_VERSION = '8.68.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1257,6 +1258,95 @@ function recolour(o){
 // page background drawn between slices and would show as near-black on white,
 // and the text, which is a pale grey chosen for a dark ground.
 function py0(head){ return head + 22; }
+// PANEL 5, both charts stacked, at HALF-SLIDE height. A 16:9 slide is
+// 1600x900, so half is 1600x450 - drawn at 1600x506 to leave the footer
+// room without squeezing the plots. Type is sized for that height, which
+// means it must be LARGER relative to the canvas than a full-slide export,
+// not smaller: the graphic will be projected at the same width either way.
+window.exportPanel5 = async function(){
+  const gd1 = document.getElementById('emptybarplot');
+  const gd2 = document.getElementById('emptysharesplot');
+  if(!window.Plotly || !gd1 || !gd1.data || !gd1.data.length) return;
+  const has2 = !!(gd2 && gd2.data && gd2.data.length);
+  // EXACTLY half a 1600x900 slide, so it drops onto the top or bottom
+  // half without resizing - and resizing is what wrecks type sizes.
+  const W = 1600, H = 450, PAD = 38, HEAD = 70, FOOT = 56, GAP = 28;
+  const c = document.createElement('canvas');
+  c.width = W * 2; c.height = H * 2;
+  const x = c.getContext('2d'); x.scale(2, 2);
+  x.fillStyle = '#ffffff'; x.fillRect(0, 0, W, H);
+
+  x.fillStyle = '#1a1a1a';
+  x.font = '700 25px Lato, system-ui, sans-serif';
+  x.fillText('The empty bar', PAD, 31);
+  x.fillStyle = '#5c6672';
+  x.font = '400 16px Lato, system-ui, sans-serif';
+  x.fillText('installed hardware against the 20% what-if, and the same fleets '
+             + 'as a share of each country\u2019s own buildings heat', PAD, 54);
+
+  const pw = W - 2 * PAD, tot = H - HEAD - FOOT - (has2 ? GAP : 0);
+  const h1 = has2 ? Math.round(tot * 0.60) : tot, h2 = tot - h1;
+  const prep = (gd, sub) => {
+    const lay = recolour(JSON.parse(JSON.stringify(gd.layout || {})));
+    lay.paper_bgcolor = '#ffffff'; lay.plot_bgcolor = '#ffffff';
+    lay.font = Object.assign({}, lay.font,
+      {color: '#1a1a1a', family: 'Lato', size: sub ? 17 : 18});
+    lay.margin = {l: 96, r: 26, t: sub ? 22 : 40, b: 42};
+    if(lay.legend){
+      lay.legend.font = {color: '#1a1a1a', size: 18};
+      lay.legend.y = 1.10; lay.legend.yanchor = 'bottom';
+    }
+    ['xaxis','yaxis','yaxis2'].forEach(a => {
+      if(!lay[a]) return;
+      lay[a].gridcolor = '#dcdcd6';
+      lay[a].linecolor = '#9a9a94'; lay[a].linewidth = 1.4;
+      lay[a].tickfont = {color: '#3d4148', size: sub ? 16 : 17};
+      if(lay[a].title) lay[a].title.font = {color: '#3d4148', size: 17};
+    });
+    const dat = recolour(JSON.parse(JSON.stringify(gd.data)));
+    dat.forEach(t => {
+      // bar value labels are drawn by Plotly as text on the trace
+      if(t.textfont) t.textfont = {family: 'Lato', size: 17, color: '#1a1a1a'};
+      if(t.outsidetextfont)
+        t.outsidetextfont = {family: 'Lato', size: 17, color: '#1a1a1a'};
+      if(t.marker && t.marker.line && t.marker.line.color)
+        t.marker.line.color = printColour(t.marker.line.color);
+    });
+    return {data: dat, layout: lay};
+  };
+  const u1 = await Plotly.toImage(prep(gd1, false),
+    {format: 'png', width: pw, height: h1, scale: 2});
+  const i1 = new Image();
+  await new Promise(r => { i1.onload = r; i1.onerror = r; i1.src = u1; });
+  x.drawImage(i1, PAD, HEAD, pw, h1);
+  if(has2){
+    x.fillStyle = '#3d4148';
+    x.font = '600 18px Lato, system-ui, sans-serif';
+    x.fillText('The same fleets, calibrated \u2014 share of each country\u2019s '
+               + 'own buildings heat', PAD, HEAD + h1 + 20);
+    const u2 = await Plotly.toImage(prep(gd2, true),
+      {format: 'png', width: pw, height: h2, scale: 2});
+    const i2 = new Image();
+    await new Promise(r => { i2.onload = r; i2.onerror = r; i2.src = u2; });
+    x.drawImage(i2, PAD, HEAD + h1 + GAP, pw, h2);
+  }
+  const logo = new Image();
+  await new Promise(r => { logo.onload = r; logo.onerror = r; logo.src = EXPORT_LOGO; });
+  const LS = 36, fy = H - FOOT + 10;
+  try { x.drawImage(logo, PAD, fy, LS, LS); } catch(e){}
+  x.fillStyle = '#3d4148';
+  x.font = '600 16px Lato, system-ui, sans-serif';
+  x.fillText('UK Heat Split \u00b7 Causeway Energies', PAD + LS + 12, fy + 15);
+  x.fillStyle = '#7a8089';
+  x.font = '400 12.5px Lato, system-ui, sans-serif';
+  x.fillText('Chart CC BY 4.0 \u00b7 Data: OGL v3.0 and EGEC 2025 country updates '
+             + '\u00b7 causewaygt.github.io/uk-heatsplit', PAD + LS + 12, fy + 33);
+  const a = document.createElement('a');
+  a.download = 'uk-heat-split-empty-bar-'
+             + new Date().toISOString().slice(0, 10) + '.png';
+  a.href = c.toDataURL('image/png'); a.click();
+};
+
 window.exportPies = async function(){
   if(!window.Plotly) return;
   const PIES = [
