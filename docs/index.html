@@ -1155,6 +1155,7 @@
       <div><div class="barlabel">IMPORTED ENERGY — TWh/yr</div><div id="why_imp" style="width:100%;height:260px"></div></div>
       <div><div class="barlabel">ENERGY EMISSIONS — Mt CO2e/yr</div><div id="why_em" style="width:100%;height:260px"></div></div>
     </div>
+    <button class="pngbtn" onclick="exportPies()">⬇ PNG FOR SLIDES</button>
     <p class="costnote" id="whyheatnote"></p>
 
   </section>
@@ -1182,7 +1183,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.66.0';
+const SITE_VERSION = '8.67.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -1246,6 +1247,112 @@ function recolour(o){
 // The energy balance is HTML segments, not Plotly, so it is redrawn on canvas
 // from the state drawEnergyBars records. Same paper, same furniture as
 // exportChart, so the two sit together in a deck.
+// FOUR PIES ON ONE SLIDE. Each is rendered separately by Plotly at slide
+// scale and composited into a 2x2, because Plotly cannot lay out four
+// independent pies in one figure without subplot domains that would fight
+// the existing responsive sizing on the page.
+//
+// The slice colours carry across unchanged - they are already strong enough
+// for white paper. What must change is the SEPARATOR line, which is the dark
+// page background drawn between slices and would show as near-black on white,
+// and the text, which is a pale grey chosen for a dark ground.
+function py0(head){ return head + 22; }
+window.exportPies = async function(){
+  if(!window.Plotly) return;
+  const PIES = [
+    ['why_twh',  'Energy services delivered', 'TWh a year'],
+    ['why_cost', 'What we spend',             '\u00a3bn a year'],
+    ['why_imp',  'Imported energy',           'TWh a year'],
+    ['why_em',   'Energy emissions',          'Mt CO\u2082e a year'],
+  ].filter(p => {
+    const g = document.getElementById(p[0]);
+    return g && g.data && g.data.length;
+  });
+  if(!PIES.length) return;
+  // FOUR ACROSS, not two by two: on a 16:9 slide a single row gives each
+  // pie a 370 px diameter against 311 in a grid, and reads as one statement
+  // rather than four panels. The legend is drawn once, on canvas, so its
+  // size is controlled here rather than by Plotly's own sizing.
+  const W = 1600, H = 900, PAD = 40, HEAD = 132, FOOT = 150;
+  const cw = (W - 2 * PAD) / 4, ch = H - HEAD - FOOT;
+  const c = document.createElement('canvas');
+  c.width = W * 2; c.height = H * 2;
+  const x = c.getContext('2d'); x.scale(2, 2);
+  x.fillStyle = '#ffffff'; x.fillRect(0, 0, W, H);
+
+  x.fillStyle = '#1a1a1a';
+  x.font = '700 42px Lato, system-ui, sans-serif';
+  x.fillText('Why heat?', PAD, 58);
+  x.fillStyle = '#5c6672';
+  x.font = '400 23px Lato, system-ui, sans-serif';
+  x.fillText('Heat beside transport and non-heat electricity, across four measures',
+             PAD, 95);
+
+  let legend = null;
+  for(let i = 0; i < PIES.length; i++){
+    const [id, title, unit] = PIES[i];
+    const gd = document.getElementById(id);
+    const dat = JSON.parse(JSON.stringify(gd.data));
+    dat.forEach(t => {
+      // the separator is the DARK PAGE BACKGROUND on screen and would read
+      // as near-black on white paper
+      if(t.marker) t.marker.line = {color: '#ffffff', width: 3};
+      t.textfont = {family: 'Lato', size: 20, color: '#ffffff'};
+      t.insidetextorientation = 'horizontal';
+      if(!legend && t.labels && t.marker) {
+        legend = t.labels.map((l, j) => [l, t.marker.colors[j]]);
+      }
+    });
+    const url = await Plotly.toImage({data: dat, layout: {
+        paper_bgcolor: '#ffffff', plot_bgcolor: '#ffffff', showlegend: false,
+        margin: {l: 6, r: 6, t: 6, b: 6},
+        font: {color: '#1a1a1a', family: 'Lato'}}},
+      {format: 'png', width: cw, height: Math.min(cw, ch - 44), scale: 2});
+    const img = new Image();
+    await new Promise(r => { img.onload = r; img.onerror = r; img.src = url; });
+    const px = PAD + i * cw;
+    x.fillStyle = '#1a1a1a';
+    x.font = '700 20px Lato, system-ui, sans-serif';
+    x.fillText(title, px + 8, py0(HEAD));
+    x.fillStyle = '#7a8089';
+    x.font = '400 17px Lato, system-ui, sans-serif';
+    x.fillText(unit, px + 8, py0(HEAD) + 23);
+    const ph = Math.min(cw, ch - 44);
+    x.drawImage(img, px, HEAD + 40 + (ch - 44 - ph) / 2, cw, ph);
+  }
+
+  // one legend for all four, centred under the row
+  if(legend){
+    x.font = '400 21px Lato, system-ui, sans-serif';
+    const gap = 34, box = 17;
+    let tot = 0;
+    legend.forEach(([l]) => { tot += box + 10 + x.measureText(l).width + gap; });
+    let lx = (W - (tot - gap)) / 2, ly = HEAD + ch + 14;
+    legend.forEach(([l, col]) => {
+      x.fillStyle = col; x.fillRect(lx, ly - box + 3, box, box);
+      x.fillStyle = '#1a1a1a'; x.fillText(l, lx + box + 10, ly);
+      lx += box + 10 + x.measureText(l).width + gap;
+    });
+  }
+
+  const logo = new Image();
+  await new Promise(r => { logo.onload = r; logo.onerror = r; logo.src = EXPORT_LOGO; });
+  const LS = 58, fy = H - FOOT + 16;
+  try { x.drawImage(logo, PAD, fy, LS, LS); } catch(e){}
+  x.fillStyle = '#3d4148';
+  x.font = '600 20px Lato, system-ui, sans-serif';
+  x.fillText('UK Heat Split \u00b7 Causeway Energies', PAD + LS + 16, fy + 25);
+  x.fillStyle = '#7a8089';
+  x.font = '400 15px Lato, system-ui, sans-serif';
+  x.fillText('Chart CC BY 4.0 \u00b7 Data: OGL v3.0 (DESNZ, NESO, National Gas) '
+             + '\u00b7 causewaygt.github.io/uk-heatsplit',
+             PAD + LS + 16, fy + 50);
+  const a = document.createElement('a');
+  a.download = 'uk-heat-split-why-heat-'
+             + new Date().toISOString().slice(0, 10) + '.png';
+  a.href = c.toDataURL('image/png'); a.click();
+};
+
 window.exportBars = async function(title, sub){
   const B = window.LAST_BARS;
   if(!B || !B.inC) return;
