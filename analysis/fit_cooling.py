@@ -33,7 +33,29 @@ COOL_SHARE = 0.46
 ANCHOR_TWH = ECUK_COOL_VENT_TWH * COOL_SHARE
 
 HDD_BASE = 15.5          # heating limb, conventional UK base
-TC_SCAN = [11.0 + 0.5 * i for i in range(20)]
+
+# BALANCE-POINT SCAN. The floor was 11.0 until 22 Oct 2026, and every fit this
+# file had ever produced returned exactly 11.0 - the fit was sitting on the
+# bottom edge of its own search grid and reporting the edge as a result.
+# Unconstrained the optimum is near 9.5.
+#
+# That is the smaller half of the problem. The larger half is that the optimum
+# is SHALLOW: k and Tc trade off almost exactly, because a low threshold with a
+# gentle slope and a high threshold with a steep one trace nearly the same
+# curve across the temperatures Britain actually sees. The fit barely
+# distinguishes them - but the ANNUAL INTEGRAL, which is what gets published,
+# moves by a factor of three across the range that fits equally well.
+#
+# So a point estimate off this scan is not a measurement of the balance point.
+# profile_ci() below reports the interval instead, and that interval - not the
+# best-fit point - is what the panel should carry.
+TC_SCAN = [5.0 + 0.25 * i for i in range(60)]     # 5.0 .. 19.75
+
+# F(1, inf) at 95%. Used to cut the profile likelihood: the set of Tc whose
+# residual sum of squares is within this of the minimum. Threshold parameters
+# have non-regular asymptotics so this is approximate, and errs narrow rather
+# than wide - the true interval is if anything a little broader.
+F_CRIT_95 = 3.853
 
 # UK bank holidays over the plausible window. Extend as the record grows.
 BANK_HOLIDAYS = {
@@ -65,6 +87,33 @@ def ols(Y, X):
     rs = sum((Y[i] - sum(b[a] * X[i][a] for a in range(k))) ** 2
              for i in range(n))
     return b, (1 - rs / ss if ss else 0.0)
+
+
+def daily_from_archive(store):
+    """Rows from the append-only daily archive (docs/daily.json).
+
+    PREFERRED over retro.json. retro.json is a rolling 800-day window, so a fit
+    taken from it cannot be reproduced once the window has moved past it - which
+    is how the pinned 17 Aug 2026 coefficient became uncheckable. The archive is
+    never trimmed, so any past fit can be reproduced by truncating it.
+    """
+    rows = []
+    for i, s in enumerate(store["dates"]):
+        t = store["temp_C"][i]
+        y = store["demand_GWh"][i]
+        if t is None or y is None:
+            continue
+        rows.append({"d": dt.date.fromisoformat(s), "t": t, "y": y,
+                     "solar": store["solar_GWh"][i] or 0.0})
+    return rows
+
+
+def load_rows(path):
+    """Accept either store. Returns (rows, source_label)."""
+    store = json.load(open(path))
+    if "dates" in store and "demand_GWh" in store:
+        return daily_from_archive(store), "daily archive %s" % path
+    return daily_from_retro(store), "retro window %s" % path
 
 
 def daily_from_retro(store):
@@ -164,9 +213,78 @@ def scan_tc(rows, extras):
     return best
 
 
+def profile(rows, extras):
+    """Every point on the scan: (Tc, R2, k, annual TWh, n)."""
+    out = []
+    for Tc in TC_SCAN:
+        r = fit_at(rows, Tc, extras)
+        if not r:
+            continue
+        b, r2, names, n = r
+        if b[3] <= 0:
+            continue
+        out.append((Tc, r2, b[3], cooling_twh(rows, Tc, b[3], n), n))
+    return out
+
+
+def profile_ci(prof, n_params):
+    """Profile-likelihood interval on the balance point, and what it implies.
+
+    The published quantity is the annual integral of the cooling limb, and the
+    integral is far more sensitive to Tc than the fit is. This returns both, so
+    the uncertainty travels with the number instead of being discovered later.
+
+    Returns dict or None.
+    """
+    if not prof:
+        return None
+    best = max(prof, key=lambda z: z[1])
+    n = best[4]
+    dof = n - n_params
+    if dof <= 0:
+        return None
+    # SSE propto (1 - R2). Keep every Tc whose SSE is within F(1,dof) of min.
+    thr = (1.0 - best[1]) * (1.0 + F_CRIT_95 / dof)
+    inside = [z for z in prof if (1.0 - z[1]) <= thr]
+    if not inside:
+        return None
+    lo = min(inside, key=lambda z: z[0])
+    hi = max(inside, key=lambda z: z[0])
+    return {
+        "tc": best[0], "r2": best[1], "k": best[2], "twh": best[3], "n": n,
+        "tc_lo": lo[0], "tc_hi": hi[0],
+        # Cooling FALLS as Tc rises, so the low-Tc end is the high-TWh end.
+        "twh_lo": hi[3], "twh_hi": lo[3],
+        "pct_lo": 100.0 * hi[3] / ANCHOR_TWH,
+        "pct_hi": 100.0 * lo[3] / ANCHOR_TWH,
+        "pct": 100.0 * best[3] / ANCHOR_TWH,
+        "at_floor": best[0] <= TC_SCAN[0] + 1e-9,
+        "at_ceiling": best[0] >= TC_SCAN[-1] - 1e-9,
+    }
+
+
+def report_ci(ci):
+    if not ci:
+        print("  profile interval: not computable on this record")
+        return
+    print("  balance point   %.2f degC   95%% interval %.2f to %.2f"
+          % (ci["tc"], ci["tc_lo"], ci["tc_hi"]))
+    print("  annual cooling  %.2f TWh    95%% interval %.2f to %.2f"
+          % (ci["twh"], ci["twh_lo"], ci["twh_hi"]))
+    print("  against anchor  %.0f%%        95%% interval %.0f%% to %.0f%%"
+          % (ci["pct"], ci["pct_lo"], ci["pct_hi"]))
+    if ci["at_floor"] or ci["at_ceiling"]:
+        print("  WARNING: the optimum is on the EDGE of TC_SCAN. The true "
+              "optimum may lie outside the grid and this figure is a boundary, "
+              "not a fit. Widen TC_SCAN and re-run before quoting anything.")
+    if ci["pct_lo"] < 100.0 < ci["pct_hi"]:
+        print("  The ECUK anchor lies INSIDE this interval. That is consistent "
+              "with the anchor, not a confirmation of it: the interval is wide "
+              "enough that a materially different anchor would also sit in it.")
+
+
 def main(retro_path, hum_path=None):
-    store = json.load(open(retro_path))
-    rows = daily_from_retro(store)
+    rows, source = load_rows(retro_path)
     attach_calendar(rows)
     have_hum = False
     if hum_path:
@@ -189,6 +307,28 @@ def main(retro_path, hum_path=None):
         print("no humidity file given - dewpoint and enthalpy terms skipped\n")
 
     print("%d days, %s to %s" % (len(rows), rows[0]["d"], rows[-1]["d"]))
+    print("source: %s" % source)
+
+    # SUMMERS ARE THE SCARCE RESOURCE. The cooling limb is identified by how
+    # many Jun-Sep seasons the record holds, not by how many days it holds: a
+    # winter day carries no information about where cooling starts. Two summers
+    # is why the balance point is only pinned to within several degrees, and
+    # why the implied annual figure moves by a factor of three across the
+    # interval that fits equally well.
+    seasons = {}
+    for x in rows:
+        if 6 <= x["d"].month <= 9:
+            seasons[x["d"].year] = seasons.get(x["d"].year, 0) + 1
+    full = [y for y, n in seasons.items() if n >= 122]
+    print("summers: %s  -  %d complete"
+          % (", ".join("%d:%d" % (y, n) for y, n in sorted(seasons.items())),
+             len(full)))
+    if len(full) < 3:
+        print("  Fewer than three complete summers. The balance point will be "
+              "weakly identified and the interval below will be wide. This is "
+              "a sample-length limit, not a modelling failure - extend the "
+              "daily archive (scripts/backfill_daily.py) rather than reading "
+              "more into the point estimate than it carries.")
     print("ECUK cooling anchor %.2f TWh/yr (%.0f%% of %.1f)\n"
           % (ANCHOR_TWH, 100 * COOL_SHARE, ECUK_COOL_VENT_TWH))
 
@@ -255,6 +395,25 @@ def main(retro_path, hum_path=None):
             print("     %-22s %+12.4f" % (nm, v))
         print("\n  cooling limb is %.0f%% of the ECUK anchor"
               % (100 * c / ANCHOR_TWH))
+
+        # THE NUMBER THAT SHOULD BE QUOTED. A point off the scan reads as a
+        # measurement of the balance point and is not one: the optimum is
+        # shallow and the annual integral is steep in Tc, so the interval is
+        # the result and the point is an artefact of where the grid happened
+        # to peak. Added 22 Oct 2026, with the scan floor, after a re-run on a
+        # rolled window moved the published figure from 95% to 84% of the
+        # anchor with no change to the method.
+        print("\nPROFILE INTERVAL ON THE BALANCE POINT  (full specification)")
+        ci = profile_ci(profile(rows, allx), len(allx) + 4)
+        report_ci(ci)
+        print("\n  Quote the interval, not the point. Pin it with the window "
+              "it was fitted on (%s to %s) so it can be reproduced from the "
+              "daily archive after the record has grown."
+              % (rows[0]["d"], rows[-1]["d"]))
+        print("  Note also that this interval is on ELECTRICITY. Converting to "
+              "delivered cooling multiplies by the fleet EER, which the "
+              "ECUK-anchored bars use too - so the EER cancels from any "
+              "comparison between them and is corroborated by neither.")
 
     if have_hum:
         print("\nTHE TEST THAT MATTERS")
