@@ -1184,7 +1184,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.71.0';
+const SITE_VERSION = '8.73.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -2858,12 +2858,30 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
                 'so the level survives, controlling for embedded solar, ' +
                 'holidays, the Christmas shutdown and a trend. <b>The gap ' +
                 'between the line and the blue bars is the point:</b> it is ' +
-                'roughly what centring within each month removes. Over a ' +
-                'year the line integrates to 95% of the ECUK anchor on its ' +
-                'full specification and 75% on the plain one; that spread is ' +
-                'the candid uncertainty. The published figures remain the ' +
-                'ECUK-anchored bars \u2014 this is corroboration, not a ' +
-                'replacement\u2020.')
+                'roughly what centring within each month removes. ' +
+                '<b>What it does and does not establish.</b> Over a year the ' +
+                'limb integrates to <b>4.9 TWh</b> of cooling electricity, ' +
+                '102% of the ECUK anchor \u2014 but the balance point is only ' +
+                'pinned to 7.5\u201311.25&nbsp;\u00b0C, and across that range ' +
+                'the annual figure runs <b>3.9 to 6.3 TWh, 81% to 131%</b>. ' +
+                'The threshold and the slope trade off against each other, so ' +
+                'a wide set of pairs fits the demand record equally well while ' +
+                'implying very different annual totals. The anchor sits inside ' +
+                'that interval, which makes the two <b>consistent</b>; it does ' +
+                'not confirm the anchor, because a materially different anchor ' +
+                'would sit inside it too. The width is a sample-length limit \u2014 ' +
+                'two complete summers is little cooling signal \u2014 and ' +
+                'narrows as the record grows. ' +
+                '<b>Note also what cannot agree:</b> bars and line are both ' +
+                'multiplied by the same assumed fleet EER to reach delivered ' +
+                'cooling, so the EER cancels from the comparison entirely. ' +
+                'What the two methods agree about is <b>electricity</b>; the ' +
+                'efficiency is corroborated by neither. Scored blind on ' +
+                'summers it was not fitted to, the limb also runs too flat \u2014 ' +
+                'over-predicting mild days and under-predicting hot ones \u2014 ' +
+                'which suggests the quadratic is not quite the right shape. ' +
+                'The published figures remain the ECUK-anchored bars \u2014 ' +
+                'this brackets them, and does not replace them\u2020.')
           : '') +
         '</div>';
       document.getElementById('tierdailynote').textContent = '';
@@ -2967,7 +2985,12 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       'climate convention, which would understate operation badly. Converting ' +
       'that electricity to service uses a fleet efficiency of <b>' + eer +
       '</b>, plausibly ' + lo + '\u2013' + hi + ' across the stock, and that ' +
-      'range is the largest single unverified assumption on this panel.';
+      'range is the largest single unverified assumption on this panel. ' +
+      '<b>The second estimate does not test it.</b> That independent ' +
+      'regression and these ECUK-anchored figures both multiply by the same ' +
+      'EER to reach delivered cooling, so it divides out of any comparison ' +
+      'between them: the two agree about electricity, and the efficiency is ' +
+      'left exactly where it was. Nothing on this page currently measures it.';
   })();
 
   // ---- dividend 1: less electricity for the same cooling --------------------
