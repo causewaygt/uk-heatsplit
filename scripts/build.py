@@ -376,21 +376,43 @@ EFF_DHW = {"gas": 0.73, "oil": 0.71}
 # because retro.json had since rolled and the days it used were gone. Any pin
 # here must name the window so it can be rebuilt from the daily archive:
 #   python3 analysis/fit_cooling.py docs/daily.json
+#
+# RE-PINNED 22 Oct 2026 (second time that day) on the backfilled archive:
+# 1,010 days and THREE complete summers instead of two, after
+# scripts/backfill_daily.py reached back to 2024-01-15. NESO's year resources
+# stop there - a 2023 fetch returns nothing - so three summers is the ceiling
+# this feed allows.
+#
+# THE RESULT FALSIFIED THE REASON GIVEN FOR THE WIDTH. On two summers the
+# interval was 81-131% of the anchor and the stated explanation, published on
+# the panel, was that the width was a sample-length limit that would narrow as
+# the record grew. A 50% increase in cooling signal moved it to 77-124%:
+# 50 points wide to 47. Sampling noise alone should have narrowed it by about
+# 18% (1/sqrt(n) on summers), to roughly 41 points. It narrowed by 6%.
+#
+# So the non-identification is STRUCTURAL, not statistical. k and the balance
+# point trade off because, across the temperatures Britain actually sees, a
+# gentle slope from a low threshold and a steep one from a high threshold
+# trace nearly the same curve. More summers of the same range measure that
+# ridge more precisely; they do not break it. Breaking it needs a term that
+# changes the SHAPE of the response rather than rescaling it - latent load
+# (see analysis/fetch_humidity.py) is the leading candidate and is the next
+# test, not a further extension of the record.
 UNDEMEANED_FIT = {
-    "k_elec_GWh_per_degC2": 0.4545,   # cooling limb coefficient
-    "balance_point_C": 9.5,
+    "k_elec_GWh_per_degC2": 0.4893,   # cooling limb coefficient
+    "balance_point_C": 9.75,
     "fitted_on": "2026-10-22",
-    "window_start": "2024-08-12",     # the fit is reproducible only with these
+    "window_start": "2024-01-15",     # the fit is reproducible only with these
     "window_end": "2026-10-20",
-    "record": "800 days, 2 complete summers, 9 regressors, R2 0.9124",
-    "annual_TWh": 4.90,
-    "annual_TWh_lo": 3.88,            # 95% profile interval on the balance
-    "annual_TWh_hi": 6.26,            # point, which dominates the uncertainty
-    "balance_point_lo_C": 7.5,
+    "record": "1010 days, 3 complete summers, 9 regressors",
+    "annual_TWh": 4.56,
+    "annual_TWh_lo": 3.68,            # 95% profile interval on the balance
+    "annual_TWh_hi": 5.92,            # point, which dominates the uncertainty
+    "balance_point_lo_C": 7.75,
     "balance_point_hi_C": 11.25,
-    "share_of_ecuk_anchor_pct": 102,
-    "share_lo_pct": 81,
-    "share_hi_pct": 131,
+    "share_of_ecuk_anchor_pct": 95,
+    "share_lo_pct": 77,
+    "share_hi_pct": 124,
 }
 
 
