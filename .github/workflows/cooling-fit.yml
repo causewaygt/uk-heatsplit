@@ -8,10 +8,15 @@ name: Cooling fit (manual)
 on:
   workflow_dispatch:
     inputs:
+      # Must COVER the archive, or the humidity terms are fitted on a subset
+      # while every other term uses the whole record - fit_cooling.py warns
+      # when coverage falls under 95% because the incremental R2 is then not
+      # comparable across terms. The archive is 1,010 days (three summers);
+      # 1,100 covers it with room as it grows.
       days:
-        description: "Days of history to fetch and fit"
+        description: "Days of history to fetch and fit (must cover the archive)"
         required: false
-        default: "400"
+        default: "1100"
       skip_humidity:
         description: "Run without humidity (control fit only)"
         required: false
@@ -40,12 +45,20 @@ jobs:
             --days ${{ github.event.inputs.days }} \
             --out analysis/humidity.json
 
+      # AGAINST THE ARCHIVE, not the rolling window. docs/retro.json is capped
+      # at 800 days and trims from the front, so a fit taken from it holds two
+      # complete summers and cannot be reproduced once the window has moved.
+      # docs/daily.json is append-only and currently carries three. Falls back
+      # to retro.json if the archive is absent.
       - name: Fit the cooling limb
         run: |
+          SRC=docs/daily.json
+          [ -f "$SRC" ] || SRC=docs/retro.json
+          echo "fitting against $SRC"
           if [ -f analysis/humidity.json ]; then
-            python3 analysis/fit_cooling.py docs/retro.json analysis/humidity.json
+            python3 analysis/fit_cooling.py "$SRC" analysis/humidity.json
           else
-            python3 analysis/fit_cooling.py docs/retro.json
+            python3 analysis/fit_cooling.py "$SRC"
           fi
 
       - name: Keep the humidity series as a downloadable artefact
