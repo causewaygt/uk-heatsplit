@@ -1,0 +1,122 @@
+name: Daily archive (manual)
+
+# Builds and extends docs/daily.json, the APPEND-ONLY daily record.
+#
+# WHY IT IS SEPARATE FROM THE DAILY BUILD
+# docs/retro.json is a rolling 800-day window - trim() drops days off the front
+# as new ones arrive. That is right for the peak and stress work and wrong for
+# the cooling regression, which wants every summer ever observed. On 22 Oct 2026
+# the pinned cooling coefficient from 17 Aug could not be reproduced at all,
+# because the days it was fitted on had already rolled out of the window.
+# This archive never trims, so a pinned fit stays checkable.
+#
+# The daily build appends to the archive automatically once build.py carries
+# the hook. This workflow is for the three things that are NOT automatic:
+# probing feed retention, seeding the archive the first time, and the one-off
+# backward backfill.
+#
+# RUN IT FROM THE ACTIONS TAB: pick this workflow, press "Run workflow",
+# choose a mode.
+#
+#   probe     two requests. Asks each feed for a single day at the target
+#             start and reports what came back. Costs seconds. Start here.
+#   seed      fills the archive from the 800 days already in retro.json.
+#             No network. Safe to re-run: it only adds what is missing.
+#   backfill  seeds first, then walks BACKWARDS in 30-day blocks to the target
+#             span. Long. Checkpoints after every block, so an interrupted run
+#             keeps what it has already fetched and a re-run continues.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "probe | seed | backfill"
+        required: true
+        default: "probe"
+        type: choice
+        options: [probe, seed, backfill]
+      years:
+        description: "Target span in years (probe and backfill)"
+        required: false
+        default: "5"
+      commit:
+        description: "Commit docs/daily.json back to the repo"
+        required: false
+        default: "false"
+        type: choice
+        options: ["false", "true"]
+
+permissions:
+  contents: write
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    # Generous: a five-year backfill is ~60 blocks against two feeds. The
+    # script checkpoints, so hitting this ceiling costs progress, not data.
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install requests
+
+      - name: Archive state before
+        run: python3 scripts/daily_archive.py
+
+      - name: Probe feed retention
+        if: ${{ github.event.inputs.mode == 'probe' }}
+        run: |
+          python3 scripts/backfill_daily.py --probe --years ${{ github.event.inputs.years }}
+
+      - name: Seed from retro.json
+        if: ${{ github.event.inputs.mode == 'seed' }}
+        run: python3 scripts/backfill_daily.py --seed
+
+      - name: Seed and backfill
+        if: ${{ github.event.inputs.mode == 'backfill' }}
+        run: |
+          python3 scripts/backfill_daily.py --seed
+          python3 scripts/backfill_daily.py --years ${{ github.event.inputs.years }}
+
+      - name: Archive state after
+        if: always()
+        run: python3 scripts/daily_archive.py
+
+      # Re-fit on whatever the archive now holds, so the run log shows what the
+      # extra history bought. Never fatal: the archive is the deliverable here,
+      # the fit is the reason for wanting it.
+      - name: Re-fit the cooling limb on the archive
+        if: ${{ always() && github.event.inputs.mode != 'probe' }}
+        continue-on-error: true
+        run: |
+          if [ -f docs/daily.json ]; then
+            python3 analysis/fit_cooling.py docs/daily.json
+          else
+            echo "no docs/daily.json yet"
+          fi
+
+      # Always available for download even when not committing, so a backfill
+      # can be inspected before it is accepted into the repo.
+      - name: Upload the archive
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-archive
+          path: docs/daily.json
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Commit and push
+        if: ${{ always() && github.event.inputs.commit == 'true' && github.event.inputs.mode != 'probe' }}
+        run: |
+          if [ ! -f docs/daily.json ]; then echo "nothing to commit"; exit 0; fi
+          git config user.name "heatsplit-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add docs/daily.json
+          git commit -m "daily archive: ${{ github.event.inputs.mode }} $(date -u +%F)" || echo "no change"
+          git pull --rebase origin ${GITHUB_REF_NAME}
+          git push
