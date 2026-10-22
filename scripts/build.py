@@ -350,13 +350,83 @@ EFF_DHW = {"gas": 0.73, "oil": 0.71}
 # four fields together. The base specification without the calendar terms gives
 # a balance point of 12.0 and 3.59 TWh, 75% of the anchor; the spread between
 # 75% and 95% is the honest uncertainty on this line.
+#
+# RE-DERIVED 22 Oct 2026, and the reason matters more than the new numbers.
+#
+# Two faults were found in the 17 Aug pin. First, TC_SCAN started at 11.0 and
+# every fit returned exactly 11.0: the balance point was sitting on the floor
+# of its own search grid. Unconstrained it is 9.5. Second, and worse, the
+# optimum is SHALLOW. k and the balance point trade off almost exactly, so a
+# wide range of pairs fits the demand record equally well - while the annual
+# integral, which is what this file publishes, moves by a factor of three
+# across that range. A point estimate off the scan was never a measurement.
+#
+# So this now carries an INTERVAL. The honest statement is that an independent
+# regression puts weather-driven cooling electricity between 3.9 and 6.3 TWh/yr
+# and the ECUK anchor of 4.78 sits inside that - consistent with the anchor,
+# not a confirmation of it. An anchor anywhere in that span would also have sat
+# inside. The old "95%" claimed a precision the method does not have.
+#
+# The width is a sample-length limit: two complete summers is very little
+# cooling signal. docs/daily.json (append-only, never trimmed) exists so the
+# record can grow past the rolling retro window; five summers should tighten
+# this materially.
+#
+# PINNED WITH ITS WINDOW. The 17 Aug fit could not be reproduced at all,
+# because retro.json had since rolled and the days it used were gone. Any pin
+# here must name the window so it can be rebuilt from the daily archive:
+#   python3 analysis/fit_cooling.py docs/daily.json
 UNDEMEANED_FIT = {
-    "k_elec_GWh_per_degC2": 0.6109,   # cooling limb coefficient
-    "balance_point_C": 11.0,
-    "fitted_on": "2026-08-17",
-    "record": "800 days, 2024-06-07 to 2026-08-15, 9 regressors, R2 0.918",
-    "share_of_ecuk_anchor_pct": 95,
+    "k_elec_GWh_per_degC2": 0.4545,   # cooling limb coefficient
+    "balance_point_C": 9.5,
+    "fitted_on": "2026-10-22",
+    "window_start": "2024-08-12",     # the fit is reproducible only with these
+    "window_end": "2026-10-20",
+    "record": "800 days, 2 complete summers, 9 regressors, R2 0.9124",
+    "annual_TWh": 4.90,
+    "annual_TWh_lo": 3.88,            # 95% profile interval on the balance
+    "annual_TWh_hi": 6.26,            # point, which dominates the uncertainty
+    "balance_point_lo_C": 7.5,
+    "balance_point_hi_C": 11.25,
+    "share_of_ecuk_anchor_pct": 102,
+    "share_lo_pct": 81,
+    "share_hi_pct": 131,
 }
+
+
+def check_undemeaned_pin(archive_dates, fit=UNDEMEANED_FIT):
+    """Warn when the published cooling coefficient has outlived its window.
+
+    The pin is a constant; the data underneath it moves. Between 17 Aug and
+    22 Oct 2026 the rolling window advanced two months and the same code gave
+    84% of the anchor instead of the pinned 95%, with nothing in the repo
+    noticing. This is the thing that should have fired then.
+
+    Returns a list of complaints, empty when the pin is current.
+    """
+    out = []
+    if not archive_dates:
+        return out
+    have_end = archive_dates[-1]
+    want_end = fit.get("window_end")
+    if not want_end:
+        return ["UNDEMEANED_FIT has no window_end - it cannot be reproduced "
+                "or checked. Re-derive and pin the window."]
+    gap = ((dt.date.fromisoformat(have_end)
+            - dt.date.fromisoformat(want_end)).days)
+    if gap >= 90:
+        out.append(
+            "UNDEMEANED_FIT is pinned to a window ending %s but the archive "
+            "now reaches %s (%d days on). Re-derive with "
+            "'python3 analysis/fit_cooling.py docs/daily.json' and update the "
+            "whole block, interval included." % (want_end, have_end, gap))
+    if archive_dates[0] > fit.get("window_start", "9999"):
+        out.append(
+            "UNDEMEANED_FIT's window starts %s but the archive only reaches "
+            "back to %s, so the pinned fit CANNOT be reproduced. Backfill "
+            "(scripts/backfill_daily.py) or re-derive on what exists."
+            % (fit.get("window_start"), archive_dates[0]))
+    return out
 
 UK_POP_M = 68.0   # population convention per the July 2026 cross-calibration †
 HP_ELEC_TWH = 2.0   # hydronic-domestic subset consistent with the ECUK
@@ -2581,6 +2651,33 @@ def main():
         if not r_ok:
             raise RuntimeError("retro gates failed")
         retro.save(rstore)
+
+        # APPEND-ONLY DAILY ARCHIVE. retro.json rolls; this does not. Every
+        # run adds the days the rolling store just saw, so the regression
+        # record keeps growing after the hourly window has moved on. Cheap -
+        # about 40 bytes a day - and it is what makes a pinned coefficient
+        # reproducible after the fact.
+        #
+        # Deliberately non-fatal: a failure here must not take the site build
+        # down, because nothing on the published page depends on the archive.
+        # It is read by analysis/fit_cooling.py, offline, between runs.
+        try:
+            import daily_archive as _da
+            _arch = _da.load() or _da.empty()
+            _rows = _da.seed_from_retro(rstore)
+            if _arch["dates"]:
+                _last = dt.date.fromisoformat(_arch["dates"][-1])
+                _rows = [r for r in _rows
+                         if r["d"] > _last - dt.timedelta(days=_da.REVISE_DAYS)]
+            if _rows:
+                _arch = _da.upsert(_arch, _rows)
+                _da.save(_arch)
+            print("daily archive:", _da.describe(_arch))
+            for _c in check_undemeaned_pin(_arch["dates"]):
+                print("WARNING:", _c)
+        except Exception as _e:                              # noqa: BLE001
+            print("daily archive: SKIPPED (%s: %s)"
+                  % (type(_e).__name__, _e))
         nd_daily = None
         try:
             nd_daily = elec if isinstance(elec, dict) else None
