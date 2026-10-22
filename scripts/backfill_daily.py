@@ -189,22 +189,34 @@ def backfill(years, dry_run=False):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--probe", action="store_true")
-    ap.add_argument("--seed", action="store_true")
-    ap.add_argument("--years", type=float, default=0.0)
+    ap.add_argument("--probe", action="store_true",
+                    help="check feed retention at the target and STOP")
+    ap.add_argument("--seed", action="store_true",
+                    help="fill from retro.json, no network")
+    ap.add_argument("--backfill", action="store_true",
+                    help="walk backwards to the target span")
+    # TARGET ONLY. --years says how far back to AIM; it does not by itself
+    # fetch anything. It used to: '--probe --years 5' ran the probe and then
+    # fell straight through into a full backfill, because the old guard read
+    # a target as an instruction. On 22 Oct 2026 that quietly ran seven blocks
+    # inside a step labelled 'probe', and the workflow then skipped the commit
+    # because the mode said probe - so the work was done and discarded.
+    ap.add_argument("--years", type=float, default=0.0,
+                    help="target span in years for --probe and --backfill")
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
-    if not (a.probe or a.seed or a.years):
-        ap.error("nothing to do: pass --probe, --seed or --years")
+    if not (a.probe or a.seed or a.backfill):
+        ap.error("nothing to do: pass --probe, --seed or --backfill "
+                 "(--years only sets the target)")
     if a.probe:
         yrs = a.years or 5.0
         probe(dt.date.today() - dt.timedelta(days=2 + int(round(yrs * 365.25))))
-        if not a.seed and not a.years:
+        if not (a.seed or a.backfill):
             return
     if a.seed:
         seed(a.dry_run)
-    if a.years:
-        backfill(a.years, a.dry_run)
+    if a.backfill:
+        backfill(a.years or 5.0, a.dry_run)
 
 
 if __name__ == "__main__":
