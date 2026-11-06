@@ -1184,7 +1184,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.73.0';
+const SITE_VERSION = '8.73.1';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -2936,14 +2936,28 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
       legend:{orientation:'h', y:1.02, yanchor:'bottom', yanchor:'bottom'}
     }, {displayModeBar:false, responsive:true});
     const fm = v => (v>=0?'+':'\u2212') + Math.abs(v).toFixed(3);
+    // A YEAR CAN LOSE ITS ABOVE-BREAK FIT AND THE SLICE ARRIVES AS null.
+    // retro.json is a rolling 800-day window, so the oldest year is a
+    // shrinking remnant: on 31 Oct 2026 the 2024 tail fell from 210 night
+    // hours to 205, too few above 15 degC to fit, and the builder emitted
+    // above:null. This line dereferenced it blind and threw - and because
+    // the whole render sits in one .then() chain under a single .catch(),
+    // the page reported "data.json not found" and every panel below this
+    // point went dark. The data was fine throughout. Six days of outage.
+    // Filter rather than guard each access, and use the SAME list for the
+    // hour count so the total matches the years actually quoted.
+    const ebY = (eb.years || []).filter(y => y && y.below && y.above);
     document.getElementById('elbownote').textContent =
       'Below ' + eb.break_C + ' \u00b0C the slope is ' +
       fm(eb.below.slope_GW_per_C) + ' GW/\u00b0C; above it, ' +
       fm(eb.above.slope_GW_per_C) + '. ' +
-      eb.years.map(y=>y.year + ' gives ' + fm(y.below.slope_GW_per_C) +
-        ' then ' + fm(y.above.slope_GW_per_C)).join(', and ') +
-      ' \u2014 independently, on ' +
-      eb.years.map(y=>y.hours).reduce((a,b)=>a+b,0) + ' night hours. ' +
+      (ebY.length
+        ? ebY.map(y=>y.year + ' gives ' + fm(y.below.slope_GW_per_C) +
+            ' then ' + fm(y.above.slope_GW_per_C)).join(', and ') +
+          ' \u2014 independently, on ' +
+          ebY.map(y=>y.hours).reduce((a,b)=>a+b,0) + ' night hours. '
+        : 'No single year currently carries enough night hours either side ' +
+          'of the break to be quoted on its own. ') +
       eb.note + ' The bend in the DAILY response curve above is a different ' +
       'thing and is mostly LOAD, not plant: dividing out the falling COP ' +
       'leaves the convexity almost intact. It is the extensive margin \u2014 ' +
