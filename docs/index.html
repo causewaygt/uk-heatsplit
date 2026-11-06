@@ -1184,7 +1184,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '8.73.1';
+const SITE_VERSION = '8.73.2';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -2947,10 +2947,18 @@ const PEAK_TH=32.1;                 // GW thermal peak for the programme
     // Filter rather than guard each access, and use the SAME list for the
     // hour count so the total matches the years actually quoted.
     const ebY = (eb.years || []).filter(y => y && y.below && y.above);
+    // The AGGREGATE fits can go null by the same route as the per-year ones:
+    // both come from the same helper, which returns None when a temperature
+    // band holds under 30 night-hour points. Today below has n=1129 and above
+    // n=551, so this is remote - but it is the identical failure, and the
+    // 2024 slice was comfortable too until the window ate it.
     document.getElementById('elbownote').textContent =
-      'Below ' + eb.break_C + ' \u00b0C the slope is ' +
-      fm(eb.below.slope_GW_per_C) + ' GW/\u00b0C; above it, ' +
-      fm(eb.above.slope_GW_per_C) + '. ' +
+      (eb.below && eb.above
+        ? 'Below ' + eb.break_C + ' \u00b0C the slope is ' +
+          fm(eb.below.slope_GW_per_C) + ' GW/\u00b0C; above it, ' +
+          fm(eb.above.slope_GW_per_C) + '. '
+        : 'The record currently holds too few summer night hours either side ' +
+          'of ' + eb.break_C + ' \u00b0C to fit the break. ') +
       (ebY.length
         ? ebY.map(y=>y.year + ' gives ' + fm(y.below.slope_GW_per_C) +
             ' then ' + fm(y.above.slope_GW_per_C)).join(', and ') +
