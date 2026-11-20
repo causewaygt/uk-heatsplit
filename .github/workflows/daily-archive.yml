@@ -22,19 +22,31 @@ name: Daily archive (manual)
 #             start and reports what came back. Costs seconds. Start here.
 #   seed      fills the archive from the 800 days already in retro.json.
 #             No network. Safe to re-run: it only adds what is missing.
+#   enrich    fills the schema-2 FIELDS - gb_mean_temp, gas_GWh, nts_GWh,
+#             ci_g_kwh, mid_gbp_mwh - on days the archive already holds, from
+#             retro.json and data.json. No network. Run after a migration.
+#   fill-gaps fetches the schema-2 fields enrich could not reach: CI and price
+#             before retro.json starts, gas before the 770-day request span.
+#             Needs the feeds. Minutes, not hours. Skips a field that has no
+#             gaps, so it costs nothing once the record is complete.
 #   backfill  seeds first, then walks BACKWARDS in 30-day blocks to the target
 #             span. Long. Checkpoints after every block, so an interrupted run
 #             keeps what it has already fetched and a re-run continues.
+#
+# enrich and fill-gaps fill FIELDS on existing days; seed and backfill add
+# DAYS. The first pair writes through fill_nulls, which can only populate a
+# null and so cannot restate an observation; the second pair goes through
+# upsert/prepend, which refuse to change the frozen window at all.
 
 on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "probe | seed | backfill"
+        description: "probe | seed | enrich | fill-gaps | backfill"
         required: true
         default: "probe"
         type: choice
-        options: [probe, seed, backfill]
+        options: [probe, seed, enrich, fill-gaps, backfill]
       years:
         description: "Target span in years (probe and backfill)"
         required: false
@@ -75,6 +87,22 @@ jobs:
       - name: Seed from retro.json
         if: ${{ github.event.inputs.mode == 'seed' }}
         run: python3 scripts/backfill_daily.py --seed
+
+      # Offline. Migrates schema 1 -> 2 on load if needed, then fills the new
+      # fields from files already in the repo. Cannot half-fail.
+      - name: Enrich schema-2 fields (offline)
+        if: ${{ github.event.inputs.mode == 'enrich' }}
+        run: python3 scripts/backfill_daily.py --enrich
+
+      # Enrich first, deliberately: it is free and narrows what fill-gaps has
+      # to fetch to the genuine gaps. Run the other way round and the fetch
+      # covers every day the field is null on, which after a fresh migration
+      # is all 1,038 of them.
+      - name: Fill the remaining gaps (fetches)
+        if: ${{ github.event.inputs.mode == 'fill-gaps' }}
+        run: |
+          python3 scripts/backfill_daily.py --enrich
+          python3 scripts/backfill_daily.py --fill-gaps
 
       # --backfill is the INSTRUCTION; --years is only the target. Passing
       # --years alone used to imply a backfill, which is how a run in 'probe'
