@@ -243,6 +243,60 @@ def probe(target_start):
     except Exception as e:                                  # noqa: BLE001
         ok, sys_state = False, "empty" if "missing" in str(e) else "unknown"
         print("  system        FAILED: %s" % e)
+    # THE OTHER THREE FEEDS. Added 20 Nov 2026, because the probe tested the
+    # two feeds --backfill uses and that is not the question being asked. A
+    # backfilled day carries nine fields, and the WEEKLY DERIVATION NEEDS GAS:
+    # without it there is no heat split, so no history week can be built for
+    # that day however much demand and temperature we have. Probing demand
+    # alone can green-light a five-hour walk that cannot produce a single week.
+    #
+    # These are the feeds --fill-gaps uses afterwards. Each is one day, so the
+    # whole probe stays seconds. Nothing here is fatal: a feed that refuses
+    # 2022 means those fields stay null for backfilled days, which is honest
+    # and visible, not a broken archive.
+    extra = {}
+    for label, fn in (
+            ("carbon int.", lambda: retro.fetch_hourly_ci(day, day)),
+            ("wholesale", lambda: retro.fetch_hourly_mid(day, day))):
+        try:
+            v = fn()
+            good = [x for x in (v or []) if x is not None]
+            extra[label] = "served" if good else "empty"
+            print("  %-13s %d hours, %d good" % (label, len(v or []), len(good)))
+        except OSError as e:
+            extra[label] = "unreachable"
+            print("  %-13s UNREACHABLE: %s" % (label, str(e)[:60]))
+        except Exception as e:                              # noqa: BLE001
+            extra[label] = "empty" if "missing" in str(e) else "unknown"
+            print("  %-13s FAILED: %s" % (label, str(e)[:60]))
+
+    # Gas via _post_gasday, which takes explicit dates - fetch_gas_demand
+    # counts back from TODAY, so probing 2022 through it would pull the whole
+    # 1,400-day span and stop being a probe.
+    try:
+        import fetch_gas
+        cat = fetch_gas._catalogue()
+        by_name = {n: p for p, n in cat}
+        ids = [by_name[n] for n in fetch_gas.NTS_PREFERRED_NAMES
+               if n in by_name][:1]
+        ids += [p for p, n in cat if fetch_gas.LDZ_PATTERN.match(n)][:2]
+        if not ids:
+            extra["gas"] = "unknown"
+            print("  %-13s no publications matched in the catalogue" % "gas")
+        else:
+            recs = fetch_gas._post_gasday(ids, target_start, target_start)
+            n = len(recs or [])
+            extra["gas"] = "served" if n else "empty"
+            print("  %-13s %d record(s) from %d publication(s)"
+                  % ("gas", n, len(ids)))
+    except OSError as e:
+        extra["gas"] = "unreachable"
+        print("  %-13s UNREACHABLE: %s" % ("gas", str(e)[:60]))
+    except Exception as e:                                  # noqa: BLE001
+        extra["gas"] = "unknown"
+        print("  %-13s FAILED: %s: %s" % ("gas", type(e).__name__,
+                                          str(e)[:60]))
+
     # One verdict per outcome. The old wording - "will not serve this date" -
     # claimed more than the probe can know, and on 20 Nov 2026 it sent us
     # looking for a retention edge that was never there.
@@ -261,6 +315,27 @@ def probe(target_start):
             "Catalogue below; read the error above first.",
     }[sys_state if not ok else "ok"]
     print("\n  %s" % verdict)
+
+    # What a backfill to this date would actually YIELD. The point of saying it
+    # out loud: demand and temperature get the DAYS into the archive, gas is
+    # what makes a history week possible, and CI and price only affect two of
+    # the four charted series. Those are different answers to "is five years
+    # worth it" and the per-feed lines above do not add themselves up.
+    if ok:
+        gas = extra.get("gas")
+        if gas == "served":
+            print("  a backfill to here can carry days AND support weekly "
+                  "history: demand, temperature and gas all serve.")
+        else:
+            print("  CAUTION: gas is '%s' at this date, so days can be added "
+                  "but NO weekly history can be built for them - the heat "
+                  "split needs gas. Backfilled days would carry weather and "
+                  "demand only." % gas)
+        thin = [k for k, v in extra.items() if v != "served"]
+        if thin:
+            print("  fields that would stay null here: %s" % ", ".join(thin))
+        print("  and the bill series stops at the 2024-04-01 cap floor "
+              "regardless - CAP_HISTORY has no pre-EPG convention.")
     # Only when the feed answered. Diagnosing an unreachable host just adds
     # four more doomed calls and buries the real error.
     if sys_state in ("empty", "unknown"):
