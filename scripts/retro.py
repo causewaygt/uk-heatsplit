@@ -43,6 +43,7 @@ import datetime as dt
 import json
 import math
 import os
+import re
 import urllib.parse
 import urllib.request
 
@@ -793,6 +794,11 @@ def load(path=None):
 # r_start and therefore refetches the whole span.
 MAX_DAYS = None              # no cap - nothing is trimmed; see above
 
+# Detected SETTLEMENT_DATE format per NESO resource id, filled on first use.
+# Module level so it survives across the many fetch_hourly_system calls a
+# backfill makes; see _detect inside that function.
+_NESO_MASK_CACHE = {}
+
 
 def trim(store, max_days=MAX_DAYS):
     """Drop whole days from the front beyond the cap; adjust start_day.
@@ -1190,19 +1196,89 @@ def fetch_hourly_system(start_day, end_day):
            for r in pkg["result"]["resources"]}
     need_years = {str(y) for y in range(d0.year, d1.year + 1)}
     hh = {}
+    _SQL_URL = ("https://api.neso.energy/api/3/action/"
+                "datastore_search_sql?sql=")
+    _COLS = ("SELECT \"SETTLEMENT_DATE\",\"SETTLEMENT_PERIOD\",\"ND\","
+             "\"EMBEDDED_WIND_GENERATION\",\"EMBEDDED_SOLAR_GENERATION\" ")
+
+    # SETTLEMENT_DATE IS NOT ONE FORMAT ACROSS THE YEAR-FILES, which is why
+    # every date before 2024 came back empty until 20 Nov 2026. The probe at
+    # 2024-01-12 served; 2023-12-17, 2022-11-18 and 2021-11-18 all returned
+    # "hourly series 24/24 missing" while the catalogue showed every year from
+    # 2001 to 2026 present and datastore_active. The predicate was the fault:
+    # a STRING comparison against '2022-11-18' matches nothing when the column
+    # holds '01-JAN-2022'. Observed formats:
+    #     2022 file   '01-JAN-2022'   DD-MON-YYYY, upper case
+    #     2023 file   '01-Jan-23'     DD-Mon-YY, TWO-DIGIT year
+    #     2024 on     ISO             which is why this ever worked
+    # So the mask is detected per resource from one row rather than assumed,
+    # and the 'YY' case matters: to_date with YYYY against '23' yields year 23.
+    _MASKS = ((re.compile(r"^\d{2}-[A-Za-z]{3}-\d{4}$"),
+               "DD-Mon-YYYY", "%d-%b-%Y"),
+              (re.compile(r"^\d{2}-[A-Za-z]{3}-\d{2}$"),
+               "DD-Mon-YY", "%d-%b-%y"))
+
+    def _detect(rid):
+        """(sql_mask, py_format) for a resource, or None for ISO.
+
+        Cached per resource id for the life of the process. A backfill walks
+        ~60 monthly blocks and each one calls this function fresh, so without
+        the cache a five-year run pays an extra probe request per block for a
+        fact that cannot change: a year-file's date format is fixed."""
+        if rid in _NESO_MASK_CACHE:
+            return _NESO_MASK_CACHE[rid]
+        probe = _ckan(_SQL_URL + urllib.parse.quote(
+            'SELECT "SETTLEMENT_DATE" FROM "%s" LIMIT 1' % rid))
+        recs = probe["result"].get("records") or []
+        found = None
+        if recs:
+            sample = str(recs[0].get("SETTLEMENT_DATE") or "")
+            for rx, mask, pyf in _MASKS:
+                if rx.match(sample):
+                    found = (mask, pyf)
+                    break
+        _NESO_MASK_CACHE[rid] = found
+        return found
+
     for name, rid in res.items():
         if not any(y in name for y in need_years):
             continue
-        sql = ("SELECT \"SETTLEMENT_DATE\",\"SETTLEMENT_PERIOD\",\"ND\","
-               "\"EMBEDDED_WIND_GENERATION\",\"EMBEDDED_SOLAR_GENERATION\" "
-               f"FROM \"{rid}\" "
+        # ISO predicate first, unchanged. This is the path the nightly build
+        # takes and it must stay byte-identical: the fallback below costs two
+        # extra requests and only runs where this finds nothing.
+        sql = (_COLS + f"FROM \"{rid}\" "
                f"WHERE \"SETTLEMENT_DATE\" >= '{d0}' "
                f"AND \"SETTLEMENT_DATE\" <= '{d1}'")
-        data = _ckan("https://api.neso.energy/api/3/action/"
-                     "datastore_search_sql?sql="
-                     + urllib.parse.quote(sql))
-        for rec in data["result"]["records"]:
-            sd = str(rec["SETTLEMENT_DATE"])[:10]
+        data = _ckan(_SQL_URL + urllib.parse.quote(sql))
+        recs = data["result"].get("records") or []
+        pyf = None
+        if not recs:
+            det = _detect(rid)
+            if det:
+                mask, pyf = det
+                # to_date on BOTH sides, so the comparison is date-to-date and
+                # the stored spelling stops mattering.
+                sql = (_COLS + f"FROM \"{rid}\" WHERE "
+                       f"to_date(\"SETTLEMENT_DATE\", '{mask}') "
+                       f">= to_date('{d0}', 'YYYY-MM-DD') AND "
+                       f"to_date(\"SETTLEMENT_DATE\", '{mask}') "
+                       f"<= to_date('{d1}', 'YYYY-MM-DD')")
+                data = _ckan(_SQL_URL + urllib.parse.quote(sql))
+                recs = data["result"].get("records") or []
+                print("neso %s: ISO predicate empty, retried as %s -> %d rows"
+                      % (name[:28], mask, len(recs)))
+        for rec in recs:
+            # THE SECOND FAULT, which the predicate was hiding. This was
+            # str(...)[:10], which is right for ISO and silently wrong for
+            # anything else: '01-JAN-2022' truncates to '01-JAN-202' and every
+            # row lands under a malformed key, so the series comes back empty
+            # even once the WHERE matches. Fixing either one alone looks like
+            # the fix did not work.
+            raw = str(rec["SETTLEMENT_DATE"])
+            if pyf:
+                sd = dt.datetime.strptime(raw, pyf).date().isoformat()
+            else:
+                sd = raw[:10]
             key = (sd, (int(rec["SETTLEMENT_PERIOD"]) - 1) // 2)
             hh.setdefault(key, []).append(
                 (float(rec["ND"] or 0),
