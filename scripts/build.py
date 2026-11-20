@@ -45,10 +45,42 @@ OUT_PATH = os.path.join(os.path.dirname(__file__), "..", "docs", "data.json")
 # went 2,017 -> 4,114, the calibrated annual heat went 261.8 -> 531.5 TWh, and
 # the electrification limit HALVED (network 98% -> 49%) because its denominator
 # doubled. Anything annual must use ANNUAL_DAYS, never this constant.
-WINDOW_DAYS = 730          # 24 months of weekly history
+#
+# AND IT IS NOT A RETENTION KNOB. Raising it does not make the site keep more
+# history; it enlarges the REGRESSION SAMPLE and refits the model. Retention
+# is HISTORY_MAX below. Confused once already - see the 11 Aug incident above.
+WINDOW_DAYS = 730          # regression sample, NOT a retention cap
 ANNUAL_DAYS = 365          # a year, for every trailing-12-month quantity
 EST = " \u2020"   # marks a Causeway estimate - see site footnote
-HISTORY_MAX = 120         # ~24 months of weeks
+# Weekly history retention. Was 120 weeks; RETIRED 20 Nov 2026, set to None
+# meaning no cap, so no week is ever rolled off.
+#
+# This was the worst of the three caps, because of what it discarded. It had
+# been sitting AT 120 - dropping a week every week - and each dropped week took
+# with it that week's bill at THAT week's price cap and that week's emissions at
+# THAT week's grid carbon intensity.
+#
+# Of those two, only ONE was ever at risk, and it is worth being exact because
+# the first version of this comment got it wrong. The price cap is CAP_HISTORY
+# above - a table in this file, under version control, so it was never lost.
+# Grid CI was the real loss: it was held only in retro.json's rolling hours and
+# nowhere daily. That is why the archive was extended on 20 Nov 2026 to carry
+# ci_g_kwh, gas and the canonical degree-day temperature, which together with
+# CAP_HISTORY make a rolled-off week rebuildable for any week the archive
+# covers. Weeks before the archive's CI coverage begins are not.
+#
+# This is the same fault the daily archive was built to fix on 22 Oct 2026,
+# when a pinned coefficient could not be reproduced because retro.json had
+# trimmed the days it was fitted on. The lesson was not carried across to
+# history at the time. It is now.
+#
+# Safe: weeks outside the regression window are already handled - they keep
+# their stored value and are stated as unrecomputable (see the restate block).
+# Retention does not refit anything.
+#
+# Cost: 852 bytes per week in data.json, which the page DOES download - about
+# 44 KB a year, +117 KB at five years on a 602 KB payload. Paid deliberately.
+HISTORY_MAX = None        # no cap - no week is rolled off; see above
 
 # --- retro span -------------------------------------------------------------
 # How far back the hourly store reaches. 796 days spans two winters, so the
@@ -91,9 +123,17 @@ def _recency(status, last_good, lag_ok_days=7):
 # any climate-comparison convention: the Met Office 22 degC CDD base is a
 # climate statistic, not a building balance point, and would understate
 # operation badly. 15.5 is the traditional UK degree-day base, is what CIBSE
-# TM46 applies across all sectors, and is corroborated by an undemeaned
-# regression of GB daily demand which puts the best-fit balance point at
-# 14.5 degC. Band 12-18 degC.
+# TM46 applies across all sectors. Band 12-18 degC.
+#
+# THE REGRESSION NO LONGER CORROBORATES IT, and this comment used to say it
+# did. That claim rested on an undemeaned fit putting the best-fit balance
+# point at 14.5 degC. The fit was re-derived on 22 Oct 2026 and the pin now
+# says 9.75 degC with a profile interval of 7.75-11.25, which does not reach
+# 15.5. The base is NOT moved on that account: a balance point fitted to
+# national demand and a building-physics base are not the same quantity, and
+# the fit's threshold trades off against its slope along a ridge. But 15.5
+# now stands on TM46 and the degree-day convention alone, and the tension is
+# stated on the panel rather than left in a comment. Withdrawn 19 Nov 2026.
 COOL_BASE = "15.5"
 # Base for the tier-3 comfort deficit, on the DAILY MEAN. Corrected 10 Aug
 # 2026: the deficit previously counted hours of outdoor air above 26 C, but
@@ -368,9 +408,11 @@ EFF_DHW = {"gas": 0.73, "oil": 0.71}
 # inside. The old "95%" claimed a precision the method does not have.
 #
 # The width is a sample-length limit: two complete summers is very little
-# cooling signal. docs/daily.json (append-only, never trimmed) exists so the
-# record can grow past the rolling retro window; five summers should tighten
-# this materially.
+# cooling signal. docs/daily.json (append-only, never trimmed) is the record
+# the fits are rebuilt from; since 20 Nov 2026 no store trims, so the record
+# simply grows. Five summers should tighten this materially - though note the
+# ridge finding of 19 Nov: 50% more signal narrowed the interval 6% where
+# sampling predicted ~18%, so more summers help less than the width suggests.
 #
 # PINNED WITH ITS WINDOW. The 17 Aug fit could not be reproduced at all,
 # because retro.json had since rolled and the days it used were gone. Any pin
@@ -1013,7 +1055,8 @@ def build_history(prev, dd, base, slope, target):
     with that week's grid CI. Append-or-update by week_ending: weeks already
     stored are kept as-is except the 2 most recent (feed revisions). A week
     with no CI available is skipped and retried next run, never stored
-    incomplete. Capped at HISTORY_MAX, oldest rolled off."""
+    incomplete. Retains every week: HISTORY_MAX is None from 20 Nov 2026, and
+    any roll-off a future cap caused would be printed, not silent."""
     hist_prev = {e["week_ending"]: e for e in (prev.get("history") or [])
                  if isinstance(e, dict) and e.get("week_ending")}
     schema_prev = prev.get("history_schema", 1)
@@ -1124,7 +1167,20 @@ def build_history(prev, dd, base, slope, target):
             "grid_ci": week_ci,
             "cap_from": cap_from,
         }
-    return [built[we] for we in sorted(built)][-HISTORY_MAX:]
+    ordered = [built[we] for we in sorted(built)]
+    # HISTORY_MAX None means retain everything, the default from 20 Nov 2026.
+    # The guard is not decoration: [-None:] raises, so the None case must be
+    # taken before the slice. Any roll-off is printed, because this ran at the
+    # cap for months discarding a week a week without saying so.
+    if HISTORY_MAX is None or len(ordered) <= HISTORY_MAX:
+        return ordered
+    dropped = ordered[:len(ordered) - HISTORY_MAX]
+    print("history: ROLLED OFF %d week(s), %s -> %s (cap %d). Rebuildable from "
+          "the daily archive (gas, CI) plus CAP_HISTORY, for weeks the archive "
+          "covers - check docs/daily.json before assuming."
+          % (len(dropped), dropped[0]["week_ending"],
+             dropped[-1]["week_ending"], HISTORY_MAX))
+    return ordered[-HISTORY_MAX:]
 
 
 def main():
@@ -1215,23 +1271,63 @@ def main():
     # asked of the gas/temperature pair that the kinked model forecloses - in
     # particular whether balance points are spread across the stock rather than
     # shared. See analysis/fit_balance_spread.py.
+    # MERGED, NOT REWRITTEN, since 20 Nov 2026 - and the reason is narrower
+    # than the first version of this comment claimed, so it is worth stating
+    # exactly. This used to be json.dump onto a fresh dict built from `target`,
+    # the live gas fetch, so the file only ever held what the feed had just
+    # served. The fetch above asks for WINDOW_DAYS + 40 and FALLS BACK to 405
+    # days when the feed refuses the long window.
+    #
+    # IN CI that fallback costs nothing persistent: update.yml does not commit
+    # this file, the runner checks out fresh every night, and the same run that
+    # writes it reads it in the next step. A short fetch means fit_balance_
+    # spread sees fewer days THAT RUN, not a record that shrank.
+    #
+    # It is a real loss only where the file SURVIVES between runs, which means
+    # a local build. There a short fetch would have replaced a long file with a
+    # short one and said nothing. Merging costs four lines and removes the
+    # difference between the two environments, which is worth more than the
+    # narrow case it fixes: the date axis now only ever grows. Fresh values win
+    # for days in both, because gas revises at D+1.
+    #
+    # docs/daily.json is the record of account and now carries gas_GWh and
+    # gb_mean_temp itself, so the durable gas record no longer depends on this
+    # file at all. This export stays because fit_balance_spread.py takes this
+    # shape. It could be generated FROM the archive instead, which would make
+    # it complete rather than fetch-limited - not done here because it changes
+    # what that estimator is fitted on.
     try:
+        _apath = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                              "..", "analysis")
+        _gpath = os.path.join(_apath, "gas_daily.json")
+        _pairs = {}
+        try:                                   # existing file first
+            with open(_gpath) as _f:
+                _old = json.load(_f)
+            for _d, _t, _g in zip(_old.get("dates") or [],
+                                  _old.get("temp_C") or [],
+                                  _old.get("gas_GWh") or []):
+                if _t is not None and _g is not None:
+                    _pairs[_d] = (_t, _g)
+        except (OSError, ValueError):
+            _old = None
+        _was = len(_pairs)
         _tmap = dict(zip(dd["dates"], dd["gb_mean_temp"]))
-        _gt = {"dates": [], "temp_C": [], "gas_GWh": []}
         for _d in sorted(set(target) & set(dd_idx)):
             _t = _tmap.get(_d)
             _g = target.get(_d)
             if _t is not None and _g is not None:
-                _gt["dates"].append(_d)
-                _gt["temp_C"].append(_t)
-                _gt["gas_GWh"].append(_g)
-        os.makedirs("analysis", exist_ok=True)
-        with open("analysis/gas_daily.json", "w") as _f:
+                _pairs[_d] = (_t, _g)
+        _ds = sorted(_pairs)
+        _gt = {"dates": _ds,
+               "temp_C": [_pairs[_d][0] for _d in _ds],
+               "gas_GWh": [_pairs[_d][1] for _d in _ds]}
+        os.makedirs(_apath, exist_ok=True)
+        with open(_gpath, "w") as _f:
             json.dump(_gt, _f)
-        print("gas_daily.json: %d paired days, %s to %s"
-              % (len(_gt["dates"]),
-                 _gt["dates"][0] if _gt["dates"] else "-",
-                 _gt["dates"][-1] if _gt["dates"] else "-"))
+        print("gas_daily.json: %d paired days (%+d), %s to %s"
+              % (len(_ds), len(_ds) - _was,
+                 _ds[0] if _ds else "-", _ds[-1] if _ds else "-"))
     except Exception:
         traceback.print_exc()
     if len(common) < 90:
@@ -1567,6 +1663,43 @@ def main():
                        + ANNUAL_TWH["solid"]
                        + ANNUAL_TWH["gas_dhw"] + ANNUAL_TWH["elec_dhw"]
                        + ANNUAL_TWH["oil_dhw"] + ANNUAL_TWH["bio_dhw"])
+        # ONE DEFINITION OF "UK HEAT", STATED ONCE. Raised in peer review on
+        # 19 Nov 2026: the site ran two scenarios under one label. Section 5
+        # sized a 20% what-if on DELIVERED heat (72.9 TWh at 1,661 h, so
+        # 43.9 GWth); section 6 appraised 87.2 TWh at 2,717 h; the
+        # methodology stated 52 GWth. All three were called "20%", and
+        # nothing on the site said why they differ.
+        #
+        # They differ because the denominators do. Both of the site's own
+        # cover the SAME scope - buildings space heat plus hot water, all
+        # fuels - and differ only by conversion loss: input is fuel bought,
+        # delivered is heat received at the building.
+        geothermal["hardware"]["denominators"] = {
+            "scope": "UK buildings: space heating plus hot water, all fuels. "
+                     "Industry and process heat are outside it.",
+            "input_TWh": round(uk_nat_heat, 1),
+            "delivered_TWh": round(useful_heat_annual, 1),
+            "delivered_over_input": round(useful_heat_annual / uk_nat_heat, 4),
+            "twenty_pct_of_delivered_TWh": round(0.20 * useful_heat_annual, 1),
+            "twenty_pct_of_input_TWh": round(0.20 * uk_nat_heat, 1),
+            "note": "Every heat and capacity figure on this site traces to "
+                    "one of these two bases. A share of one is not a share "
+                    "of the other.",
+            "uses": {
+                "panel5_whatif": "20% of DELIVERED, at the UK fleet's own "
+                                 "1,661 full-load hours",
+                "country_shares": "INPUT, because the comparator national "
+                                  "totals are input-basis estimates",
+                "panel6_programme": "NEITHER. Section 6 appraises the "
+                                    "government's heat network commitment "
+                                    "(87.2 TWh of delivered heat), which is "
+                                    "about a fifth of UK heat on the "
+                                    "government's own wider denominator. "
+                                    "Against delivered_TWh here it is 23.9%. "
+                                    "The two '20%' figures on this site are "
+                                    "two scenarios, not one.",
+            },
+        }
         NAT_HEAT_TWH = {"France": 350.0, "Netherlands": 115.0,
                         "Sweden": 80.0}
         # Reported GWh over national heat. No load-hour term appears here:
@@ -2114,7 +2247,16 @@ def main():
                              "this recovers about a THIRD of the ECUK "
                              "anchor and is a lower bound by construction; "
                              "modelling the baseline explicitly on undemeaned "
-                             "daily data recovers 74%. A third tier, "
+                             "daily data recovers "
+                             # Concatenated, not %-formatted: an earlier
+                             # literal in this same implicit join contains a
+                             # bare "3% ", and Python joins the literals
+                             # BEFORE applying %, so a format operation here
+                             # would try to read that as a conversion and
+                             # fail at runtime.
+                             + str(UNDEMEANED_FIT[
+                                 "share_of_ecuk_anchor_pct"]) + "%. "
+                             "A third tier, "
                              "equipped-but-saturated, was removed on 11 Aug "
                              "2026: its premise was that the fleet flattens "
                              "at high load, and the measured response "
@@ -2438,6 +2580,13 @@ def main():
         comfort_deficit = {
             "cdh_week_degC_h": odh_week,
             "tier_daily": tier_daily,
+            # The pin travels WITH the series it generated. Until 19 Nov 2026
+            # the panel's headline figures were typed into index.html by hand,
+            # so when the fit was re-derived on 22 Oct the page went on
+            # publishing 4.9 TWh and 102% against a pin that said 4.56 and 95%
+            # - for four weeks, with nothing able to notice. A number the page
+            # states about a fit it does not read is a number that will drift.
+            "undemeaned": dict(UNDEMEANED_FIT),
             "threshold_c": float(base_used),
             "basis": "cooling degree-hours on the daily mean of "
                      "population-weighted outdoor air, base %s C" % base_used,
@@ -2687,12 +2836,42 @@ def main():
             import daily_archive as _da
             _arch = _da.load() or _da.empty()
             _rows = _da.seed_from_retro(rstore)
+            # seed_from_retro covers the retro fields, which from schema 2
+            # includes ci_g_kwh and mid_gbp_mwh. The other three live only in
+            # THIS function's fetches, so without attaching them here a new day
+            # would be stored with gas and the degree-day temperature null and
+            # the loss would simply resume for three fields out of five.
+            _tmap_a = dict(zip(dd["dates"], dd["gb_mean_temp"]))
+            for _r in _rows:
+                _k = _r["d"].isoformat()
+                if _tmap_a.get(_k) is not None:
+                    _r["gb_mean_temp"] = _tmap_a[_k]
+                if target.get(_k) is not None:
+                    _r["gas_GWh"] = target[_k]
+                if nts.get(_k) is not None:
+                    _r["nts_GWh"] = nts[_k]
             if _arch["dates"]:
                 _last = dt.date.fromisoformat(_arch["dates"][-1])
                 _rows = [r for r in _rows
                          if r["d"] > _last - dt.timedelta(days=_da.REVISE_DAYS)]
             if _rows:
                 _arch = _da.upsert(_arch, _rows)
+                _da.save(_arch)
+            # TOP-UP PASS. upsert only touches the trailing revision window, so
+            # it cannot fill a field on an older day. This offers every field
+            # this run holds across the whole archive, and fill_nulls writes
+            # only where the value is null - so it is a no-op on a settled
+            # archive and self-healing when a feed widens. The gas feed is the
+            # live case: its span is set by the days we request, so if that
+            # request ever reaches further back, those days fill themselves
+            # here instead of waiting for someone to run --enrich.
+            _topup = False
+            for _f, _src in (("gb_mean_temp", _tmap_a),
+                             ("gas_GWh", target),
+                             ("nts_GWh", nts)):
+                if _da.fill_nulls(_arch, _f, _src, "this run")["filled"]:
+                    _topup = True
+            if _topup:
                 _da.save(_arch)
             print("daily archive:", _da.describe(_arch))
             for _c in check_undemeaned_pin(_arch["dates"]):
@@ -2712,9 +2891,14 @@ def main():
         _pv = (prev_retro or {})
         _pspan = len(_pv.get("temp_C") or []) // 24
         _nspan = rstore["n_hours"] // 24
-        print("retro span: %d -> %d days (%s -> %s), cap %d%s"
+        # cap printed with %s, not %d: MAX_DAYS is None from 20 Nov 2026 and
+        # %d against None raises, which would have failed the whole build on
+        # the next run.
+        print("retro span: %d -> %d days (%s -> %s), cap %s%s"
               % (_pspan, _nspan, _pv.get("start_day", "-"),
-                 rstore["start_day"], retro.MAX_DAYS,
+                 rstore["start_day"],
+                 "none (retains all)" if retro.MAX_DAYS is None
+                 else str(retro.MAX_DAYS),
                  "  BACKFILL RUN" if RETRO_BACKFILL else ""))
         if _pspan and _pv.get("demand_GW"):
             try:

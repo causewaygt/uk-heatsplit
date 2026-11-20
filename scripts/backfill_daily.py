@@ -2,6 +2,8 @@
 
     python3 scripts/backfill_daily.py --probe              # feed retention only
     python3 scripts/backfill_daily.py --seed               # from retro.json
+    python3 scripts/backfill_daily.py --enrich             # schema-2, offline
+    python3 scripts/backfill_daily.py --fill-gaps          # schema-2, fetched
     python3 scripts/backfill_daily.py --years 5            # fetch backwards
     python3 scripts/backfill_daily.py --years 5 --dry-run
 
@@ -16,9 +18,25 @@ ORDER OF OPERATIONS
                no network at all. Do this before fetching: it is free, it is
                the span the site currently publishes from, and it means a
                failed backfill leaves you no worse off than today.
-  3. --years N walks BACKWARDS from the archive start in monthly blocks,
+  3. --enrich  fills the fields added at schema 2 - gb_mean_temp, gas_GWh,
+               nts_GWh, ci_g_kwh, mid_gbp_mwh - on days the archive already
+               holds, entirely from retro.json and data.json. No network, so
+               like --seed it cannot fail halfway. Run it after a schema
+               migration; re-running is a no-op.
+  4. --fill-gaps fetches what --enrich could not reach: CI and price before
+               retro.json starts, gas before the 770-day request span. Needs
+               network, and specifically needs an environment allowed to reach
+               api.carbonintensity.org.uk and data.elexon.co.uk - some egress
+               policies refuse both with a 403 at the proxy.
+  5. --years N walks BACKWARDS from the archive start in monthly blocks,
                prepending each. Interrupted halfway it leaves a shorter but
                valid archive, and re-running continues from wherever it got to.
+
+--enrich/--fill-gaps versus --seed/--years. The first two fill FIELDS on days
+that already exist; the last two add DAYS. They use different primitives for a
+reason: adding days goes through upsert/prepend, which guard the frozen window
+by refusing to change it, while filling a late-arriving field goes through
+fill_nulls, which can only populate a null and so cannot restate anything.
 
 WHY BACKWARDS AND IN BLOCKS
 The whole point of this archive is that it is never silently rewritten. So the
@@ -36,6 +54,7 @@ the old and new data meet, which is the one place nobody would think to look.
 
 import argparse
 import datetime as dt
+import json
 import os
 import sys
 
@@ -142,6 +161,149 @@ def seed(dry_run=False):
     return store
 
 
+def enrich(dry_run=False):
+    """Fill the schema-2 fields on days the archive already holds. No network.
+
+    Added 20 Nov 2026 with the fields themselves. Separate from --seed because
+    --seed only ever appends days AFTER the archive's end (so it cannot reach a
+    frozen day, by design), and these fields need populating across days the
+    archive has held for months.
+
+    Everything comes from files already in the repo, which is why this needs no
+    network and cannot half-fail:
+      ci_g_kwh, mid_gbp_mwh   retro.json's hourly arrays, bucketed to daily
+      gb_mean_temp            data.json _dd, the degree-day temperature series
+      gas_GWh, nts_GWh        data.json _gas, LDZ sum and NTS demand actual
+
+    Uses fill_nulls, so a day that already has a value keeps it and re-running
+    is a no-op. Days before a source's own coverage stay null, and that null is
+    the truth: the figure was already gone when the field was added."""
+    store = da.load() or da.empty()
+    if not store["dates"]:
+        print("archive is empty - run --seed first"); return store
+    reps = []
+
+    r = retro.load()
+    if r:
+        rows = da.seed_from_retro(r)
+        for f in ("ci_g_kwh", "mid_gbp_mwh"):
+            reps.append(da.fill_nulls(
+                store, f, {x["d"]: x.get(f) for x in rows}, "retro.json"))
+    else:
+        print("no retro.json - ci_g_kwh and mid_gbp_mwh left as they are")
+
+    dpath = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                         "..", "docs", "data.json")
+    try:
+        with open(dpath) as fh:
+            d = json.load(fh)
+    except (OSError, ValueError):
+        print("no readable data.json - _dd and _gas fields left as they are")
+        d = {}
+
+    dd = d.get("_dd") or {}
+    if dd.get("dates") and dd.get("gb_mean_temp"):
+        reps.append(da.fill_nulls(
+            store, "gb_mean_temp",
+            dict(zip(dd["dates"], dd["gb_mean_temp"])), "data.json _dd"))
+
+    gas = d.get("_gas") or {}
+    for f, key in (("gas_GWh", "ldz_sum"), ("nts_GWh", "nts_demand_actual")):
+        src = gas.get(key)
+        if isinstance(src, dict) and src:
+            reps.append(da.fill_nulls(store, f, src,
+                                      "data.json _gas/%s" % key))
+
+    print("  " + da.describe(store))
+    if not dry_run:
+        da.save(store)
+    return store
+
+
+def fill_gaps(dry_run=False):
+    """Fetch the schema-2 fields for days --enrich left null. NEEDS NETWORK.
+
+    --enrich can only reach as far back as the repo's own files: retro.json
+    starts 2024-09-09 and the gas feed was only ever REQUESTED for 770 days, so
+    after enriching, ci_g_kwh and mid_gbp_mwh are null before 2024-09-09 and
+    gas before 2024-10-10. None of that is a feed limit - NESO's CI archive
+    reaches 2018, and the gas gap exists because of the span we asked for, not
+    the span available. This mode asks for the rest.
+
+    Run it where the feeds are reachable. It cannot be run from every
+    environment: both api.carbonintensity.org.uk and data.elexon.co.uk are
+    refused outright by some egress policies, which is a 403 at the proxy and
+    not a transient error worth retrying. The site's own build runner reaches
+    them every run, so that is where this belongs.
+
+    Safe to interrupt and safe to re-run: every write goes through fill_nulls,
+    so a day that already has a value is never touched and a half-finished run
+    simply leaves fewer nulls than it found."""
+    store = da.load() or da.empty()
+    if not store["dates"]:
+        print("archive is empty - run --seed first"); return store
+
+    def _nulls(field):
+        return [d for d, v in zip(store["dates"], store[field]) if v is None]
+
+    # Hourly feeds. Both return a FLAT hourly list starting at start_day 00:00,
+    # so the day of index i is start + i//24. Bucketed with the same rule as
+    # seed_from_retro - mean over available hours, at least 20 of them - so a
+    # fetched day and a seeded day are computed identically and the join does
+    # not put a step in the series.
+    for field, fetcher, nd in (("ci_g_kwh", retro.fetch_hourly_ci, 1),
+                               ("mid_gbp_mwh", retro.fetch_hourly_mid, 2)):
+        miss = _nulls(field)
+        if not miss:
+            print("%s: no gaps" % field); continue
+        lo, hi = miss[0], miss[-1]
+        print("%s: %d null day(s), fetching %s..%s" % (field, len(miss), lo, hi))
+        try:
+            hourly = fetcher(lo, hi)
+        except Exception as e:
+            print("  FAIL (%s: %s) - %s left as it was"
+                  % (type(e).__name__, str(e)[:120], field))
+            continue
+        d0 = dt.date.fromisoformat(lo)
+        buckets = {}
+        for i, v in enumerate(hourly):
+            if v is None:
+                continue
+            buckets.setdefault(d0 + dt.timedelta(days=i // 24), []).append(v)
+        daily = {d_: round(sum(v) / len(v), nd)
+                 for d_, v in buckets.items() if len(v) >= 20}
+        da.fill_nulls(store, field, daily, "fetched %s..%s" % (lo, hi))
+
+    # Gas. One request reaching past the oldest null; the fetcher counts back
+    # from today, so the span is derived from the gap rather than guessed.
+    miss = _nulls("gas_GWh") or _nulls("nts_GWh")
+    if not miss:
+        print("gas_GWh/nts_GWh: no gaps")
+    else:
+        back = (dt.date.today() - dt.date.fromisoformat(miss[0])).days + 5
+        print("gas: %d null day(s) from %s, requesting %d days"
+              % (len(miss), miss[0], back))
+        try:
+            import fetch_gas
+            gas = fetch_gas.fetch_gas_demand(days=back)
+            for f, key in (("gas_GWh", "ldz_sum"),
+                           ("nts_GWh", "nts_demand_actual")):
+                src = gas.get(key)
+                if isinstance(src, dict) and src:
+                    da.fill_nulls(store, f, src,
+                                  "fetched %d days / %s" % (back, key))
+                else:
+                    print("  %s: feed returned nothing usable" % f)
+        except Exception as e:
+            print("  FAIL (%s: %s) - gas left as it was"
+                  % (type(e).__name__, str(e)[:120]))
+
+    print("  " + da.describe(store))
+    if not dry_run:
+        da.save(store)
+    return store
+
+
 def backfill(years, dry_run=False):
     store = da.load() or da.empty()
     if not store["dates"]:
@@ -193,6 +355,10 @@ def main():
                     help="check feed retention at the target and STOP")
     ap.add_argument("--seed", action="store_true",
                     help="fill from retro.json, no network")
+    ap.add_argument("--enrich", action="store_true",
+                    help="fill schema-2 fields on existing days, no network")
+    ap.add_argument("--fill-gaps", action="store_true", dest="fill_gaps",
+                    help="fetch schema-2 fields --enrich could not reach")
     ap.add_argument("--backfill", action="store_true",
                     help="walk backwards to the target span")
     # TARGET ONLY. --years says how far back to AIM; it does not by itself
@@ -205,16 +371,20 @@ def main():
                     help="target span in years for --probe and --backfill")
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
-    if not (a.probe or a.seed or a.backfill):
-        ap.error("nothing to do: pass --probe, --seed or --backfill "
-                 "(--years only sets the target)")
+    if not (a.probe or a.seed or a.enrich or a.fill_gaps or a.backfill):
+        ap.error("nothing to do: pass --probe, --seed, --enrich, --fill-gaps "
+                 "or --backfill (--years only sets the target)")
     if a.probe:
         yrs = a.years or 5.0
         probe(dt.date.today() - dt.timedelta(days=2 + int(round(yrs * 365.25))))
-        if not (a.seed or a.backfill):
+        if not (a.seed or a.enrich or a.fill_gaps or a.backfill):
             return
     if a.seed:
         seed(a.dry_run)
+    if a.enrich:
+        enrich(a.dry_run)
+    if a.fill_gaps:
+        fill_gaps(a.dry_run)
     if a.backfill:
         backfill(a.years or 5.0, a.dry_run)
 

@@ -374,20 +374,30 @@ def hourly_useful_heat(temps, start_day, space_annual_twh, dhw_annual_twh,
 
 
 # --- calibration -----------------------------------------------------------
-def _route_base(route, temps, t_flow=None):
+def _route_base(route, temps, t_flow=None, src=None, flow_off=0.0):
     """Per-hour Carnot-with-defrost base b(t): COP = max(1, eta*b(t)).
     t_flow=None uses the weather-compensated space curve; pass
     DHW_FLOW_C for the hot-water leg (B.4). Precomputed once so
-    calibration and integration stay fast."""
+    calibration and integration stay fast.
+
+    src overrides the route's source temperature. It exists so the SPF of
+    a ground-coupled route can be evaluated at a source OTHER than the one
+    it was calibrated at, which is what source_band() needs. It has no
+    effect on ashp, whose source is the weather.
+    """
     out = []
     for t in temps:
-        tf = flow_temp(t) if t_flow is None else t_flow
+        # flow_off shifts the whole weather-compensation curve, which is what
+        # a warmer emitter stock means. It does NOT move the DHW leg: a
+        # cylinder needs its temperature whatever the radiators run at, so
+        # t_flow is passed through untouched.
+        tf = (flow_temp(t) + flow_off) if t_flow is None else t_flow
         if route == "ashp":
             b = carnot_cop(tf, t - AIR_APPROACH_C) * defrost_factor(t)
         elif route == "shallow":
-            b = carnot_cop(tf, GROUND_SOURCE_C)
+            b = carnot_cop(tf, GROUND_SOURCE_C if src is None else src)
         elif route == "network":
-            b = carnot_cop(tf, NETWORK_SOURCE_C)
+            b = carnot_cop(tf, NETWORK_SOURCE_C if src is None else src)
         else:
             raise ValueError(route)
         out.append(b)
@@ -406,6 +416,124 @@ def route_elec_hourly(route, temps, heat, eta, dhw_h, shift=1.0):
         q_sp = max(0.0, q - q_dhw)
         out.append(shift * (q_sp / max(1.0, eta * a)
                             + q_dhw / max(1.0, eta * b)))
+    return out
+
+
+def source_band(route, temps, heat, eta, dhw_h, sources):
+    """SPF and design-condition COP across a range of source temperatures.
+
+    WHY THIS EXISTS. The network route's SPF of 5.0 and its 19.6 C source
+    are ONE estimate with two faces: eta is calibrated so that the source
+    reproduces the SPF, so neither is independently evidenced. The candid
+    presentation is therefore a range, and the methodology gives one -
+    15 C supports about 4.3, 25 C about 6.2.
+
+    Those two numbers were previously the only statement of the range, and
+    the dashboard carried a single point estimate. Anyone wanting the band
+    on the page had to re-derive it, and a re-derivation by closed form on
+    a single mid-flow point reproduces the low end and misses the high end
+    by about 13% - because the annual integral weights cold hours, where
+    the flow is 50 C, far more heavily than a mid-flow point does.
+
+    So the band is computed here, on the same trailing year, the same heat
+    shape and the same space/DHW flow split as the calibration itself, with
+    eta HELD at its calibrated value. Moving the source without moving eta
+    is the whole point: it asks what the SPF would be if the loop ran
+    cooler or warmer than assumed, with the same machines.
+
+    Returns [{source_c, spf, design_cop}], design_cop at the cold-flow
+    endpoint, which is the condition the capacity argument turns on.
+    """
+    temps = temps[-8760:]
+    heat = heat[-8760:]
+    out = []
+    for src in sources:
+        bs = _route_base(route, temps, src=src)
+        bd = _route_base(route, temps, t_flow=DHW_FLOW_C, src=src)
+        q_tot = 0.0
+        e_tot = 0.0
+        for q, a, b in zip(heat, bs, bd):
+            if q <= 0:
+                continue
+            qd = min(q, dhw_h)
+            qs = q - qd
+            q_tot += q
+            e_tot += qs / max(1.0, eta * a) + qd / max(1.0, eta * b)
+        if e_tot <= 0:
+            continue
+        out.append({
+            "source_c": round(float(src), 2),
+            "spf": round(q_tot / e_tot, 3),
+            # Design condition: the cold-flow endpoint, which is where the
+            # capacity claim lives. Not the seasonal figure, and the gap
+            # between the two is the argument.
+            "design_cop": round(max(1.0, eta *
+                                    carnot_cop(FLOW_COLD_C, src)), 3),
+        })
+    return out
+
+
+def _spf_at(route, temps, heat, eta, dhw_h, src=None, flow_off=0.0):
+    """Annual SPF with eta held, at an arbitrary source and flow schedule."""
+    bs = _route_base(route, temps, src=src, flow_off=flow_off)
+    bd = _route_base(route, temps, t_flow=DHW_FLOW_C, src=src)
+    q_tot = 0.0
+    e_tot = 0.0
+    for q, a, b in zip(heat, bs, bd):
+        if q <= 0:
+            continue
+        qd = min(q, dhw_h)
+        qs = q - qd
+        q_tot += q
+        e_tot += qs / max(1.0, eta * a) + qd / max(1.0, eta * b)
+    return (q_tot / e_tot) if e_tot > 0 else None
+
+
+def sensitivity_grid(temps, heat, etas, dhw_h, sources, flow_offsets):
+    """SPF and design COP over source temperature AND delivery temperature.
+
+    WHY BOTH ROUTES MOVE. Raising the flow schedule and leaving the
+    air-source counterfactual where it is produces a benefit-cost ratio that
+    collapses - and it is an artefact. Both machines are Carnot-limited on
+    the same sink, so a warmer emitter stock costs the air-source route a
+    similar proportion. The comparison is a ratio of two machines facing the
+    same flow temperature, and the only way to see that is to move them
+    together. That mistake was made on 19 Nov 2026 and caught before it was
+    published; this function exists so it cannot be made again by hand.
+
+    Raised by Neil Hewitt, who observed that an SPF over 5 is a
+    simplification because it depends on delivery temperature. It does - the
+    LEVEL moves hard. What barely moves is the comparison.
+
+    Returns {flow_offsets_k, ashp:[...], shallow:[...], network:[...]}
+    where network entries carry both axes and the other two carry flow only.
+    """
+    temps = temps[-8760:]
+    heat = heat[-8760:]
+    out = {"flow_offsets_k": [float(f) for f in flow_offsets],
+           "sources_c": [float(s) for s in sources],
+           "note": "SPF and design COP with eta held at its calibrated value. "
+                   "Delivery temperature moves EVERY route: the comparison is "
+                   "a ratio of two machines on the same sink.",
+           "ashp": [], "shallow": [], "network": []}
+    for off in flow_offsets:
+        for r in ("ashp", "shallow"):
+            spf = _spf_at(r, temps, heat, etas[r], dhw_h, flow_off=off)
+            out[r].append({
+                "flow_off_k": float(off),
+                "mild_c": FLOW_MILD_C + off, "cold_c": FLOW_COLD_C + off,
+                "spf": None if spf is None else round(spf, 3),
+                "design_cop": round(route_cop(r, FLOW_COLD_AT, etas[r],
+                                              t_flow=FLOW_COLD_C + off), 3)})
+        for src in sources:
+            spf = _spf_at("network", temps, heat, etas["network"], dhw_h,
+                          src=src, flow_off=off)
+            out["network"].append({
+                "flow_off_k": float(off), "source_c": float(src),
+                "spf": None if spf is None else round(spf, 3),
+                "design_cop": round(max(1.0, etas["network"]
+                                        * carnot_cop(FLOW_COLD_C + off, src)),
+                                    3)})
     return out
 
 
@@ -497,6 +625,25 @@ def build_retro(start_day, end_day, space_annual_twh, dhw_annual_twh,
     for r in SPF_ANCHORS:
         e = sum(route_elec_hourly(r, t_y, h_y, etas[r], dhw_h_rate))
         spfs[r] = round(sum(q for q in h_y if q > 0) / e, 3)
+    # Central point included so the band and the anchor can be checked
+    # against each other in the payload without re-running anything.
+    network_band = source_band("network", temps, heat, etas["network"],
+                               dhw_h_rate,
+                               [15.0, 17.5, NETWORK_SOURCE_C, 22.5, 25.0])
+    # DESIGN-CONDITION COP for every route, at the cold-flow endpoint.
+    # The capacity argument lives in the gap between these and the seasonal
+    # figures above, and both numbers were literals in the front end until
+    # 19 Nov 2026 - so the page could state a design COP the model did not
+    # produce. Derived here, on the same eta the SPF is calibrated with.
+    design_cop = {r: round(route_cop(r, FLOW_COLD_AT, etas[r],
+                                     t_flow=FLOW_COLD_C), 3)
+                  for r in SPF_ANCHORS}
+    # Two axes: the source the loop sits at, and the temperature the
+    # emitters need. 0 K is the published 30-50 C schedule (low-temperature
+    # emitters); +5 and +10 are a mixed and an unimproved radiator stock.
+    sensitivity = sensitivity_grid(
+        temps, heat, etas, dhw_h_rate,
+        [15.0, NETWORK_SOURCE_C, 25.0], [0.0, 5.0, 10.0])
 
     return {
         "schema": RETRO_SCHEMA,
@@ -523,6 +670,15 @@ def build_retro(start_day, end_day, space_annual_twh, dhw_annual_twh,
             "sources": {"air_approach": AIR_APPROACH_C,
                         "ground_c": GROUND_SOURCE_C,
                         "network_c": NETWORK_SOURCE_C},
+            "min_lift_k": MIN_LIFT_K,
+            "design_cop": design_cop,
+            "design_at": {"outdoor_c": FLOW_COLD_AT, "flow_c": FLOW_COLD_C},
+            "sensitivity": sensitivity,
+            # The network route's band, derived not asserted. The page
+            # publishes a range rather than the single 5.0 because neither
+            # the SPF nor the source is independently evidenced - see
+            # source_band(). Endpoints are the methodology's own 15 and 25.
+            "network_band": network_band,
         },
         "temp_C": temps,
         "mid_gbp_mwh": mids,
@@ -609,28 +765,58 @@ def load(path=None):
 # ===========================================================================
 # Store cap. Raised 400 -> 800 on 12 Aug 2026 to reach two winters, so the
 # worst hour, the binding hour and the tightest week become a choice across
-# winters rather than a description of one.
+# winters rather than a description of one. RETIRED 20 Nov 2026: set to None,
+# meaning no cap, so nothing is discarded.
+#
+# Why it went entirely rather than up. At 800 days this store was dropping
+# hours older than ~26 months every run, and doing it SILENTLY - which is how
+# it ran for three months without being noticed. A higher number would have
+# postponed that, not fixed it: the fault was the silence, not the value. So
+# the cap is gone and trim() now ANNOUNCES any cut it makes, which is the only
+# version of this that cannot rot again.
+#
+# Safe to retain without refitting anything: every coefficient in this module
+# calibrates on a trailing window - [-8760:] for the hourly fits, [-365:] for
+# the weighted denominators, monthly[-13:] for the monthly roll-up - so the
+# store growing past the cap moves no published number. Checked against the
+# whole module 20 Nov 2026 before removing the cap.
+#
+# Cost is repo size only: retro.json is a BUILD-TIME store and the page never
+# fetches it (docs/index.html fetches data, spf_evidence, geo_sites and
+# uk_outline, and none of them is this). 747 KB at 800 days, ~1.7 MB at five
+# years.
 #
 # THIS ALONE DOES NOT REACH BACKWARDS. start_day is fixed when the store is
-# created and trim() only ever moves it FORWARD. Raising the cap stops the
+# created and trim() only ever moved it FORWARD. Removing the cap stops the
 # front being cut, so the store grows forward one day per run from where it
 # is. Reaching winter 24/25 needs the separate backfill below, which moves
 # r_start and therefore refetches the whole span.
-MAX_DAYS = 800               # store cap; oldest days trimmed past this
+MAX_DAYS = None              # no cap - nothing is trimmed; see above
 
 
 def trim(store, max_days=MAX_DAYS):
-    """Drop whole days from the front beyond the cap; adjust start_day."""
+    """Drop whole days from the front beyond the cap; adjust start_day.
+
+    max_days None means no cap, which is the default from 20 Nov 2026: the
+    store retains everything. Any cut is printed, because a store that
+    discards quietly is how two years of hours went unnoticed."""
+    if max_days is None:
+        return store
     n_days = store["n_hours"] // 24
     if n_days <= max_days:
         return store
-    cut = (n_days - max_days) * 24
+    dropped = n_days - max_days
+    cut = dropped * 24
+    old_start = store["start_day"]
     for k in ("temp_C", "mid_gbp_mwh", "ci_g_kwh", "heat_GWh",
               "demand_GW", "wind_GW", "solar_GW"):
         store[k] = store[k][cut:]
     store["start_day"] = (dt.date.fromisoformat(store["start_day"])
-                          + dt.timedelta(days=n_days - max_days)).isoformat()
+                          + dt.timedelta(days=dropped)).isoformat()
     store["n_hours"] = len(store["temp_C"])
+    print("retro trim: DISCARDED %d day(s) of hours, %s -> %s (cap %d). "
+          "These hours are not recoverable from this store."
+          % (dropped, old_start, store["start_day"], max_days))
     return store
 
 

@@ -1,10 +1,17 @@
 """Append-only daily archive. The record that is never trimmed.
 
 WHY THIS EXISTS
-retro.json is a ROLLING 800-day window: trim() cuts days off the front as new
-ones arrive. That is correct for the peak and stress work, which wants a fixed
-span of hourly detail, and wrong for the regression work, which wants every
-summer ever observed.
+retro.json WAS a rolling 800-day window: trim() cut days off the front as new
+ones arrived. That was correct for the peak and stress work, which wants a
+fixed span of hourly detail, and wrong for the regression work, which wants
+every summer ever observed.
+
+Its cap was retired on 20 Nov 2026 (retro.MAX_DAYS = None), so retro.json no
+longer discards anything either. This archive is still the record of account:
+it is DAILY, so five years costs about 70 KB here against roughly 1.7 MB of
+hours there, and it is the file the pinned fits name and are rebuilt from. The
+two stores now differ in resolution and purpose rather than in whether they
+forget.
 
 The cost of conflating them was found on 22 Oct 2026. UNDEMEANED_FIT was pinned
 on 17 Aug 2026 to a cooling limb of 0.6109 at 95% of the ECUK anchor. Re-run on
@@ -20,14 +27,37 @@ buckets to daily means on its first pass anyway, and dropping the hour makes
 five years cost about 70 KB instead of 1.75 MB.
 
 SCHEMA
-    dates        contiguous ascending ISO days, no gaps, no duplicates
-    temp_C       population-weighted daily mean, degC
-    demand_GWh   GB daily underlying demand (NESO ND + embedded), GWh
-    solar_GWh    embedded solar generation, GWh
-    wind_GWh     embedded + transmission wind, GWh
+    dates         contiguous ascending ISO days, no gaps, no duplicates
+    temp_C        population-weighted daily mean from the HOURLY feed, degC
+    demand_GWh    GB daily underlying demand (NESO ND + embedded), GWh
+    solar_GWh     embedded solar generation, GWh
+    wind_GWh      embedded + transmission wind, GWh
+  added 20 Nov 2026 (schema 2), to close the remaining data losses:
+    gb_mean_temp  the DEGREE-DAY temperature series, degC
+    gas_GWh       GB LDZ-sum daily gas demand, GWh
+    nts_GWh       NTS daily demand actual, GWh
+    ci_g_kwh      daily mean grid carbon intensity, gCO2/kWh
+    mid_gbp_mwh   daily mean day-ahead wholesale price, GBP/MWh
+
+WHY BOTH temp_C AND gb_mean_temp. They are not the same series and the
+difference is not noise: temp_C is bucketed from the hourly temperature feed,
+gb_mean_temp comes from fetch_degree_days, and across the 1,038 overlapping
+days they differ by up to 0.053 degC (mean 0.023). Every HDD and CDD on the
+site is computed from the SECOND one, so storing only the first would leave the
+degree days nearly-but-not-exactly reproducible - which is the failure this
+archive exists to prevent. Both are kept; neither is derived from the other.
+
+WHAT IS DELIBERATELY NOT HERE. The Ofgem price cap: it is CAP_HISTORY in
+build.py, under version control, so archiving it would duplicate a fact the
+repo already holds. HDD and CDD: derived from gb_mean_temp and a base, and the
+base is a published choice that may be restated, so storing the inputs keeps
+old fits rebuildable under either base.
+
 A missing observation is null IN PLACE. The dates array stays contiguous so the
 series can be indexed by date arithmetic and a gap is visible rather than
-silently closed up by a shorter array.
+silently closed up by a shorter array. The fields added at schema 2 start null
+before their source's own coverage begins, and those nulls are real: they mark
+days for which the figure was already lost when the field was added.
 
 USAGE
     import daily_archive as da
@@ -43,9 +73,16 @@ import datetime as dt
 import json
 import os
 
-SCHEMA = 1
+SCHEMA = 2
 HERE = os.path.dirname(os.path.abspath(__file__))
 PATH = os.path.join(HERE, "..", "docs", "daily.json")
+
+# Fields present at each schema version. Needed because a bump must MIGRATE an
+# existing archive, never replace it: build.py does `load() or empty()`, so a
+# load() that returns None for a readable file silently swaps the record of
+# account for a fresh one and the next save() overwrites it. That is how a
+# routine version bump could have destroyed 1,038 days. _migrate() pads instead.
+SCHEMA_1_FIELDS = ("temp_C", "demand_GWh", "solar_GWh", "wind_GWh")
 
 # Settlement and ND revise for a few days after the fact. Anything older than
 # this is frozen: upsert() will not change it without force=True, which exists
@@ -53,7 +90,8 @@ PATH = os.path.join(HERE, "..", "docs", "daily.json")
 # to paper over a feed that returned nonsense.
 REVISE_DAYS = 3
 
-FIELDS = ("temp_C", "demand_GWh", "solar_GWh", "wind_GWh")
+FIELDS = SCHEMA_1_FIELDS + ("gb_mean_temp", "gas_GWh", "nts_GWh",
+                            "ci_g_kwh", "mid_gbp_mwh")
 
 
 class ArchiveError(Exception):
@@ -61,20 +99,63 @@ class ArchiveError(Exception):
 
 
 def empty():
-    return {"schema": SCHEMA, "updated": None, "dates": [],
-            "temp_C": [], "demand_GWh": [], "solar_GWh": [], "wind_GWh": [],
-            "sources": {}}
+    """A new, empty archive. Built FROM FIELDS, not a hand-written literal.
+
+    The literal version of this listed the four schema-1 fields by name, so
+    adding a field meant remembering to add it here too - and forgetting would
+    have produced a store that validate() rejects on its first save."""
+    store = {"schema": SCHEMA, "updated": None, "dates": [], "sources": {}}
+    for f in FIELDS:
+        store[f] = []
+    return store
+
+
+def _migrate(store):
+    """Bring an older archive forward in place. Never discards observations.
+
+    Pads fields added by a later schema with null for every existing day, which
+    is the truthful value: those days predate the field and the figure was not
+    captured. Returns the store, or raises for a version this code does not
+    know - raising is deliberate. The alternative, returning None, reaches
+    build.py's `load() or empty()` and overwrites the archive with a fresh one;
+    a hard failure there is non-fatal to the build (the whole archive block is
+    wrapped) and leaves the file untouched, which is the outcome to prefer."""
+    v = store.get("schema")
+    if v == SCHEMA:
+        return store
+    if v != 1:
+        raise ArchiveError(
+            "archive at %s has schema %r, which this code does not know how to "
+            "migrate (it handles 1 -> %d). Refusing to touch it: returning an "
+            "empty archive here would overwrite the record of account."
+            % (PATH, v, SCHEMA))
+    n = len(store.get("dates") or [])
+    added = []
+    for f in FIELDS:
+        cur = store.get(f)
+        if not isinstance(cur, list):
+            store[f] = [None] * n
+            added.append(f)
+        elif len(cur) < n:
+            store[f] = list(cur) + [None] * (n - len(cur))
+            added.append(f)
+    store["schema"] = SCHEMA
+    print("daily archive: migrated schema 1 -> %d, %d day(s) kept, padded %s"
+          % (SCHEMA, n, ", ".join(added) if added else "nothing"))
+    return store
 
 
 def load(path=PATH):
+    """Load and migrate. None means "no archive here", never "reset it".
+
+    A missing or unparseable file returns None, which legitimately means create
+    a new one. A readable file at an unexpected schema RAISES - see _migrate."""
     try:
         with open(path) as fh:
             store = json.load(fh)
     except (OSError, ValueError):
         return None
-    if store.get("schema") != SCHEMA:
-        return None
-    return store
+    return _migrate(store)
 
 
 def save(store, path=PATH):
@@ -208,6 +289,57 @@ def prepend(store, rows):
     return validate(store)
 
 
+def fill_nulls(store, field, by_date, label=""):
+    """Populate a field only where it is currently null. Never overwrites.
+
+    The operation the schema-2 backfill needs, and deliberately not upsert().
+    upsert() guards frozen days by refusing any CHANGE to them, which is right
+    for a revised observation and wrong here: giving a frozen day a value for a
+    field that was null is not a revision, it is the field arriving late. But
+    force=True would have been the wrong tool too - it can rewrite anything,
+    including real observations, which is exactly what this archive exists to
+    prevent.
+
+    So the invariant is narrower than either: a non-null value is never touched,
+    whatever is offered for it. That makes the operation safe to re-run and
+    impossible to use for a restatement by accident. A value that genuinely
+    needs correcting goes through upsert(force=True) with a note in the commit,
+    where it is visible.
+
+    by_date: {ISO date or date -> value}. Returns a report dict.
+    """
+    if field not in FIELDS:
+        raise ArchiveError("%r is not an archive field" % field)
+    norm = {}
+    for k, v in by_date.items():
+        if v is None:
+            continue
+        norm[k if isinstance(k, str) else k.isoformat()] = v
+    filled = kept = absent = 0
+    for i, d_ in enumerate(store["dates"]):
+        if store[field][i] is not None:
+            if d_ in norm:
+                kept += 1          # offered a value, already had one: ignored
+            continue
+        if d_ in norm:
+            store[field][i] = norm[d_]
+            filled += 1
+        else:
+            absent += 1
+    validate(store)
+    rep = {"field": field, "filled": filled, "already_present": kept,
+           "still_null": absent, "source": label}
+    # Reports only when it CHANGED something. Every build calls this for each
+    # schema-2 field and the usual answer is "nothing to do"; printing five
+    # no-op lines a run is how a log stops being read, and the thing worth
+    # being loud about here is data arriving or going missing, not a no-op.
+    if filled:
+        print("daily archive: %s <- %s | filled %d, left %d already present, "
+              "%d still null" % (field, label or "source", filled, kept,
+                                 absent))
+    return rep
+
+
 def seed_from_retro(retro_store):
     """Build a daily archive from the hourly rolling store. No network.
 
@@ -216,32 +348,55 @@ def seed_from_retro(retro_store):
     Days with fewer than 20 good hours are dropped, which can leave holes, so
     the result is returned as rows for the caller to inspect rather than
     written straight in.
+
+    Also carries ci_g_kwh and mid_gbp_mwh from schema 2 as daily MEANS. The
+    mean is the right reduction and not merely the obvious one: build.py's
+    fetch_ci_weekly_mean takes an unweighted mean of the week's half-hours from
+    the same NESO endpoint retro uses, so a simple daily mean averaged over
+    seven equal days reproduces that weekly figure exactly - the one exception
+    being the two DST days a year, which hold 23 or 25 hours and therefore carry
+    slightly the wrong weight. Worth knowing before pinning a week to it.
+
+    The four schema-1 fields keep their original arithmetic to the digit. They
+    have to: these values are re-seeded every run, frozen days are compared
+    against what is already stored, and a changed rounding would make upsert()
+    raise on every frozen day rather than quietly differ.
     """
     T = retro_store["temp_C"]
     D = retro_store["demand_GW"]
     S = retro_store.get("solar_GW") or []
     W = retro_store.get("wind_GW") or []
+    C = retro_store.get("ci_g_kwh") or []
+    M = retro_store.get("mid_gbp_mwh") or []
     t0 = dt.datetime.fromisoformat(retro_store["start_day"])
     buckets = {}
     for i in range(min(len(T), len(D))):
         if T[i] is None or D[i] is None:
             continue
         day = (t0 + dt.timedelta(hours=i)).date()
-        buckets.setdefault(day, []).append((
-            T[i], D[i],
-            (S[i] or 0.0) if i < len(S) else 0.0,
-            (W[i] or 0.0) if i < len(W) else 0.0))
+        buckets.setdefault(day, []).append(i)
+
+    def _mean(arr, idxs, nd):
+        vals = [arr[i] for i in idxs if i < len(arr) and arr[i] is not None]
+        return round(sum(vals) / len(vals), nd) if vals else None
+
     rows = []
-    for d_, v in sorted(buckets.items()):
-        if len(v) < 20:
+    for d_, idxs in sorted(buckets.items()):
+        if len(idxs) < 20:
             continue
-        n = len(v)
-        rows.append({"d": d_,
-                     "temp_C": round(sum(x[0] for x in v) / n, 3),
-                     # GW averaged over the day -> GWh for the day
-                     "demand_GWh": round(sum(x[1] for x in v) / n * 24.0, 2),
-                     "solar_GWh": round(sum(x[2] for x in v), 2),
-                     "wind_GWh": round(sum(x[3] for x in v), 2)})
+        n = len(idxs)
+        rows.append({
+            "d": d_,
+            "temp_C": round(sum(T[i] for i in idxs) / n, 3),
+            # GW averaged over the day -> GWh for the day
+            "demand_GWh": round(sum(D[i] for i in idxs) / n * 24.0, 2),
+            "solar_GWh": round(sum((S[i] or 0.0) if i < len(S) else 0.0
+                                   for i in idxs), 2),
+            "wind_GWh": round(sum((W[i] or 0.0) if i < len(W) else 0.0
+                                  for i in idxs), 2),
+            "ci_g_kwh": _mean(C, idxs, 1),
+            "mid_gbp_mwh": _mean(M, idxs, 2),
+        })
     return rows
 
 
