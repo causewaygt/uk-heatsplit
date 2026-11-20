@@ -1,0 +1,144 @@
+{
+ "schema": 1,
+ "title": "Measured heat pump performance, with the boundary stated",
+ "updated": "2026-11-20",
+ "why": "The network route's SPF* of 5.0 has no measured UK fleet behind it. Jonny Walker asked what other countries achieve. This is what was found, and the boundary each figure sits on - because without that the numbers are not comparable and a table of them would look like evidence without being any.",
+ "boundary_note": {
+  "site_basis": "This site's anchors are whole-system: electricity metered at the supply point over heat delivered at the building boundary, so circulation, controls, distribution losses and store round-trip are all inside. That is SPF H4 or wider.",
+  "sepemo": "The SEPEMO convention nests four boundaries. H1 is the heat pump unit. H2 adds the source-side pump or fan. H3 adds the backup heater. H4 adds the sink-side distribution pump. A narrower boundary gives a HIGHER number for the same machine, so a figure quoted without its boundary is not comparable to anything.",
+  "rule": "A figure whose boundary cannot be established does not go in this table.",
+  "transcribed": "HeatpumpMonitor.org publishes no API and its figures are rendered client-side, so the two rows from it are transcribed by hand and carry the date they were read. They were wrong on this site until 20 Nov 2026 - stated as medians where the source reports means, on 569 and 14 systems where the statistic runs on 323 and 3, at 3.87 and 4.15 where the values were 3.98 and 5.04."
+ },
+ "blend": {
+  "statement": "SPF* 5.0 is not a measured figure, and no scheme of this shape has been measured anywhere. It is a blend of three archetypes, each with some measured support, combined by a stated rule. These are the shares it assumes - the most load-bearing assumption on this site. Shares are of DELIVERED HEAT: cooling output is excluded from every figure here, because it is credited separately and adding it to a heat-over-electricity ratio would count it twice. Cooling raises SPF* by one mechanism only - it charges the loop, which raises the source, which raises the winter COP.",
+  "rule": "Energy-weighted harmonic, not arithmetic: 1/SPF* = sum(share_i / SPF_i). Electricity adds, efficiencies do not.",
+  "components": [
+   {
+    "name": "Heat and cool on a shared loop, thermally balanced",
+    "share_pct": 40,
+    "spf": 5.5,
+    "why": "A loop charged by rejected summer heat runs far above virgin ground. Mijnwater Heerlen measures a warm well at about 28 C and a cool well at 16 C; ETH Honggerberg extracts at about 18 C in winter. This site's derived band gives 5.00 at a 19.6 C loop and 5.80 at 22.5 C, so 5.5 is a haircut on the band, paying for network distribution and circulation the band excludes.",
+    "weakest_point": "No UK scheme has demonstrated a charged loop at this temperature. Measured recharge studies put the balance dividend at 1-3 K over a passive array, worth 3-8% on SPF - real, but not a step change."
+   },
+   {
+    "name": "Shallow ground, heating only",
+    "share_pct": 34,
+    "spf": 3.2,
+    "why": "This site's own shallow anchor is 3.24. Measured whole-system figures cluster 2.5-3.5: Annex 52 Brf Briljanten 2.7-2.9 at H4+, Forskningen 2.95 at H4, Domstolen 2.5 at H4.",
+    "weakest_point": "A passive array drifts 1-2 K cooler over its first years and stays there. The measured cluster already includes that."
+   },
+   {
+    "name": "Intermediate direct use, little or no heat pump",
+    "share_pct": 26,
+    "spf": 12.0,
+    "why": "Delivered heat over pumping electricity. Koekoekspolder 11 at a boundary including the heat distribution network, Cachan 9 on ageing Paris Dogger doublets, SEMHACH about 15 with a heat pump and reinjection counted.",
+    "weakest_point": "THE CONDITION DOING THE MOST WORK, and the one the site's framing discusses least. Drop this share from 26% to 15% and the blend falls to 4.43 - a larger effect than halving the cooling share. Figures above 20 in the literature are pumping-only maxima; adding network circulation brings them to 8-15."
+   }
+  ],
+  "conditions": [
+   "A sizable cooling load, co-located - not for the cooling service, which is credited elsewhere, but because it is what charges the loop.",
+   "The charged loop actually reaching about 19.6 C.",
+   "Roughly a quarter to a third of the heat from intermediate direct use.",
+   "Low-temperature emitters. A 10 K warmer schedule takes the geothermal factor from 5.00 to 3.66; the comparison survives it, the level does not.",
+   "Little or no electric top-up. One monitored cold network lost 0.6 of its SPF to backup heaters alone."
+  ],
+  "fragility": "Each component moving to its pessimistic end costs 3-11% on its own, and they are correlated: a scheme without enough cooling is also likelier to sit on an unbalanced loop and to need top-up. Three moving together lands near 4.2, which is the low end of the published band.",
+  "if_the_programme_is_not_this": "If the UK programme does not look like this blend, the figure does not hold. That is the point of publishing the shares rather than the number."
+ },
+ "rows": [
+  {
+   "id": "eoh-ashp",
+   "fleet": "Electrification of Heat (UK)",
+   "what": "Air source, domestic retrofit, representative recruitment",
+   "n": 428,
+   "period": "2020-2023",
+   "source_c": null,
+   "boundary": "SPF H4",
+   "spf": 2.81,
+   "stat": "mean",
+   "is_site_anchor": true,
+   "note": "The site's air-source anchor. A corrected re-analysis of the same data gives 2.80.",
+   "url": "https://doc.ukdataservice.ac.uk/doc/9050/mrdoc/pdf/9050_eoh_Interim_insights_from_heat_pump_performance_data.pdf"
+  },
+  {
+   "id": "hpm-ashp",
+   "fleet": "HeatpumpMonitor.org (UK)",
+   "what": "Air source, self-selected, self-monitored",
+   "n": 323,
+   "period": "trailing year, read 19 Nov 2026",
+   "source_c": null,
+   "boundary": "MID H4, with at least a year of data",
+   "spf": 3.98,
+   "stat": "mean",
+   "is_site_anchor": false,
+   "note": "A self-selected fleet. Not wrong, a different population - the site uses the representative figure because it models a national transition. The statistic is a MEAN and runs on the 323 systems with a year of H4 data, not the 672 monitored in total.",
+   "url": "https://heatpumpmonitor.org",
+   "range_lo": 2.3,
+   "range_hi": 5.3
+  },
+  {
+   "id": "hpm-gshp",
+   "fleet": "HeatpumpMonitor.org (UK)",
+   "what": "Ground source, self-selected, self-monitored",
+   "n": 3,
+   "period": "trailing year, read 19 Nov 2026",
+   "source_c": null,
+   "boundary": "MID H4, with at least a year of data",
+   "spf": 5.04,
+   "stat": "mean",
+   "is_site_anchor": false,
+   "note": "THREE systems. The mean of three is barely a statistic and the range is three numbers. It is the only UK figure at this boundary and it sits ABOVE 5.0, which cuts against the measured cluster for large buildings and networks - but these are domestic units, a different population answering a different question.",
+   "url": "https://heatpumpmonitor.org",
+   "range_lo": 4.4,
+   "range_hi": 6.0
+  },
+  {
+   "id": "ch-fawa",
+   "fleet": "Swiss federal field monitoring (BFE/FAWA)",
+   "what": "Borehole brine-to-water, domestic",
+   "n": 85,
+   "period": "1995-2010",
+   "source_c": null,
+   "boundary": "SPF2 (source pump, storage charging pump and condenser circulation inside; heating group pumps outside)",
+   "spf": 3.65,
+   "stat": "weighted mean across operating years",
+   "is_site_anchor": false,
+   "note": "The longest-running borehole fleet record in Europe: 85 systems in year one falling to 6 by year fifteen. Climate-standardised. Narrower boundary than this site's, so the whole-system equivalent is LOWER than 3.65. Directionally consistent with the site's 3.24 shallow anchor.",
+   "url": "https://pubdb.bfe.admin.ch/en/publication/download/6684"
+  },
+  {
+   "id": "de-coldnet-spf1",
+   "fleet": "German cold district heating network (Sauer et al., EuroSun 2024)",
+   "what": "Ambient loop on sewer wastewater, building heat pumps, five multi-family houses, 67 dwellings",
+   "n": 5,
+   "period": "calendar 2023",
+   "source_c": 13.7,
+   "boundary": "SPF1 (heat pump, source pump, storage charging pump and auxiliaries inside; electric backup heaters EXCLUDED)",
+   "spf": 4.1,
+   "stat": "measured",
+   "is_site_anchor": false,
+   "note": "The closest measured analogue to this site's network route that was found. Energy-weighted source 13.7 C against a 16.2 C simple average. The network has no circulation pumps - flow is driven by the source pump at each building.",
+   "url": "https://proceedings.ises.org/conference/eurosun2024/papers/eurosun2024-0029-Sauer.pdf"
+  },
+  {
+   "id": "de-coldnet-spf2",
+   "fleet": "German cold district heating network (Sauer et al., EuroSun 2024)",
+   "what": "The same scheme with its backup heating counted",
+   "n": 5,
+   "period": "calendar 2023",
+   "source_c": 13.7,
+   "boundary": "SPF2 (adds the electric backup heaters), excluding a 91-day network outage",
+   "spf": 3.5,
+   "stat": "measured",
+   "is_site_anchor": false,
+   "note": "Including the outage the same figure is 2.7. Steady-state COP1 was 5.1 for space heating and 2.6 for hot water - the split this site models by putting the DHW leg on a cylinder flow year-round.",
+   "url": "https://proceedings.ises.org/conference/eurosun2024/papers/eurosun2024-0029-Sauer.pdf"
+  }
+ ],
+ "finding": {
+  "statement": "No measured, boundary-stated seasonal performance figure was found for a network-with-building-heat-pumps scheme at the scale this site models, in the UK or elsewhere.",
+  "detail": "The nearest analogue is a single five-building network on sewer wastewater at an energy-weighted 13.7 C. It returned 4.1 on a boundary that excludes backup heating, 3.5 once backup is counted, and 2.7 including a 91-day outage. This site's model gives 4.10 at a 15 C source on a WIDER boundary than any of those. So the measured analogue sits at or below the site's own low-end estimate once its backup heating is counted, and the site's figure is not conservative against it.",
+  "what_would_anchor_it": "A monitored UK ambient-loop or aquifer-storage network reporting SPF H4 with its source temperature, over a full year. Nothing of that kind is published.",
+  "excluded": "Several 5GDHC papers report simulated rather than measured performance, including the Ulemiste scheme in Tallinn whose headline figures are modelled. Dutch ATES operational studies exist but their performance figures could not be retrieved with their boundaries, so they are not listed."
+ }
+}
