@@ -103,6 +103,68 @@ def _daily_rows(start_day, end_day):
     return rows, ("%d thin days dropped" % thin if thin else "")
 
 
+def _neso_catalogue(years, limit=60):
+    """Print the NESO demand catalogue and test each year-file. Read-only.
+
+    Added 20 Nov 2026, after probes mapped a hard boundary at 1 Jan 2024:
+    2024-01-12 served, 2023-12-17 did not, nor 2022-11-18 or 2021-11-18. A
+    retention edge does not fall on a calendar year boundary, so the limit is
+    this code's reach, not the feed's. fetch_hourly_system discovers resources
+    from ONE slug, 'historic-demand-data', and matches a year by substring on
+    the resource name; if the older years are published as their own datasets
+    it matches nothing, sends no query, and returns an empty series - which
+    reads identically to a feed refusing the date.
+
+    Three causes fit an empty result and need different fixes: the resource is
+    not datastore_active (SQL cannot reach it, CSV can), the year lives under
+    another slug, or the name has no bare year in it. This distinguishes them
+    by printing what the catalogue actually holds, so the fix follows from a
+    fact instead of a guess. It writes nothing and commits nothing."""
+    import urllib.request
+    import urllib.parse
+
+    def _get(url):
+        with urllib.request.urlopen(url, timeout=90) as r:
+            return json.load(r)
+
+    base = "https://api.neso.energy/api/3/action/"
+    print("\n  --- NESO catalogue diagnostic ---")
+
+    # Search first: it finds slugs we have not guessed, which is the whole
+    # question if the older years are separate datasets.
+    try:
+        q = _get(base + "package_search?rows=%d&q=%s"
+                 % (limit, urllib.parse.quote("historic demand data")))
+        hits = q["result"]["results"]
+        print("  package_search 'historic demand data': %d dataset(s)"
+              % q["result"]["count"])
+        for p in hits:
+            print("    %-52s (%d resources)"
+                  % (p.get("name", "?")[:52], len(p.get("resources") or [])))
+    except Exception as e:                                  # noqa: BLE001
+        print("  package_search FAILED: %s: %s" % (type(e).__name__,
+                                                   str(e)[:100]))
+
+    # Then the slug the fetcher actually uses, resource by resource, with the
+    # flag that decides whether datastore_search_sql can see it at all.
+    for slug in ["historic-demand-data"] + [
+            "historic-demand-data-%d" % y for y in sorted(years)]:
+        try:
+            pkg = _get(base + "package_show?id=" + slug)
+        except Exception as e:                              # noqa: BLE001
+            print("  %-34s package_show: %s" % (slug, str(e)[:44]))
+            continue
+        rs = pkg["result"].get("resources") or []
+        print("  %-34s %d resource(s)" % (slug, len(rs)))
+        for r in rs:
+            nm = (r.get("name") or "?")
+            act = r.get("datastore_active")
+            hit = any(str(y) in nm for y in years)
+            print("      %-44s active=%-5s year-match=%s"
+                  % (nm[:44], act, hit))
+    print("  --- end diagnostic ---")
+
+
 def probe(target_start):
     """One day from each feed at the target start date."""
     day = target_start.isoformat()
@@ -117,23 +179,60 @@ def probe(target_start):
     except Exception as e:                                  # noqa: BLE001
         ok = False
         print("  temperature   FAILED: %s" % e)
+    # Three outcomes, not two, and they need different conclusions. The first
+    # version of this collapsed them and then asserted the series "returned
+    # NOTHING" even on a 403 - the same imprecision this probe exists to avoid.
+    #   unreachable  transport failed. Says nothing about the date. URLError
+    #                and HTTPError both subclass OSError, so one clause gets
+    #                them, and a blocked egress policy lands here too.
+    #   empty        the feed ANSWERED and held no data. _fill raises
+    #                RuntimeError("hourly series N/N missing") when more than
+    #                5% is absent, which for a one-day probe means all of it.
+    #                This is the interesting case and the one worth diagnosing.
+    #   ok           served.
+    sys_state = "ok"
     try:
         s = retro.fetch_hourly_system(day, day)
         d = [v for v in (s.get("demand_GW") or []) if v is not None]
         print("  system        %d demand hours, mean %.1f GW"
               % (len(d), sum(d) / len(d) if d else float("nan")))
         if not d:
-            ok = False
-            print("                retention limit: the feed answered but "
-                  "returned no demand for this date")
+            ok, sys_state = False, "empty"
+            print("                the feed answered and returned no demand "
+                  "for this date")
+    except OSError as e:
+        ok, sys_state = False, "unreachable"
+        print("  system        UNREACHABLE: %s" % e)
     except Exception as e:                                  # noqa: BLE001
-        ok = False
+        ok, sys_state = False, "empty" if "missing" in str(e) else "unknown"
         print("  system        FAILED: %s" % e)
-    print("\n  %s" % ("both feeds serve this date - backfill is available"
-                      if ok else
-                      "at least one feed will not serve this date. Try a "
-                      "nearer start (--years 4, then 3) to find the real "
-                      "retention edge before committing to a long run."))
+    # One verdict per outcome. The old wording - "will not serve this date" -
+    # claimed more than the probe can know, and on 20 Nov 2026 it sent us
+    # looking for a retention edge that was never there.
+    verdict = {
+        "ok": "both feeds serve this date - backfill is available",
+        "unreachable":
+            "the system feed could not be REACHED, which says nothing about "
+            "whether it holds this date. Check egress and retry; do not read "
+            "this as a retention limit.",
+        "empty":
+            "the feed ANSWERED and held no data for this date. That is either "
+            "its retention edge or this code's reach. A limit that falls on 1 "
+            "January is the year-file, not retention - catalogue below.",
+        "unknown":
+            "the system leg failed in a way this probe does not classify. "
+            "Catalogue below; read the error above first.",
+    }[sys_state if not ok else "ok"]
+    print("\n  %s" % verdict)
+    # Only when the feed answered. Diagnosing an unreachable host just adds
+    # four more doomed calls and buries the real error.
+    if sys_state in ("empty", "unknown"):
+        try:
+            _neso_catalogue({target_start.year, target_start.year + 1})
+        except Exception as e:                              # noqa: BLE001
+            # Never let the diagnostic mask the finding it explains.
+            print("  diagnostic unavailable: %s: %s"
+                  % (type(e).__name__, str(e)[:100]))
     return ok
 
 
