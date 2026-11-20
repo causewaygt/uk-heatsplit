@@ -485,8 +485,36 @@ def fill_gaps(dry_run=False):
                  for d_, v in buckets.items() if len(v) >= 20}
         da.fill_nulls(store, field, daily, "fetched %s..%s" % (lo, hi))
 
-    # Gas. One request reaching past the oldest null; the fetcher counts back
-    # from today, so the span is derived from the gap rather than guessed.
+    # The degree-day temperature. ADDED 20 Nov 2026: the first version of this
+    # mode had no fetcher for it at all, so after the five-year backfill it
+    # could only be filled by --enrich from data.json's _dd, which starts
+    # 2023-10-15. That left 697 of 788 backfilled days null while the run
+    # reported success. gb_mean_temp is NOT temp_C - the archive carries both
+    # because they differ by up to 0.053 degC and every HDD and CDD on the site
+    # is computed from this one.
+    miss = _nulls("gb_mean_temp")
+    if not miss:
+        print("gb_mean_temp: no gaps")
+    else:
+        back = (dt.date.today() - dt.date.fromisoformat(miss[0])).days + 5
+        print("gb_mean_temp: %d null day(s) from %s, requesting %d days"
+              % (len(miss), miss[0], back))
+        try:
+            import fetch_degree_days as fdd
+            dd = fdd.fetch_degree_days(days=back)
+            da.fill_nulls(store, "gb_mean_temp",
+                          dict(zip(dd["dates"], dd["gb_mean_temp"])),
+                          "fetched %d days" % back)
+        except Exception as e:                              # noqa: BLE001
+            print("  FAIL (%s: %s) - gb_mean_temp left as it was"
+                  % (type(e).__name__, str(e)[:120]))
+
+    # Gas. One WHOLE-span request in tolerant mode. The span has to stay whole
+    # for the unit autoscale, which reads a median and would mistake a
+    # summer-only slice for mcm; tolerant lets the windows that do answer land
+    # even when one refuses. Strict mode aborted the entire 1,833-day request
+    # on a single failure and filled nothing, which is what happened on the
+    # first run of this.
     miss = _nulls("gas_GWh") or _nulls("nts_GWh")
     if not miss:
         print("gas_GWh/nts_GWh: no gaps")
@@ -496,16 +524,30 @@ def fill_gaps(dry_run=False):
               % (len(miss), miss[0], back))
         try:
             import fetch_gas
-            gas = fetch_gas.fetch_gas_demand(days=back)
-            for f, key in (("gas_GWh", "ldz_sum"),
-                           ("nts_GWh", "nts_demand_actual")):
+            gas = fetch_gas.fetch_gas_demand(days=back, tolerant=True)
+            for f, key, lo, hi in (("gas_GWh", "ldz_sum", 50.0, 6000.0),
+                                   ("nts_GWh", "nts_demand_actual",
+                                    50.0, 9000.0)):
                 src = gas.get(key)
-                if isinstance(src, dict) and src:
-                    da.fill_nulls(store, f, src,
-                                  "fetched %d days / %s" % (back, key))
-                else:
+                if not (isinstance(src, dict) and src):
                     print("  %s: feed returned nothing usable" % f)
-        except Exception as e:
+                    continue
+                # Magnitude guard. The autoscale infers kWh/GWh/mcm from a
+                # median and a wrong guess is a silent factor of 11. Values
+                # outside a plausible GB daily band are dropped rather than
+                # filled: a null is recoverable, a wrong number written into
+                # an append-only archive is not.
+                ok = {d: v for d, v in src.items() if lo <= v <= hi}
+                if len(ok) < len(src):
+                    bad = sorted(v for v in src.values()
+                                 if not (lo <= v <= hi))
+                    print("  %s: DROPPED %d value(s) outside %.0f-%.0f GWh/day "
+                          "(worst %.1f) - suspected unit misdetection, left "
+                          "null" % (f, len(src) - len(ok), lo, hi, bad[-1]))
+                if ok:
+                    da.fill_nulls(store, f, ok,
+                                  "fetched %d days / %s" % (back, key))
+        except Exception as e:                              # noqa: BLE001
             print("  FAIL (%s: %s) - gas left as it was"
                   % (type(e).__name__, str(e)[:120]))
 

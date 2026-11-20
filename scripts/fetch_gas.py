@@ -114,7 +114,21 @@ def _post_gasday(pub_ids, start, end):
     return payload if isinstance(payload, list) else payload.get("data", [])
 
 
-def fetch_gas_demand(days=400):
+def fetch_gas_demand(days=400, tolerant=False):
+    """Daily NTS total and LDZ sum for the trailing `days`.
+
+    tolerant=False (the default, and what the build uses) keeps the original
+    behaviour: any failed request raises and the caller gets nothing, because
+    a partially-filled gas series on the build path would quietly bias the
+    regression. tolerant=True skips a failed request and returns what the rest
+    produced, which is what a historical backfill wants - see the loop below.
+
+    Note the unit autoscale runs on the WHOLE returned span, not per request,
+    so it keeps a median over winter and summer together. That matters: the
+    LDZ sum runs about 416-2,826 GWh/day, so a summer-only span would have a
+    median under the 1,000 threshold and be mistaken for mcm and multiplied by
+    11.056. Do not "fix" a long fetch by slicing it into seasonal windows.
+    """
     catalogue = _catalogue()
     by_name = {name: pid for pid, name in catalogue}
 
@@ -155,9 +169,24 @@ def fetch_gas_demand(days=400):
               f"= {CHUNK * DAY_CHUNK} records, cap ~3,600)")
 
     raw = {}  # pid -> {date: value}
+    failed = []
     for w_start, w_end in spans:
         for i in range(0, len(all_ids), CHUNK):
-            for block in _post_gasday(all_ids[i:i + CHUNK], w_start, w_end):
+            try:
+                blocks = _post_gasday(all_ids[i:i + CHUNK], w_start, w_end)
+            except Exception as e:                          # noqa: BLE001
+                # STRICT BY DEFAULT. _post_gasday raises for status, so before
+                # 20 Nov 2026 a single bad request aborted the whole fetch -
+                # which is right on the build path, where a gas series with
+                # holes in it is worse than no series at all, and wrong for a
+                # historical backfill, where 19 good windows should not be
+                # thrown away because the 20th refused. A 1,833-day fill-gaps
+                # run returned nothing for exactly this reason.
+                if not tolerant:
+                    raise
+                failed.append((w_start, w_end, i // CHUNK, str(e)[:80]))
+                continue
+            for block in blocks:
                 pid = block.get("publicationId")
                 recs = raw.setdefault(pid, {})
                 for rec in block.get("publications", []):
@@ -165,6 +194,13 @@ def fetch_gas_demand(days=400):
                         recs[rec.get("applicableFor")] = float(rec.get("value"))
                     except (TypeError, ValueError):
                         continue
+    if failed:
+        print("gas: %d of %d request(s) FAILED and were skipped (tolerant "
+              "mode); the days they covered stay missing:"
+              % (len(failed), len(spans) * ((len(all_ids) + CHUNK - 1)
+                                            // CHUNK)))
+        for w0, w1, blk, err in failed[:8]:
+            print("     %s..%s block %d: %s" % (w0, w1, blk, err))
 
     nts = _autoscale(raw.get(nts_id, {}), "NTS total")
 
