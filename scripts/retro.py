@@ -111,16 +111,68 @@ DISPATCH_BY_WINTER = {
 DISPATCH_DERATED_GW = 62.3       # fallback and headline; the latest winter
 
 
+def winter_of(when):
+    """The winter a moment belongs to, labelled by its OPENING year."""
+    return when.year - (1 if when.month <= 6 else 0)
+
+
 def dispatch_block(when):
     """De-rated dispatchable capacity for the winter containing `when`.
 
     Winters are labelled by their opening year, so January 2026 belongs to
     winter 2025. Anything outside the table falls back to the latest figure
     rather than failing - an unmapped year is a stale table, not a data error.
+
+    THE FALLBACK IS A TRAP ONCE THE STORE IS DEEP, which it became on
+    20 Nov 2026. While the store held two winters, both were in the table and
+    the fallback never fired. Backfilled to five, three winters have no entry
+    and would have been tested against 62.3 GW - the LATEST winter's fleet -
+    silently, producing a headroom number for 2022 against capacity that did
+    not exist in 2022. So callers that search across winters must use
+    have_dispatch() to exclude the ones the table cannot price, rather than
+    relying on this fallback. It is kept only for single-hour lookups, where
+    a stale table is the likelier reading.
     """
-    y = when.year - (1 if when.month <= 6 else 0)
-    return DISPATCH_BY_WINTER.get(y, DISPATCH_DERATED_GW)
+    return DISPATCH_BY_WINTER.get(winter_of(when), DISPATCH_DERATED_GW)
+
+
+def have_dispatch(when):
+    """True only where the winter's own de-rated block is a published figure.
+
+    Deriving the missing winters is NOT a formality. The two entries above
+    come from NESO Winter Outlook as total de-rated capacity (ACS peak +
+    de-rated margin) less de-rated wind. The 2022/23 and 2023/24 Outlooks
+    publish the margin and its percentage - so the total is recoverable - but
+    give wind only as an Equivalent Firm Capacity percentage, with no
+    installed transmission-connected wind to apply it to. The subtraction the
+    method needs is not in those documents, and estimating it would stack an
+    estimate on an estimate three winters running.
+    """
+    return winter_of(when) in DISPATCH_BY_WINTER
 CEILING_MONTHS = (11, 12, 1, 2, 3)
+
+# SEARCH DEPTH, 20 Nov 2026. Both of this module's searches were confined to
+# the trailing 8,760 hours by `s0 = max(0, n - 8760)`. The reason given was
+# audit F1b: "a 13-month store holds a duplicate calendar month and must not
+# offer it twice". That is a real fault for a 13-month store and the wrong
+# remedy for a five-year one, where the question is not which of two Januaries
+# to offer but which winter on record was worst.
+#
+# The two searches are NOT equivalent and do not get one switch:
+#
+#   WORST_HOUR_ALL_WINTERS widens max(heat[i]) - modelled heat, no capacity
+#   figure anywhere in it, so it needs no data the store lacks. It changes
+#   what the stress cards describe, from the worst hour of the trailing year
+#   to the worst on record, and they are relabelled accordingly.
+#
+#   LIMITS_ALL_WINTERS widens the electrification limit, which prices every
+#   hour against ITS OWN winter's de-rated block. That was always the intent
+#   - "with two they need not be [the same hour]" - and the trailing-year
+#   window is what stopped it happening. Hours in winters the table cannot
+#   price are EXCLUDED, not priced at the fallback; see have_dispatch().
+WORST_HOUR_ALL_WINTERS = True
+LIMITS_ALL_WINTERS = True
+
 RETRO_SCHEMA = 2   # 2: system feeds - demand/wind/solar (A'.2)
 RETRO_PATH = os.path.join(os.path.dirname(__file__), "..", "docs",
                           "retro.json")
@@ -882,9 +934,10 @@ def slices(store, nd_daily=None, sap_series=None, retail_series=None):
         return (d0 + dt.timedelta(days=i // 24)).isoformat() + "T%02d" % (i % 24)
 
     # ---- worst hour + worst week, empirically located ----
-    # Searches confined to the trailing year: a 13-month store holds a
-    # duplicate calendar month and must not offer it twice (audit F1b).
-    s0 = max(0, n - 8760)
+    # Was confined to the trailing year (audit F1b, a duplicate calendar month
+    # in a 13-month store). See WORST_HOUR_ALL_WINTERS at the top of this
+    # module for why a five-year store wants the opposite.
+    s0 = 0 if WORST_HOUR_ALL_WINTERS else max(0, n - 8760)
     iw = max(range(s0, n), key=lambda i: heat[i])
     iww, best = s0, -1.0
     if n - s0 >= 168:
@@ -990,18 +1043,34 @@ def slices(store, nd_daily=None, sap_series=None, retail_series=None):
                           + r["month"][2:4])
 
     # ---- stress at the worst hour (daily-average demand basis) ----
+    _scope = "the record" if WORST_HOUR_ALL_WINTERS else "the trailing year"
+    _winters = sorted({winter_of(d0 + dt.timedelta(days=i // 24))
+                       for i in range(s0, n)
+                       if (d0 + dt.timedelta(days=i // 24)).month
+                       in CEILING_MONTHS})
     stress = {"worst_hour": _iso(iw),
               "worst_hour_heat_GWh": round(heat[iw], 1),
               "worst_hour_temp_C": temps[iw],
-              "basis": ("Added load per route at the year's highest-"
+              # The scope travels WITH the hour. A page that says "the worst
+              # hour" without saying worst of what will go on saying it after
+              # the span changes underneath it.
+              "worst_hour_scope": _scope,
+              "worst_hour_winter": winter_of(d0 + dt.timedelta(days=iw // 24)),
+              "winters_searched": _winters,
+              "basis": ("Added load per route at %s highest-"
                         "demand modelled hour (dagger). Ceilings on a "
                         "OBSERVED-HOURLY basis - the hour itself and "
-                        "the trailing year's record hour. Gross here; "
+                        "%s record hour. Gross here; "
                         "net-of-displaced and the binding hour live in "
-                        "the System view.")}
+                        "the System view. Heat is shaped from the CURRENT "
+                        "annual anchor, so an older hour is expressed on "
+                        "today's demand basis, not its own."
+                        % (_scope + "'s", _scope + "'s"))}
     D_obs = store.get("demand_GW")
     if D_obs:
-        rec_i = max(range(max(0, n - 8760), n), key=lambda i: D_obs[i])
+        # Widened with the heat search, or the basis string above would
+        # describe one scope while the denominator came from another.
+        rec_i = max(range(s0, n), key=lambda i: D_obs[i])
         stress["hour_demand_GW"] = round(D_obs[iw], 1)
         stress["record_hour_GW"] = round(D_obs[rec_i], 1)
         stress["record_hour"] = _iso(rec_i)
@@ -1973,6 +2042,12 @@ def heat_price_series(store, sap_series=None, retail_series=None,
             "rather than the domestic cap, and it is the operator's input "
             "cost that is being compared - not what a connected household is "
             "billed, which is a network tariff this model does not carry.")
+        # CARRIED THROUGH FROM build.py's cap resolution, so the panel can
+        # say on which windows the retail basis stops being that quarter's
+        # cap and becomes a QEP annual mean. Only the long windows reach it.
+        out["retail_annual_mean_to"] = retail_series.get("annual_mean_to")
+        out["retail_annual_mean_days"] = retail_series.get(
+            "annual_mean_days") or 0
 
     # HEAT-WEIGHTED SUMMARY. An unweighted daily chart gives a mild June day
     # the same weight as 5 January, which flatters air-source badly: on point
@@ -2025,16 +2100,33 @@ def system_view(store):
         return ((d0 + dt.timedelta(days=i // 24)).isoformat()
                 + "T%02d" % (i % 24))
 
-    s0 = max(0, n - 8760)
+    s0 = 0 if LIMITS_ALL_WINTERS else max(0, n - 8760)
     Yr = range(s0, n)
-    winter = [i for i in Yr
+    # ONLY WINTERS THE TABLE CAN PRICE. An hour in a winter with no published
+    # de-rated block is dropped, not valued at the fallback: pricing winter
+    # 2022/23 against 2025/26's fleet would invent headroom that never
+    # existed. What is dropped is reported, so a thin table is visible on the
+    # page rather than silently absorbed.
+    _w_all = [i for i in Yr
               if (d0 + dt.timedelta(days=i // 24)).month in CEILING_MONTHS]
+    winter = [i for i in _w_all
+              if have_dispatch(d0 + dt.timedelta(days=i // 24))]
+    _used = sorted({winter_of(d0 + dt.timedelta(days=i // 24))
+                    for i in winter})
+    _skipped = sorted({winter_of(d0 + dt.timedelta(days=i // 24))
+                       for i in _w_all} - set(_used))
+    if not winter:                      # nothing priceable: keep the old
+        winter = _w_all                 # behaviour rather than return junk
+        _used, _skipped = [], []
 
-    # record observed hour (trailing year)
+    # record observed hour, over the same span the limit is solved on
     irec = max(Yr, key=lambda i: D[i])
 
     out = {
         "dispatch_derated_GW": DISPATCH_DERATED_GW,
+        "winters_priced": _used,
+        "winters_skipped_no_block": _skipped,
+        "dispatch_by_winter": dict(DISPATCH_BY_WINTER),
         "record_hour": {"hour": _iso(irec), "demand_GW": round(D[irec], 1)},
         "displaced_note": (
             "Net additions: the what-if removes the displaced fifth of "

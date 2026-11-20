@@ -93,14 +93,42 @@ HISTORY_MAX = None        # no cap - no week is rolled off; see above
 # ONE run to pull the earlier winter in, then set it back to False so the
 # store returns to cheap two-day increments.
 #
-# TWO THINGS THAT DO NOT REACH BACK WITH THE DATA, and belong in the copy:
-#   - DISPATCH_DERATED_GW is this winter's de-rated fleet. Backfilling tests
-#     two winters of weather against one winter's capacity.
-#   - hourly heat is shaped from the CURRENT annual anchor (the shaping
-#     normalises on the trailing 365, so the anchor is not diluted - but the
-#     older winter is expressed on today's demand basis, not its own).
-RETRO_SPAN_DAYS = 796
-RETRO_BACKFILL = False
+# WHAT A BACKFILL DOES AND DOES NOT MOVE. Corrected 20 Nov 2026 - the version
+# of this note that stood until then said "a colder hour anywhere in the new
+# span becomes the worst hour, and the binding hour, headroom and
+# electrification limit all follow it". That was wrong about the limit, and it
+# was quoted to the client as a reason to expect the headlines to move. Read
+# the code, not this comment, when it matters: retro.py confines BOTH its
+# searches to the trailing 8,760 hours (s0 = max(0, n - 8760) at retro.py:887
+# for the worst hour and :2028 for the limit), so a deeper store alone changes
+# neither. Widening them is a separate, deliberate edit.
+#
+#   - The WORST HOUR search is max(heat[i]) - modelled heat only, no fleet
+#     figure in it. Widening it is free of new data, and it DOES move the
+#     published stress cards, because they describe that hour.
+#   - The ELECTRIFICATION LIMIT needs each winter's de-rated dispatchable
+#     block. DISPATCH_BY_WINTER holds 2024/25 and 2025/26 only, and
+#     dispatch_block() used to fall back to the LATEST winter's figure without
+#     saying so. Backfilling three more winters would have tested them against
+#     a fleet that did not exist. The fallback is now explicit; see retro.py.
+#
+# AND ONE THING THAT STILL DOES NOT REACH BACK: hourly heat is shaped from the
+# CURRENT annual anchor (the shaping normalises on the trailing 365, so the
+# anchor is not diluted - but an older winter is expressed on today's demand
+# basis, not its own). That caveat lands squarely on any widened worst hour.
+# 1826 puts the retro store's start on 2021-11-18, the day the daily archive
+# begins, so the whole site dates from one day rather than two. All four
+# hourly feeds were proven at that date by the five-feed probe on 19 Nov 2026.
+RETRO_SPAN_DAYS = 1826
+# SET BACK TO False AFTER ONE SUCCESSFUL RUN. Not because leaving it on
+# refetches daily - it does not. r_start is min(want, prev start_day), and
+# `want` only creeps forward, so once the store starts on the wanted day the
+# start matches, build_retro takes its incremental path and keeps everything
+# but the two-day revision window. The reason to turn it off is that it ARMS
+# a full refetch to fire unattended: raise RETRO_SPAN_DAYS again with this
+# flag still True and the next nightly build silently refetches ~1,830 days
+# from four feeds, which is how a scheduled run times out at 3am.
+RETRO_BACKFILL = True
 RETRO_FETCHERS = {}   # tests inject {'fetch_temp':..,'fetch_mid':..,'fetch_ci':..}  # weekly entries kept (spec: cap and roll)
 
 
@@ -254,6 +282,14 @@ CAP_HISTORY = [
     # ran to 31 March 2024, so before that households did not pay the cap and
     # "each week priced at its own week's cap" stops being true. Extending
     # earlier needs a stated convention for the crisis years, not more rows.
+    # Added 20 Nov 2026. Its absence left Jan-Mar 2024 to fall through to an
+    # annual pre-cap row. Ofgem's announcement for the period gives 28.62
+    # p/kWh electricity (53.35 p/day standing) and 7.42 p/kWh gas (29.60
+    # p/day); their news page rounds these to 29p and 7p. CHECKED: at that
+    # period's TDCVs - 2,700 kWh electricity, 11,500 gas - over 366 days,
+    # those rates and standing charges reconstruct a typical bill of £1,930
+    # against the £1,928 Ofgem published, so the pair is right.
+    ("2024-01-01", 7.42, 28.62),
     ("2024-04-01", 6.04, 24.50),
     ("2024-07-01", 5.48, 22.36),
     ("2024-10-01", 6.24, 24.50),
@@ -303,6 +339,92 @@ NONCAP_PRICES_P_PER_KWH = {
 # non-domestic-sector). Held flat across the history window (no quarterly
 # series attempted) - stated in history_note and methodology 9.2.
 NONDOM_PRICES_P_PER_KWH = {"gas": 5.5, "elec": 24.0}   # estimates †
+# RETAINED AS THE FALLBACK ONLY. Superseded 20 Nov 2026 by the dated series
+# below; kept so a date outside that series still prices rather than throws.
+
+# Non-domestic unit prices, QUARTERLY, p/kWh INCLUDING CCL.
+# Source: DESNZ Quarterly Energy Prices table 3.4.2, "Average" column, UK.
+#
+# WHY THIS REPLACED A CONSTANT. The flat pair above was one 2025-anchored
+# estimate applied across the WHOLE history window. Over the span below the
+# real series runs gas 4.17-7.18 and electricity 17.73-28.39 - so the constant
+# was within about a tenth across the two years already published, and out by
+# up to 40% through the energy crisis. Backfilling history to 2022 without
+# this would have made the non-domestic half of every crisis-era bill the
+# largest error on the site.
+#
+# The "Average" column is used because that is what the old constant tracked:
+# QEP 3.4.2 for Q4 2025 reads gas 5.07 / elec 23.99 against the stored
+# 5.5 / 24.0. Note the site's own ECUK services buildings sit nearer the
+# Small/Medium bands, which run several p/kWh higher (Q4 2025: 4.89 / 29.57);
+# moving to those would be a change of basis, not a correction, so it is not
+# made here.
+NONDOM_PRICES_HISTORY = [
+    # (period start, gas p/kWh, elec p/kWh)
+    ("2021-10-01", 4.18, 17.73),
+    ("2022-01-01", 4.17, 18.14),
+    ("2022-04-01", 5.00, 19.33),
+    ("2022-07-01", 6.74, 22.20),
+    ("2022-10-01", 6.03, 24.80),
+    ("2023-01-01", 7.18, 25.37),
+    ("2023-04-01", 6.12, 26.88),
+    ("2023-07-01", 5.94, 28.32),
+    ("2023-10-01", 6.40, 28.39),
+    ("2024-01-01", 6.12, 27.84),
+    ("2024-04-01", 5.42, 25.99),
+    ("2024-07-01", 5.35, 25.67),
+    ("2024-10-01", 5.51, 25.35),
+    ("2025-01-01", 5.54, 25.74),
+    ("2025-04-01", 5.31, 24.03),
+    ("2025-07-01", 5.13, 23.35),
+    ("2025-10-01", 5.07, 23.99),
+    ("2026-01-01", 5.16, 24.14),
+    ("2026-04-01", 5.28, 24.51),
+]
+
+# Domestic prices BEFORE the cap table starts, p/kWh, ANNUAL.
+# Source: DESNZ QEP tables 2.3.4 (gas) and 2.2.4 (electricity), direct debit
+# average variable unit price, GB regions only (Northern Ireland excluded),
+# unweighted mean of the 28 regions, converted from GBP/kWh.
+#
+# TWO THINGS ARE DIFFERENT ABOUT THESE ROWS AND BOTH ARE STATED ON THE PAGE.
+#
+# BASIS, AND WHY THESE ARE NOT RESCALED. QEP is the average actually PAID
+# across all tariffs; CAP_HISTORY is the cap LEVEL. Different quantities, so
+# the obvious worry is a step at the join. These rows were briefly multiplied
+# by a factor of 1.0217/1.0229 derived from 2025, the only full overlap year
+# the cap table then had.
+#
+# Adding the Jan-Mar 2024 cap row gave a second overlap year and killed that
+# correction. Cap divided by QEP, two years, two weightings:
+#
+#               gas     elec
+#     2024 simple   0.970   0.973
+#     2024 winter   1.005   0.999
+#     2025 simple   1.022   1.023
+#     2025 winter   1.016   1.019
+#
+# The ratio moves 0.97-1.02 with the year and with how the quarters are
+# weighted - a spread as large as the offset it was supposed to measure. So
+# there is no stable basis difference to correct, and a factor fitted to one
+# year on one weighting was fitting noise. The rows below are QEP as
+# published. The two series agree to within about 3% with no consistent
+# direction, which is the honest statement.
+#
+# RESOLUTION. These are ANNUAL. The cap moved twice within 2022 alone (+54%
+# in April, then the EPG in October), and an annual mean cannot show that.
+# Weekly energy still varies; the price within a year does not. The page says
+# so on any window that reaches these weeks.
+CAP_QEP_SCALE = {"gas": 1.0, "elec": 1.0}   # no offset found - see above
+DOM_PRE_CAP_ANNUAL = [
+    # (year start, gas p/kWh, elec p/kWh) - QEP annual, GB, direct debit,
+    # as published. The cap table now reaches 2024-01-01, so these rows
+    # govern 2023 and earlier only.
+    ("2020-01-01", 3.46, 16.90),
+    ("2021-01-01", 3.36, 18.68),
+    ("2022-01-01", 7.25, 28.20),
+    ("2023-01-01", 8.55, 30.25),
+]
 
 # Domestic share of each purchased-energy component, from the same ECUK
 # 2025 U3 (domestic) / U5 (services) tables that anchor ANNUAL_TWH.
@@ -323,23 +445,70 @@ def _blend(p, fuel, comp):
     the cap rate, the remainder at the QEP-anchored non-domestic rate.
     Only gas and electricity carry a distinct non-domestic price; other
     fuels fall through to their single estimate."""
-    nd = NONDOM_PRICES_P_PER_KWH.get(fuel)
+    # The non-domestic rate is taken from the price dict, not from a module
+    # constant, so it moves with the date like the domestic one. cap_prices
+    # puts it there; the constant is only the fallback for a date outside the
+    # series. Before 20 Nov 2026 this read a single flat pair for every week
+    # in the record.
+    nd = (p.get("_nd") or NONDOM_PRICES_P_PER_KWH).get(fuel)
     if nd is None:
         return p[fuel]
     s = DOM_SHARE[comp]
     return s * p[fuel] + (1.0 - s) * nd
 
 
-def cap_prices(date_iso):
-    """Unit-price dict for the cap period containing date_iso, plus the
-    period start (for provenance). Dates before the table clamp to row 0."""
-    row = CAP_HISTORY[0]
-    for r in CAP_HISTORY:
+def _pick(table, date_iso):
+    """Last row of a (start, ...) table whose start is on or before the date,
+    or None when the date precedes the table. Deliberately returns None
+    rather than clamping: clamping is what silently priced a 2022 week at the
+    April 2024 cap."""
+    row = None
+    for r in table:
         if r[0] <= date_iso:
             row = r
+    return row
+
+
+def cap_prices(date_iso):
+    """Unit-price dict for date_iso, plus the period start (for provenance).
+
+    One place resolves every price for a date: the domestic rate, the
+    non-domestic rate and the flat non-cap fuels. Callers unpack two values
+    as before; the basis and the non-domestic pair ride in the dict.
+
+    DOMESTIC uses the quarterly cap where the table reaches, and the annual
+    QEP-derived rows before that (DOM_PRE_CAP_ANNUAL), which are already
+    scaled onto the cap basis so the series does not step at the join. The
+    dict carries:
+        _basis    'cap' | 'qep-annual' | 'fallback'
+        _annual   True when the domestic rate is an annual mean, so a caller
+                  can say so rather than implying quarterly resolution
+        _nd       the non-domestic pair in force
+    Returns the cap/period start as the second value; for a pre-cap date that
+    is the YEAR start, which is the honest provenance for an annual figure."""
     p = dict(NONCAP_PRICES_P_PER_KWH)
-    p["gas"], p["elec"] = row[1], row[2]
-    return p, row[0]
+    row = _pick(CAP_HISTORY, date_iso)
+    if row is not None:
+        p["gas"], p["elec"] = row[1], row[2]
+        p["_basis"], p["_annual"] = "cap", False
+        src = row[0]
+    else:
+        pre = _pick(DOM_PRE_CAP_ANNUAL, date_iso)
+        if pre is not None:
+            p["gas"], p["elec"] = pre[1], pre[2]
+            p["_basis"], p["_annual"] = "qep-annual", True
+            src = pre[0]
+        else:
+            # Older than either table. Price on the first cap row rather than
+            # throw, but SAY so - this is the only path that still clamps.
+            p["gas"], p["elec"] = CAP_HISTORY[0][1], CAP_HISTORY[0][2]
+            p["_basis"], p["_annual"] = "fallback", False
+            src = CAP_HISTORY[0][0]
+    nd = _pick(NONDOM_PRICES_HISTORY, date_iso)
+    p["_nd"] = ({"gas": nd[1], "elec": nd[2]} if nd
+                else dict(NONDOM_PRICES_P_PER_KWH))
+    p["_nd_from"] = nd[0] if nd else None
+    return p, src
 
 
 # --- shared estimator constants (single source for live panels + history) ---
@@ -440,21 +609,51 @@ EFF_DHW = {"gas": 0.73, "oil": 0.71}
 # changes the SHAPE of the response rather than rescaling it - latent load
 # (see analysis/fetch_humidity.py) is the leading candidate and is the next
 # test, not a further extension of the record.
+# REFITTED 20 Nov 2026 on five complete summers. The previous pin - 4.56 TWh,
+# 95% of the anchor, 2024-01-15 to 2026-10-20 - was fitted on the deepest
+# record then available, 1,010 days and three summers. The archive backfill
+# reached 2021-11-18 the same day and the fit moved materially:
+#
+#     window                    days   cooling TWh          % of anchor
+#     2024-01-15 - 2026-10-20   1010   4.56 (3.68-5.92)     95 (77-124)
+#     2023-11-18 - 2026-11-18   1097   3.76 (3.13-4.74)     79 (66- 99)
+#     2022-11-18 - 2026-11-18   1462   3.59 (2.97-4.38)     75 (62- 92)
+#     2021-11-18 - 2026-11-18   1827   3.52 (3.01-4.19)     74 (63- 88)   <-
+#
+# Two things follow, and both are stated on the site rather than smoothed over.
+# The estimate CONVERGES as summers are added, so the five-summer fit is taken
+# as the best identified. And the old central value is OUTSIDE the new interval
+# while the new one sits just under the old - so the narrowing excluded it.
+#
+# The superseded figure was not a mistake in the arithmetic: re-cut to its own
+# window on the backfilled archive it still reproduces to the digit, and the
+# 1,039 overlapping days are byte-identical. It was a window effect. Its window
+# simply held fewer hot days than the record now does.
+#
+# WHAT THIS MEANS FOR THE COMPARISON. At 63-88% the interval now EXCLUDES the
+# ECUK anchor, where the old one contained it. The two estimators no longer
+# corroborate each other; they disagree, and which way it resolves is open.
 UNDEMEANED_FIT = {
-    "k_elec_GWh_per_degC2": 0.4893,   # cooling limb coefficient
-    "balance_point_C": 9.75,
-    "fitted_on": "2026-10-22",
-    "window_start": "2024-01-15",     # the fit is reproducible only with these
-    "window_end": "2026-10-20",
-    "record": "1010 days, 3 complete summers, 9 regressors",
-    "annual_TWh": 4.56,
-    "annual_TWh_lo": 3.68,            # 95% profile interval on the balance
-    "annual_TWh_hi": 5.92,            # point, which dominates the uncertainty
-    "balance_point_lo_C": 7.75,
-    "balance_point_hi_C": 11.25,
-    "share_of_ecuk_anchor_pct": 95,
-    "share_lo_pct": 77,
-    "share_hi_pct": 124,
+    "k_elec_GWh_per_degC2": 0.5784,   # cooling limb coefficient
+    "balance_point_C": 10.75,
+    "fitted_on": "2026-11-20",
+    "window_start": "2021-11-18",     # the fit is reproducible only with these
+    "window_end": "2026-11-18",
+    "record": "1827 days, 5 complete summers, 9 regressors",
+    # Days at or above 25 C in the pinned window, counted from the archive's
+    # temp_C on 20 Nov 2026: 2 in 2022, 5 in 2026, none in 2023-2025. Pinned
+    # rather than written into the prose because the fold states it, and a
+    # number the page states about a record it does not read is a number that
+    # will drift - this one grows with the archive while the window does not.
+    "hot_days_ge_25C": 7,
+    "annual_TWh": 3.52,
+    "annual_TWh_lo": 3.01,            # 95% profile interval on the balance
+    "annual_TWh_hi": 4.19,            # point, which dominates the uncertainty
+    "balance_point_lo_C": 9.50,
+    "balance_point_hi_C": 11.75,
+    "share_of_ecuk_anchor_pct": 74,
+    "share_lo_pct": 63,
+    "share_hi_pct": 88,
 }
 
 
@@ -1048,29 +1247,70 @@ def _fuel_block(r):
     return out
 
 
-def build_history(prev, dd, base, slope, target):
+def build_history(prev, dd, base, slope, target, archive=None):
     """Maintain the rolling weekly ticker history (phase 1).
-    Calendar weeks (Mon-Sun) where the gas feed served all 7 days, computed
-    with compute_week()/compute_week_emissions(), priced at that week's cap,
-    with that week's grid CI. Append-or-update by week_ending: weeks already
-    stored are kept as-is except the 2 most recent (feed revisions). A week
-    with no CI available is skipped and retried next run, never stored
-    incomplete. Retains every week: HISTORY_MAX is None from 20 Nov 2026, and
-    any roll-off a future cap caused would be printed, not silent."""
+    Calendar weeks (Mon-Sun) where gas and degree days cover all 7 days,
+    computed with compute_week()/compute_week_emissions(), priced at that
+    week's cap, with that week's grid CI. Append-or-update by week_ending:
+    weeks already stored are kept as-is except the 2 most recent (feed
+    revisions). Retains every week: HISTORY_MAX is None from 20 Nov 2026, and
+    any roll-off a future cap caused would be printed, not silent.
+
+    ARCHIVE-SOURCED FROM 20 Nov 2026. Until then both inputs came from the
+    LIVE fetches - gas from `target`, about 770 days, and degree days from
+    `dd`, about 1,130 - so history could only ever cover the live window no
+    matter how deep docs/daily.json ran. Passing the archive lets weeks be
+    built across its whole span, which is what the 36m/48m/60m windows need.
+
+    Two limits are structural rather than incidental, and both are stated on
+    the page rather than worked around:
+
+      TRAILING YEAR. Each week needs 365 days of degree days BEFORE it, to
+      form the shape denominator compute_week divides by. So the earliest
+      buildable week is archive start + 365 days, and a five-year archive
+      yields four years of history, not five.
+
+      THE CAP FLOOR. cap_prices() CLAMPS to its first row for any earlier
+      date, so a 2022 week would silently be priced at the April 2024 cap and
+      labelled 2024-04-01. Through the energy crisis that is not a small
+      error. Weeks before CAP_HISTORY[0] are therefore stored with their
+      energy and emissions and with every money field NULL."""
     hist_prev = {e["week_ending"]: e for e in (prev.get("history") or [])
                  if isinstance(e, dict) and e.get("week_ending")}
     schema_prev = prev.get("history_schema", 1)
     epoch_prev = prev.get("anchor_epoch", 0)
+    cap_floor = CAP_HISTORY[0][0]
 
-    hdd_by_date = dict(zip(dd["dates"], dd["hdd"][base]))
-    cdd_by_date = dict(zip(dd["dates"], dd["cdd"][COOL_BASE]))
+    # Degree days by date: the archive first, then the live fetch OVER it.
+    # Same formula either way - max(0, base - gb_mean_temp) - and the archive
+    # stores the same gb_mean_temp series fetch_degree_days produces, so the
+    # two agree where they overlap. The live fetch still wins there because
+    # it is the published source and carries the day's latest revision.
+    _bf, _cbf = float(base), float(COOL_BASE)
+    hdd_by_date, cdd_by_date = {}, {}
+    arch_gas, arch_ci = {}, {}
+    if archive and archive.get("dates"):
+        _ad = archive["dates"]
+        for d, t in zip(_ad, archive.get("gb_mean_temp") or []):
+            if t is None:
+                continue
+            hdd_by_date[d] = round(max(0.0, _bf - t), 2)
+            cdd_by_date[d] = round(max(0.0, t - _cbf), 2)
+        arch_gas = {d: g for d, g in zip(_ad, archive.get("gas_GWh") or [])
+                    if g is not None}
+        arch_ci = {d: c for d, c in zip(_ad, archive.get("ci_g_kwh") or [])
+                   if c is not None}
+    hdd_by_date.update(zip(dd["dates"], dd["hdd"][base]))
+    cdd_by_date.update(zip(dd["dates"], dd["cdd"][COOL_BASE]))
 
-    # trailing-365d degree-day sums ending any date (prefix sums)
-    dd_dates = dd["dates"]
+    # trailing-365d degree-day sums ending any date (prefix sums), over the
+    # MERGED date axis - built from dd alone this could not reach back far
+    # enough to give an archive-era week its denominator.
+    dd_dates = sorted(hdd_by_date)
     cum_h, cum_c = [0.0], [0.0]
-    for i in range(len(dd_dates)):
-        cum_h.append(cum_h[-1] + dd["hdd"][base][i])
-        cum_c.append(cum_c[-1] + dd["cdd"][COOL_BASE][i])
+    for d in dd_dates:
+        cum_h.append(cum_h[-1] + hdd_by_date[d])
+        cum_c.append(cum_c[-1] + cdd_by_date.get(d, 0.0))
     pos = {d: i for i, d in enumerate(dd_dates)}
 
     def trailing_365(d, cum):
@@ -1078,8 +1318,9 @@ def build_history(prev, dd, base, slope, target):
         i0 = max(0, j - 365)
         return cum[j] - cum[i0], j - i0
 
-    # complete calendar weeks with live gas + degree-day coverage
-    days_live = sorted(set(target) & set(hdd_by_date))
+    # complete calendar weeks with gas + degree-day coverage, live or archived
+    gas_days = set(target) | set(arch_gas)
+    days_live = sorted(gas_days & set(hdd_by_date))
     weeks = {}
     for d in days_live:
         dtd = dt.date.fromisoformat(d)
@@ -1118,8 +1359,20 @@ def build_history(prev, dd, base, slope, target):
             continue   # can't form a trailing-12m shape denominator
         c12, _ = trailing_365(ds[-1], cum_c)
         stored = hist_prev.get(we)
+        _arch_week = [arch_ci[d] for d in ds if d in arch_ci]
         if we in restate and stored and stored.get("grid_ci") is not None:
             week_ci = stored["grid_ci"]   # restatement: reuse, don't refetch
+        elif len(_arch_week) == 7:
+            # From the archive's daily CI. The archive and fetch_ci_weekly_mean
+            # draw on the SAME NESO endpoint, and a weekly mean of seven daily
+            # means equals the mean of the week's half-hours whenever the days
+            # are equal length - so this reproduces the fetched figure except
+            # on the two DST days a year, which hold 23 or 25 hours.
+            #
+            # It also matters that this does not fetch: backfilling four years
+            # is about 210 weeks, and one API call each would be 210 calls per
+            # build for data already sitting in docs/daily.json.
+            week_ci = round(sum(_arch_week) / 7.0, 1)
         else:
             try:
                 week_ci = fetch_ci_weekly_mean(ds[0], ds[-1])
@@ -1133,8 +1386,22 @@ def build_history(prev, dd, base, slope, target):
         hdd_wk = sum(hdd_by_date[d] for d in ds)
         cdd_wk = sum(cdd_by_date[d] for d in ds)
         p, cap_from = cap_prices(ds[-1])
+        # PRICED NOW MEANS "A REAL PRICE WAS FOUND", not "inside the cap
+        # table". Until 20 Nov 2026 cap_prices clamped, so a 2022 week would
+        # have carried a bill at the April 2024 cap stamped 2024-04-01 - a
+        # confident number for a period when households were on the Energy
+        # Price Guarantee and not paying the cap at all. Those weeks were
+        # therefore stored with every money field null.
+        #
+        # They are now priced from DOM_PRE_CAP_ANNUAL, which is QEP scaled
+        # onto the cap basis. Only the 'fallback' basis - older than either
+        # table - still drops the money, because that is the one case where
+        # the figure would again be a clamp wearing a date.
+        basis = p.get("_basis", "cap")
+        priced = basis != "fallback"
         r = compute_week(space_wk, hdd_wk, cdd_wk, h12, c12, p)
         e = compute_week_emissions(r, week_ci)
+        _m = (lambda v: round(v, 0)) if priced else (lambda v: None)
         built[we] = {
             "week_ending": we,
             "purchased_GWh": round(r["total_in"], 0),
@@ -1143,11 +1410,11 @@ def build_history(prev, dd, base, slope, target):
             "cooling_GWh": round(r["cool_elec_wk"], 0),
             "ventilation_GWh": round(r["vent_elec_wk"], 0),
             "indig_pct": r["indig_services_now"],
-            "bill_Mgbp": round(sum(r["bill"].values()), 0),
-            "bill_heat_Mgbp": round(sum(v for k, v in r["bill"].items()
-                                        if k not in ("cooling",
-                                                     "ventilation")), 0),
-            "bill_cool_Mgbp": round(r["bill"]["cooling"], 0),
+            "bill_Mgbp": _m(sum(r["bill"].values())),
+            "bill_heat_Mgbp": _m(sum(v for k, v in r["bill"].items()
+                                     if k not in ("cooling",
+                                                  "ventilation"))),
+            "bill_cool_Mgbp": _m(r["bill"]["cooling"]),
             "emissions_kt": e["week_kt"],
             "emissions_heat_kt": e["week_heat_kt"],
             "emissions_cool_kt": e["week_cool_kt"],
@@ -1155,17 +1422,29 @@ def build_history(prev, dd, base, slope, target):
                 "purchased_GWh": round(r["new_total"], 0),
                 "heat_GWh": round(r["wf_heat"], 0),
                 "cooling_GWh": round(r["wf_cooling"], 0),
-                "bill_heat_Mgbp": round(r["wf_bill_heat"], 0),
-                "bill_cool_Mgbp": round(r["wf_bill_cool"], 0),
+                "bill_heat_Mgbp": _m(r["wf_bill_heat"]),
+                "bill_cool_Mgbp": _m(r["wf_bill_cool"]),
                 "emissions_heat_kt": e["whatif_heat_kt"],
                 "emissions_cool_kt": e["whatif_cool_kt"],
                 "indig_pct": r["indig_services_20"],
-                "bill_Mgbp": round(r["bill_20"], 0),
+                "bill_Mgbp": _m(r["bill_20"]),
                 "emissions_kt": e["whatif_kt"],
             },
             "fuels": _fuel_block(r),
             "grid_ci": week_ci,
-            "cap_from": cap_from,
+            # cap_from is None, not a clamped date, when no real price was
+            # found: a stamp of 2024-04-01 on a 2022 week would read as
+            # provenance when it is really the clamp.
+            "cap_from": cap_from if priced else None,
+            "priced": priced,
+            # Which price series the money came from, and whether the
+            # domestic rate is an annual mean. The page needs both: a bill
+            # built on an annual average through the energy crisis is not
+            # wrong, but it is a coarser thing than a bill built on that
+            # quarter's cap, and the two sit on the same line.
+            "price_basis": basis,
+            "price_annual": bool(p.get("_annual")),
+            "nd_from": p.get("_nd_from"),
         }
     ordered = [built[we] for we in sorted(built)]
     # HISTORY_MAX None means retain everything, the default from 20 Nov 2026.
@@ -1259,6 +1538,28 @@ def main():
 
     dd_idx = {d: i for i, d in enumerate(dd["dates"])}
     common = sorted(set(target) & set(dd_idx))[-WINDOW_DAYS:]
+
+    # THE DAILY ARCHIVE, loaded ONCE for every consumer below. Until 20 Nov
+    # 2026 the history block loaded it privately, thirty lines before it was
+    # used, so the cooling panel could not see it at all: panel 4 was capped
+    # at whatever the live degree-day fetch served - about 1,130 days - while
+    # the archive held 1,827. The cap looked like WINDOW_DAYS + 5 and was
+    # really the fetch. Loaded here instead, and still wrapped: a missing or
+    # unreadable archive degrades every consumer to the old live-window
+    # behaviour rather than failing the build.
+    try:
+        import daily_archive as _da_h
+        archive = _da_h.load()
+    except Exception:                                       # noqa: BLE001
+        traceback.print_exc()
+        archive = None
+    if archive and archive.get("dates"):
+        print("archive: %d days %s to %s"
+              % (len(archive["dates"]), archive["dates"][0],
+                 archive["dates"][-1]))
+    else:
+        archive = None
+        print("archive: unavailable - panels fall back to the live fetch span")
 
     # Daily gas-and-temperature pair, dumped for offline analysis. Placed HERE
     # rather than beside the degree-day dicts because `gas` is fetched in this
@@ -1394,6 +1695,51 @@ def main():
             "[-ANNUAL_DAYS:] rather than the whole regression window."
             % hdd_12m)
     ratio = annual_space_twh / anchor_scaled
+
+    # ITEM 7 (Charlotte): publish a BAND, not a pass/fail flag.
+    #
+    # The ratio is reported against the base that wins on R2. That choice is
+    # decided by almost nothing - on the 730-day window base 16.5 beats 15.5 by
+    # 0.0009 of R2 - and it moves the answer by a tenth:
+    #
+    #     base   R2       ratio      (730-day window, 20 Nov 2026)
+    #     14.5   0.9242   0.898
+    #     15.5   0.9335   0.998
+    #     16.5   0.9344   1.099   <- picked, and the gate passed by 0.001
+    #
+    # Two things follow. The published PASS was sitting one part in a thousand
+    # inside a +/-10% gate. And the gate's tolerance is the SAME SIZE as the
+    # base-selection spread it ignores, so it was never able to discriminate.
+    #
+    # The band is also far more stable than the point: 0.90-1.10 on every
+    # window tried (730, 769, 1097 and 1827 days), while the winning base
+    # FLIPS between 15.5 and 16.5 with window length. So the band is the
+    # honest quantity and the point is an artefact of the selection.
+    #
+    # More record does not fix this. Across 769 -> 1827 days the R2 spread
+    # between bases narrows 0.0119 -> 0.0070 and the ranking still changes.
+    # This is the same shape as the cooling balance point: a near-flat
+    # criterion over a parameter the answer is steep in.
+    by_base = {}
+    for _b in HDD_BASES:
+        _hs = [dd["hdd"][str(_b)][dd_idx[d]] for d in common]
+        _sl, _it, _r2, _ = ols(_hs, y)
+        _ann = sum(max(0.0, _sl * h) for h in _hs[-ANNUAL_DAYS:]) / 1000.0
+        _h12 = sum(_hs[-ANNUAL_DAYS:])
+        # Anchor-year HDD from the WHOLE degree-day fetch, never the window:
+        # a window that clips the anchor year inflates the scaled anchor
+        # enormously (761 TWh on a 769-day window when taken from the window).
+        _hay = sum(h for d_, h in zip(dd["dates"], dd["hdd"][str(_b)])
+                   if d_.startswith(_ay))
+        _sc = anchor_gb * (_h12 / _hay) if (_hay and _anchor_complete) \
+            else anchor_gb
+        by_base[str(_b)] = {"r2": round(_r2, 4),
+                            "slope_GWh_per_HDD": round(_sl, 1),
+                            "annual_TWh": round(_ann, 1),
+                            "anchor_TWh": round(_sc, 1),
+                            "ratio": round(_ann / _sc, 3)}
+    _ratios = [v["ratio"] for v in by_base.values()]
+    _r2s = [v["r2"] for v in by_base.values()]
     calibration = {
         "model_12m_gas_space_heat_TWh": round(annual_space_twh, 1),
         "ecuk_anchor_TWh": round(anchor_scaled, 1),
@@ -1407,7 +1753,20 @@ def main():
         "annual_days_used": ANNUAL_DAYS,
         "anchor_status": ECUK_ANCHOR_STATUS,
         "ratio": round(ratio, 3),
+        # The band, and what it is a band OVER: the HDD base, which the data
+        # does not resolve. Not a confidence interval - it is the spread of
+        # the answer across choices that fit the record equally well.
+        "ratio_lo": round(min(_ratios), 3),
+        "ratio_hi": round(max(_ratios), 3),
+        "ratio_by_base": by_base,
+        "base_r2_spread": round(max(_r2s) - min(_r2s), 4),
+        "base_margin": round(sorted(_r2s)[-1] - sorted(_r2s)[-2], 4),
+        # RETAINED, NOT RELIED ON. The flag stays in the payload so nothing
+        # downstream breaks and so the old gate can still be seen, but the
+        # page states the band instead: a +/-10% gate cannot discriminate
+        # when the base-selection spread is itself about +/-10%.
         "within_10pct": abs(ratio - 1.0) <= 0.10,
+        "gate_superseded_by_band": True,
     }
 
     # --- weekly gas headline ---------------------------------------------------
@@ -2070,9 +2429,30 @@ def main():
         # exactly when one is likely - would advance the epoch while the
         # history fell back to the carried-forward copy, and the correction
         # would never be retried. Reordered 19 Aug 2026.
+        # The archive is read in main(), not in build_history, so a missing
+        # or unreadable one degrades to exactly the old live-window behaviour
+        # rather than failing the build. Hoisted to one load 20 Nov 2026.
         _hist = build_history(prev, dd, base,
-                              best["slope_GWh_per_HDD"], target)
+                              best["slope_GWh_per_HDD"], target, archive)
         out["history"] = _hist
+        # WHAT THE PAGE IS ALLOWED TO OFFER. The window buttons are built from
+        # this rather than hard-coded, because the span is data: a five-year
+        # archive yields four years of history (each week needs a trailing
+        # year of degree days before it), so a 60m button would be empty
+        # today and correct after one more year of backfill. Stating a window
+        # the record does not cover is the same fault as stating a number the
+        # page does not read.
+        out["history_weeks"] = len(_hist)
+        out["history_priced_from"] = next(
+            (w["week_ending"] for w in _hist if w.get("priced")), None)
+        # Where the domestic price stops being that quarter's cap and becomes
+        # an annual mean. The page says so on any window that reaches back
+        # into it: a bill on an annual average through the energy crisis is
+        # not wrong, but it is coarser than a bill on that quarter's cap, and
+        # both sit on one line.
+        _ann = [w["week_ending"] for w in _hist if w.get("price_annual")]
+        out["history_annual_price_to"] = _ann[-1] if _ann else None
+        out["history_annual_price_weeks"] = len(_ann)
         out["history_schema"] = HISTORY_SCHEMA
         out["anchor_epoch"] = ANCHOR_EPOCH
         out["history_note"] = (
@@ -2506,14 +2886,47 @@ def main():
         # Prefer the published series, but derive it from the daily means if
         # the base is not in CDD_BASES - so trimming that list cannot silently
         # remove a panel, and the base and its reasoning live in one place.
-        if base_used in dd["cdd"]:
-            cdd_def = dict(zip(dd["dates"], dd["cdd"][base_used]))
-        else:
-            b = float(base_used)
-            cdd_def = {d_: max(0.0, t - b)
-                       for d_, t in zip(dd["dates"], dd["gb_mean_temp"])}
+        #
+        # ARCHIVE FIRST, LIVE FETCH OVER IT - the same precedence build_history
+        # uses. The archive is the only thing that reaches back five years; the
+        # live fetch is fresher and is authoritative wherever it covers a day.
+        # Added 20 Nov 2026 so panel 4 can draw the 48- and 60-month windows.
+        #
+        # The two sources are NOT interchangeable to the last digit, and that
+        # is worth stating rather than smoothing over. fetch_degree_days
+        # computes CDD from the UNROUNDED daily mean and publishes the mean
+        # rounded to 2 dp; the archive stores only the rounded mean, so a
+        # degree day derived from it can differ by up to 0.005 C. So the
+        # published series is used wherever it exists and the archive fills
+        # only the days before it - every figure the page states today is
+        # unchanged, and the extension is strictly backwards.
+        def _temp_spine():
+            t = {}
+            if archive and archive.get("dates"):
+                for d_, v_ in zip(archive["dates"],
+                                  archive.get("gb_mean_temp") or []):
+                    if v_ is not None:
+                        t[d_] = v_
+            t.update({d_: v_ for d_, v_
+                      in zip(dd["dates"], dd["gb_mean_temp"])
+                      if v_ is not None})
+            return t
+
+        def _cdd_spine(base):
+            """CDD on `base` over archive + live, published values preferred."""
+            b = float(base)
+            out_ = {d_: round(max(0.0, t_ - b), 2)
+                    for d_, t_ in _temp_spine().items()}
+            if str(base) in dd["cdd"]:
+                out_.update(zip(dd["dates"], dd["cdd"][str(base)]))
+            return out_
+
+        cdd_def = _cdd_spine(base_used)
+        if base_used not in dd["cdd"]:
             print("comfort deficit: base %s not in CDD_BASES, derived from "
                   "daily means" % base_used)
+        print("comfort deficit: temperature spine %d days %s to %s"
+              % (len(cdd_def), min(cdd_def), max(cdd_def)))
         def_days = sorted(cdd_def)[-7:]
         odh_week = round(sum(cdd_def[d_] for d_ in def_days) * 24.0, 1)
         out["sources"]["overheating"] = {
@@ -2551,18 +2964,45 @@ def main():
         # Daily population-weighted mean temperature, already published by
         # fetch_degree_days - the same series the degree days are derived from,
         # so the two estimates are evaluated on identical weather.
-        tmean_by_date = dict(zip(dd["dates"], dd["gb_mean_temp"]))
+        tmean_by_date = _temp_spine()
+        # CDD on the COOLING base, not the deficit base. Tier 1's quadratic was
+        # fitted against CDD(COOL_BASE); evaluating it on CDD(DEFICIT_BASE)
+        # would be a different variable wearing the same name.
+        cdd_cool = _cdd_spine(COOL_BASE)
+        k_q = t12.get("k_quadratic")
         tier_daily = {"dates": [], "t1_GWh": [], "t2_GWh": [], "t1_alt_GWh": []}
-        for d_ in sorted(cdd_def)[-(WINDOW_DAYS + 5):]:
+        # NO 735-DAY CAP since 20 Nov 2026. It used to be WINDOW_DAYS + 5, and
+        # WINDOW_DAYS is the REGRESSION SAMPLE - it was never meant to bound a
+        # drawn series. The span is now whatever the spine covers, and the page
+        # prunes its own window buttons to what the data reaches.
+        t1_fitted = 0
+        for d_ in sorted(cdd_def):
             i = idx12.get(d_)
             tier_daily["dates"].append(d_)
-            tier_daily["t1_GWh"].append(
-                round(t12["delivered_GWh"][i] * COOL_EER, 2)
-                if i is not None else None)
+            # TIER 1 IS A FITTED VALUE ON EVERY DAY, not a measurement on some
+            # of them - cooling_observed's delivered_GWh is k_quadratic x CDD^2,
+            # the continuous fit, for 2026 exactly as much as for 2022. The
+            # comment here used to call it "measured electricity multiplied up
+            # by the fleet EER", which described the regression's INPUT, not
+            # this series. So extending it back over the archive asserts
+            # nothing new: it is the same function on more days. What IS
+            # window-bound is the fit itself - k_quadratic comes from the three
+            # calendar years of NESO demand the regression samples - so the
+            # archive-era bars are that fit extrapolated onto older weather,
+            # which is the same standing as t1_alt_GWh, and the panel says so.
+            if i is not None:
+                tier_daily["t1_GWh"].append(
+                    round(t12["delivered_GWh"][i] * COOL_EER, 2))
+            elif k_q is not None and d_ in cdd_cool:
+                tier_daily["t1_GWh"].append(
+                    round(k_q * cdd_cool[d_] ** 2 * COOL_EER, 2))
+                t1_fitted += 1
+            else:
+                tier_daily["t1_GWh"].append(None)
             # tier 2 is the former tier 3: buildings with no cooling at all.
             # A thermal load computed directly from building physics - it
-            # never touches an efficiency, unlike tier 1 which is measured
-            # electricity multiplied up by the fleet EER.
+            # never touches an efficiency, unlike tier 1 which carries the
+            # fleet EER.
             tier_daily["t2_GWh"].append(
                 round(cdd_def[d_] * 24.0 * per_degCh, 2))
             # SECOND ESTIMATE, same day, independent method. The undemeaned
@@ -2576,10 +3016,30 @@ def main():
                       * COOL_EER, 2)
                 if tmean is not None else None)
 
+        # WHERE THE REGRESSION SAMPLE STARTS, published so the panel can mark
+        # the extrapolated stretch instead of drawing one undifferentiated
+        # series. Without this the 48- and 60-month views would show four or
+        # five years of tier 1 and give no clue that the fit behind it was
+        # sampled on the last three.
+        _t1_in = sorted(d_ for d_ in tier_daily["dates"] if d_ in idx12)
+        print("comfort deficit: tier series %d days %s to %s; tier 1 in-sample "
+              "from %s, %d days extrapolated"
+              % (len(tier_daily["dates"]), tier_daily["dates"][0],
+                 tier_daily["dates"][-1], _t1_in[0] if _t1_in else "n/a",
+                 t1_fitted))
+
         central = scen["central"]["latent_thermal_GWh"]
         comfort_deficit = {
             "cdh_week_degC_h": odh_week,
             "tier_daily": tier_daily,
+            "tier_days": len(tier_daily["dates"]),
+            "tier_from": tier_daily["dates"][0] if tier_daily["dates"] else None,
+            "tier_to": tier_daily["dates"][-1] if tier_daily["dates"] else None,
+            # Tier 1 is the fitted quadratic throughout; this is where the
+            # days behind the fit begin. Before it, the same fit on weather it
+            # never saw.
+            "t1_in_sample_from": _t1_in[0] if _t1_in else None,
+            "t1_extrapolated_days": t1_fitted,
             # The pin travels WITH the series it generated. Until 19 Nov 2026
             # the panel's headline figures were typed into index.html by hand,
             # so when the fit was re-derived on 22 Oct the page went on
@@ -2789,9 +3249,15 @@ def main():
             # STEP 2, deliberate and one-off. Moving the start breaks the
             # start_day match in build_retro, so the WHOLE span is refetched
             # from four feeds rather than extended by two days. Expect a long
-            # run and expect headline figures to move: a colder hour anywhere
-            # in the new span becomes the worst hour, and the binding hour,
-            # headroom and electrification limit all follow it.
+            # run.
+            #
+            # WHICH FIGURES MOVE is set by retro.py's search windows, not by
+            # the span: see the note at RETRO_SPAN_DAYS. The sentence that
+            # stood here until 20 Nov 2026 claimed the binding hour, headroom
+            # and electrification limit would all follow a colder hour. They
+            # do not - _elec_limits searches the trailing year by design. The
+            # worst-hour cards move if, and only if, WORST_HOUR_ALL_WINTERS
+            # is on in retro.py.
             want = (dt.date.today()
                     - dt.timedelta(days=2 + RETRO_SPAN_DAYS)).isoformat()
             r_start = min(want, prev_retro["start_day"])
@@ -2932,8 +3398,19 @@ def main():
                           .isoformat() for i in range(_n)]
                 _retail_series = {"dates": _dates, "gas": [], "ashp": [],
                                   "shallow": [], "network": []}
+                # WHERE THE RETAIL BASIS STOPS BEING THAT QUARTER'S CAP. On a
+                # 48- or 60-month window this matters more than it does at
+                # 24: before 2024 cap_prices resolves to a QEP ANNUAL MEAN,
+                # so the energy crisis renders as three flat steps on the
+                # retail basis while the wholesale basis shows it at full
+                # amplitude. Both are correct and they look nothing alike;
+                # a reader toggling between them deserves to be told why.
+                # Panel 1 already publishes this for its history weeks.
+                _annual_days = []
                 for _d in _dates:
-                    _p, _ = cap_prices(_d)
+                    _p, _m = cap_prices(_d)
+                    if isinstance(_m, dict) and _m.get("_annual"):
+                        _annual_days.append(_d)
                     _retail_series["gas"].append(
                         round(_p["gas"] / EFF["gas"] * 10.0, 2))
                     _retail_series["ashp"].append(
@@ -2951,6 +3428,9 @@ def main():
                 # that day's COP so the retail and wholesale bases use one
                 # efficiency model rather than two.
                 _retail_series["basis"] = "unit_electricity"
+                _retail_series["annual_mean_to"] = (
+                    _annual_days[-1] if _annual_days else None)
+                _retail_series["annual_mean_days"] = len(_annual_days)
         except Exception:
             traceback.print_exc()
 
@@ -2972,6 +3452,27 @@ def main():
               st["worst_hour_temp_C"], "C |",
               {r: st[r]["added_GW"] for r in ("ashp", "shallow",
                                               "network")}, "GW added")
+        print("retro stress: scope %s, winters searched %s"
+              % (st.get("worst_hour_scope"), st.get("winters_searched")))
+        # A STALE CAPACITY TABLE IS NOW LOUD. Hours in a winter with no
+        # published de-rated block are excluded from the limit rather than
+        # priced at the latest winter's fleet. That is right for a winter
+        # that is over and wrong-feeling for the one in progress: as
+        # 2026/27 fills up, an unupdated table would quietly stop the limit
+        # describing this winter at all. So it is printed as a WARNING, and
+        # November-only skips are called out as the harmless case they are
+        # while they last.
+        _sv0 = out["whatif_routes"].get("system") or {}
+        _skip = _sv0.get("winters_skipped_no_block") or []
+        if _skip:
+            print("WARNING: electrification limit EXCLUDES winter(s) %s - "
+                  "no de-rated block in retro.DISPATCH_BY_WINTER. Limit is "
+                  "solved over %s only. Add the NESO Winter Outlook figure "
+                  "for each, derived on the SAME basis as the existing "
+                  "entries (total de-rated capacity less de-rated wind); "
+                  "note NESO changed methodology for 2026/27, so its "
+                  "headline margin is not comparable with the earlier ones."
+                  % (_skip, _sv0.get("winters_priced")))
         ss = out["whatif_routes"].get("stress_summer")
         if ss:
             print("retro summer: peak cool hour", ss["peak_hour"],
