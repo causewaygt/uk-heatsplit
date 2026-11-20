@@ -156,12 +156,49 @@ def _neso_catalogue(years, limit=60):
             continue
         rs = pkg["result"].get("resources") or []
         print("  %-34s %d resource(s)" % (slug, len(rs)))
+        matched = []
         for r in rs:
             nm = (r.get("name") or "?")
             act = r.get("datastore_active")
             hit = any(str(y) in nm for y in years)
             print("      %-44s active=%-5s year-match=%s"
                   % (nm[:44], act, hit))
+            if hit and act and r.get("id"):
+                matched.append((nm, r["id"]))
+
+        # THE ROW PROBE, and the reason the first diagnostic settled nothing.
+        # The 20 Nov catalogue showed 'Historic Demand Data 2022' present,
+        # active AND year-matched - so the resolver found it, queried it, and
+        # got zero rows. That eliminates every structural explanation and
+        # leaves the predicate: fetch_hourly_system compares SETTLEMENT_DATE
+        # as a STRING ('>= 2022-11-18'), which matches nothing if the older
+        # files store that column in another format or as a timestamp.
+        #
+        # So read one row with NO WHERE clause and print the column names and
+        # the raw SETTLEMENT_DATE exactly as stored. An unfiltered row cannot
+        # come back empty unless the table really is empty, which separates
+        # "no data" from "my predicate does not match this format" - the thing
+        # the catalogue alone could not tell us.
+        for nm, rid in matched:
+            try:
+                sql = 'SELECT * FROM "%s" LIMIT 1' % rid
+                got = _get(base + "datastore_search_sql?sql="
+                           + urllib.parse.quote(sql))
+                recs = got["result"].get("records") or []
+                if not recs:
+                    print("      %-30s LIMIT 1 -> 0 rows (table is empty)"
+                          % nm[:30])
+                    continue
+                rec = recs[0]
+                print("      %-30s columns: %s"
+                      % (nm[:30], ", ".join(sorted(rec.keys()))[:120]))
+                for k in sorted(rec):
+                    if "DATE" in k.upper() or "SETTLEMENT" in k.upper():
+                        print("      %-30s   %s = %r (%s)"
+                              % ("", k, rec[k], type(rec[k]).__name__))
+            except Exception as e:                          # noqa: BLE001
+                print("      %-30s LIMIT 1 FAILED: %s: %s"
+                      % (nm[:30], type(e).__name__, str(e)[:70]))
     print("  --- end diagnostic ---")
 
 
