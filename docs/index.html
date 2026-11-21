@@ -1240,6 +1240,39 @@
     hour by hour across the last twelve months. Where the heat comes from
     decides how much electricity Britain has to find on its coldest
     hour.</p>
+
+    <!-- CHART B, 21 Nov 2026 - Simon. The projection the rest of this panel
+         is missing: everything below measures today's system, and the
+         question is about one that does not exist yet.
+
+         WHAT CHANGED FROM THE PROPOSAL. It said a dunkelflaute would show
+         as projected peak demand rising above a lower edge of firm plant
+         plus storage and interconnector. It never gets there - NESO's
+         pathways build enough nameplate, as internally consistent plans
+         must. The honest finding is about COMPOSITION, and it is sharper:
+         firm plant flattens while peak demand doubles, so by 2050 between
+         a third and a half of the winter peak is carried by storage,
+         imports and wind. A long still, cold spell across north-west
+         Europe is precisely the event that limits all three at once -
+         storage by its duration, imports by everyone needing them, wind by
+         definition. The site's own basis note already says a GW ceiling
+         cannot represent storage DURATION; this chart is where that stops
+         being a caveat and becomes the subject.
+
+         DE-RATINGS ARE THE SITE'S OWN, not new ones. Wind at a winter peak
+         uses the Winter Outlook figure retro.py already carries (4.8 GW
+         de-rated from 30.5 GW installed = 15.7%). As a cross-check, FES's
+         2025 installed base load + dispatchable + interconnector is
+         64.2 GW against the 62.3 GW de-rated block retro.py derives from
+         the Winter Outlook margin arithmetic - two unrelated routes, 3%
+         apart, which is why this chart can sit on the same page as the
+         observed one without the two disagreeing. -->
+    <div class="h2lab" id="fespklab">Winter peak to 2050, and how little of it
+      is firm</div>
+    <div class="trendbar" id="feswin" style="margin:8px 0 2px"></div>
+    <div id="fespeak" style="height:300px;margin:8px 0 4px"></div>
+    <p class="costnote" id="fespeaknote"></p>
+
     <div class="h2lab">View</div>
     <div class="trendctl" style="margin-top:2px">
       <span>VIEW</span>
@@ -1892,7 +1925,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.14.0';
+const SITE_VERSION = '9.15.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -6592,6 +6625,174 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
           (thru || cur) + '.' + agree + '</p>';
       }
 
+    }).catch(() => hide());
+  })();
+
+  // ---- winter peak to 2050, against what is actually firm -----------------
+  // Chart B. Read from docs/fes_projection.json, which scripts/fes_projection.py
+  // extracts from the published NESO Pathways data workbook once per edition -
+  // not nightly, because the workbook is annual and 19 MB.
+  //
+  // THE STACK IS ORDERED BY HOW DEPENDABLE EACH LAYER IS, bottom to top, and
+  // that ordering is the argument. Base load and dispatchable plant are there
+  // whatever the weather. Storage is there for as long as its duration lasts,
+  // which a chart in GW cannot show and which the worst week on the observed
+  // chart below can. Interconnectors are there if the countries at the other
+  // end are not short at the same moment, which in a north-west European
+  // still, cold spell is exactly when they are. Wind at a winter peak is
+  // de-rated to the site's own Winter Outlook figure. Nothing here says the
+  // plan does not add up: it says what the top of it is made of.
+  //
+  // Every de-rating is stated on the face. The capacity file carries none.
+  (() => {
+    const box = document.getElementById('fespeak');
+    const bar = document.getElementById('feswin');
+    const note = document.getElementById('fespeaknote');
+    const lab = document.getElementById('fespklab');
+    if(!box) return;
+    const hide = () => {
+      [box, bar, note, lab].forEach(e => { if(e) e.hidden = true; });
+    };
+    // The site's own winter wind de-rating: NESO Winter Outlook 2025/26,
+    // 4.8 GW de-rated from 30.5 GW installed. Same number retro.py uses to
+    // build the observed ceiling below, so the two charts cannot disagree
+    // about what wind is worth on a winter evening.
+    const WIND_DR = 4.8 / 30.5;
+    const ORDER = [
+      ['Base Load',       'Base load',        '--geo',   true],
+      ['Dispatchable',    'Dispatchable',     '--elec',  true],
+      ['Storage',         'Storage',          '--dh',    false],
+      ['Interconnectors', 'Interconnectors',  '--cool',  false]
+    ];
+
+    fetch('fes_projection.json').then(r => {
+      if(!r.ok) throw new Error('no fes_projection.json');
+      return r.json();
+    }).then(d => {
+      const CY = d.capacity_years, DY = d.demand_years;
+      const paths = (d.pathways || []).filter(p => p !== 'Falling Behind');
+      if(!paths.length) throw new Error('no pathways');
+      // Draw from the first year both tables cover.
+      const y0 = Math.max(CY[0], DY[0]);
+      const years = CY.filter(y => y >= y0 && DY.indexOf(y) >= 0);
+      const sum = (pw, cat, y) => {
+        const C = ((d.capacity_MW || {})[pw] || {})[cat] || {};
+        const i = CY.indexOf(y);
+        return Object.keys(C).reduce((a, k) => a + (C[k][i] || 0), 0) / 1000;
+      };
+      const wind = (pw, y) => {
+        const C = ((d.capacity_MW || {})[pw] || {}).Renewable || {};
+        const i = CY.indexOf(y);
+        return Object.keys(C).reduce((a, k) =>
+          a + (/wind/i.test(k) ? (C[k][i] || 0) : 0), 0) / 1000 * WIND_DR;
+      };
+      const peak = (pw, y) => (d.demand[pw] || {}).peak_total
+        ? d.demand[pw].peak_total[DY.indexOf(y)] : null;
+
+      let PW = paths.indexOf('Holistic Transition') >= 0
+        ? 'Holistic Transition' : paths[0];
+
+      function draw(){
+        const traces = ORDER.map(([cat, name, tok]) => ({
+          x: years, y: years.map(y => sum(PW, cat, y)),
+          name: name, type: 'scatter', mode: 'none',
+          stackgroup: 'cap', fillcolor: css(tok),
+          hovertemplate: name + ' %{y:.1f} GW<extra></extra>'
+        }));
+        traces.push({
+          x: years, y: years.map(y => wind(PW, y)),
+          name: 'Wind, de-rated ' + Math.round(100 * WIND_DR) + '%',
+          type: 'scatter', mode: 'none', stackgroup: 'cap',
+          fillcolor: css('--ash'),
+          hovertemplate: 'Wind at peak %{y:.1f} GW<extra></extra>'
+        });
+        // THE TOP OF FIRM, DRAWN. Without it a reader has to work out which
+        // of five stacked bands is the dependable part by reading the
+        // legend, and the moment the demand line leaves that band is the
+        // entire finding. It is a line, not a colour change, because that
+        // crossing is an event and the eye should be able to date it.
+        traces.push({
+          x: years,
+          y: years.map(y => sum(PW, 'Base Load', y) + sum(PW, 'Dispatchable', y)),
+          name: 'Top of firm plant', type: 'scatter', mode: 'lines',
+          line: {color: css('--paper'), width: 1.4, dash: 'dot'},
+          hovertemplate: 'Firm %{y:.1f} GW<extra></extra>'
+        });
+        traces.push({
+          x: years, y: years.map(y => peak(PW, y)),
+          name: 'Winter peak demand', type: 'scatter', mode: 'lines',
+          line: {color: css('--ember'), width: 2.5},
+          hovertemplate: 'Peak %{y:.1f} GW<extra></extra>'
+        });
+        // Its own layout: the panel's shared P is scoped inside the routes
+        // builder, and reaching across for it would tie this chart to a
+        // block it has nothing else to do with.
+        Plotly.newPlot('fespeak', traces, {
+          paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+          font: {family: 'Lato', color: css('--muted'), size: 11},
+          height: 300, margin: {l: 48, r: 10, t: 8, b: 26},
+          yaxis: {gridcolor: css('--line'), title: {text: 'GW'},
+                  zerolinecolor: css('--line')},
+          xaxis: {gridcolor: css('--line'), dtick: 5},
+          hovermode: 'x unified',
+          legend: {orientation: 'h', y: -0.13, x: 0,
+                   font: {size: 10, color: css('--muted')}}
+        }, {displayModeBar: false, responsive: true});
+
+        // The headline is the share of the peak that is NOT firm, in the
+        // last year, computed rather than typed.
+        const yN = years[years.length - 1];
+        const firm = sum(PW, 'Base Load', yN) + sum(PW, 'Dispatchable', yN);
+        const pk = peak(PW, yN);
+        const pk0 = peak(PW, years[0]);
+        if(note && pk) note.innerHTML =
+          'NESO ' + PW + ' pathway. Winter peak demand goes from <b>' +
+          pk0.toFixed(1) + ' GW</b> to <b>' + pk.toFixed(1) + ' GW</b> by ' +
+          yN + ', while firm plant — base load and dispatchable — ends at <b>' +
+          firm.toFixed(1) + ' GW</b>. <b>' +
+          Math.round(100 * (pk - firm) / pk) + '% of the winter peak</b> is ' +
+          'therefore carried by storage, imports or wind. A long still, cold ' +
+          'spell across north-west Europe limits all three at once: storage ' +
+          'by its duration, imports by everyone needing them at once, wind ' +
+          'by definition. Capacity is as published; the only de-rating ' +
+          'applied here is wind at ' + Math.round(100 * WIND_DR) + '%, the ' +
+          'same Winter Outlook figure the observed chart below uses†.';
+      }
+
+      // THE SECTION IS HIDDEN UNTIL data.json ARRIVES, and this block does
+      // not wait for data.json - it has its own fetch. Plotly drawing into a
+      // display:none container measures zero and produces a chart that stays
+      // the wrong width after the section appears. In testing the payload
+      // always won the race, which is exactly the kind of timing that holds
+      // until someone's connection is slow. So: draw only once the container
+      // has a width, and give up after a few seconds rather than spin.
+      const whenVisible = fn => {
+        let waited = 0;
+        const tick = () => {
+          if(box.getBoundingClientRect().width > 0 || waited > 4000){
+            fn(); return;
+          }
+          waited += 120;
+          setTimeout(tick, 120);
+        };
+        tick();
+      };
+
+      if(bar){
+        bar.innerHTML = paths.map(p =>
+          '<button data-pw="' + p.replace(/"/g, '') + '"' +
+          (p === PW ? ' aria-pressed="true"' : '') + '>' +
+          p.toUpperCase() + '</button>').join('');
+        bar.addEventListener('click', ev => {
+          const b = ev.target.closest('button');
+          if(!b || !b.dataset.pw) return;
+          PW = b.dataset.pw;
+          bar.querySelectorAll('button').forEach(x =>
+            x.setAttribute('aria-pressed', String(x.dataset.pw === PW)));
+          draw();
+        });
+      }
+      whenVisible(draw);
     }).catch(() => hide());
   })();
 
