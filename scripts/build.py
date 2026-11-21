@@ -262,6 +262,50 @@ ANNUAL_TWH = {
     "solid":          2.0,
     "cooling_vent":  10.4,   # U5 cooling & ventilation electricity
 }
+# DO NOT TURN cooling_vent INTO AN ANNUAL SERIES. Tested 21 Nov 2026 against
+# ECUK 2026 and ECUK 2025 End Use tables, Table U5, because the obvious fix for
+# a cooling panel that cannot show growth was to re-level Tier 1 on ECUK each
+# year instead of holding one anchor. It does not work, and the reason is
+# arithmetic rather than judgement.
+#
+# ECUK's services end-use split comes from BEES, a survey run ONCE, in 2015.
+# The methodology note says services consumption "is separated into end uses
+# according to the proportions detailed below", and contrasts this with the
+# domestic sector, whose assumptions "are updated each year". So the cooling
+# line is a FIXED SHARE of total services electricity:
+#
+#   cooling & ventilation / all services electricity
+#     = 13.4085% in 2021, 2022, 2023, 2024 and 2025 (ECUK 2026)
+#     = 13.4085% in 2017 through 2024              (ECUK 2025)
+#   per sub-sector too: Health 23.009%, Offices 18.852%, Retail 8.333%,
+#   Storage 5.420% - constant in every year of both editions.
+#
+# The year-on-year change in the cooling line is therefore IDENTICAL, to the
+# decimal, to the year-on-year change in services electricity: -1.8, +1.2,
+# -0.4, +1.3 per cent. In 2020 it "falls 15.7%", which is lockdown emptying
+# offices. Shaping Tier 1 to this series would shape it to the services
+# denominator and present the result as cooling demand.
+#
+# And the restatement would be louder than the signal. The same year moves
+# MORE between editions than between years:
+#   2021 10,665 -> 11,107 GWh (+4.1%)   2023 10,439 -> 11,039 (+5.7%)
+#   2022 10,368 -> 10,911     (+5.2%)   2024 10,447 -> 10,998 (+5.3%)
+# Largest year-to-year move inside ECUK 2026: 1.8%. Largest same-year revision
+# between editions: 5.7%. Re-anchoring annually would redraw bars for years
+# already published, by more than the movement being claimed.
+#
+# NOTE for whoever re-anchors this constant: 10.4 is calendar 2024 from the
+# ECUK 2025 edition. ECUK 2026 puts the SAME YEAR at 11.0 TWh. That is a 5.7%
+# level change with no change in cooling, so the bump belongs in a run of its
+# own where it can be seen, not folded into another change.
+#
+# WHAT WOULD ACTUALLY WORK is the method DESNZ itself uses where it has the
+# inputs: Table U8 publishes heat-pump electricity annually, 2014-2025, and
+# Note 5 says it is "estimated using a series of assumption on install base,
+# average capacity and hours of operation". A cooling equivalent needs a UK
+# cooling install base by year, which nothing currently wired in supplies.
+# Until it exists, the tier series is weather at a FIXED FLEET, and the panel
+# says so rather than implying growth. Decision: Simon, 21 Nov 2026.
 
 # --- prices ------------------------------------------------------------------
 # Ofgem price cap, GB direct-debit average unit rates incl VAT, p/kWh, by
