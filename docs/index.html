@@ -1853,7 +1853,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.12.0';
+const SITE_VERSION = '9.12.1';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -4744,24 +4744,20 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
            || (SVC !== 'space' && SVC !== 'blend')
            || g == null || s == null){ rc.textContent = ''; return; }
         const flips = (snap.gshp < snap.gas_boiler) !== (s < g);
-        // COMPRESSED 21 Nov 2026, to get the panel inside a laptop
-        // viewport. The long form restated four figures that are already on
-        // the screen - two in the headline above, two at the right edge of
-        // the chart - so it cost five lines to repeat what the reader could
-        // see. What it has to say is WHY they differ, and that is two
-        // clauses. The flip case still names its cause, because that is the
-        // part nobody can work out by looking.
-        rc.innerHTML = 'The line at the top prices one day on today\u2019s cap '
-          + 'at an annual average efficiency; the figures at the right price '
-          + 'every day on its own tariff and its own weather, then take the '
-          + 'heat-weighted mean of the ' + (fmtW[w] || 'window shown')
-          + (SVC === 'blend' ? ' across both services' : ' on space heating')
-          + '. '
-          + (flips
-             ? '<b>Over this window the order inverts</b> \u2014 the gas cap '
-               + 'has stepped up inside it and the mean still carries the '
-               + 'cheaper months.'
-             : 'Same order, different numbers, and both are right.');
+        // DELETED 21 Nov 2026 - Simon: the two clauses explaining why the
+        // headline and the chart differ, and the "same order, different
+        // numbers" ending. What is left fires only when the two actually
+        // disagree about which route is cheaper. That case is not a
+        // restatement of anything on screen - a reader who sees the line
+        // above rank gas one way and the chart rank it the other cannot
+        // work out why by looking, and silence there would put back the
+        // contradiction this panel was rewritten to remove. In every other
+        // state, including the default window, the element is now empty.
+        rc.innerHTML = flips
+          ? '<b>Over this window gas and ground source swap places.</b> The '
+            + 'line at the top prices today\u2019s cap; the mean at the '
+            + 'right still carries the months before the cap stepped up.'
+          : '';
       })();
       // SERVICE VOLUMES, on the same window and the same x axis. A price is
       // only as interesting as the service it prices: in July the whole load
