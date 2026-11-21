@@ -139,7 +139,12 @@
   h1 .ember{color:var(--ember)} h1 .cool{color:var(--cool)}
   /* numbered section titles - h1 face, stepped down from the hero, and
      deliberately NOT the uppercase h2 treatment used inside sections */
-  h1.sect{font-size:clamp(21px,3.4vw,28px);line-height:1.2;margin:46px 0 6px;
+  /* 46px of margin above every panel title, on top of the section's own
+     34px of padding, was 80px of dead space before each h1 and the
+     single biggest whitespace item on the page. Cut 21 Nov 2026 to get
+     a panel inside a laptop viewport - Simon. This moves EVERY panel,
+     which is the point: they all have the same problem. */
+  h1.sect{font-size:clamp(21px,3.4vw,28px);line-height:1.2;margin:24px 0 6px;
           padding-top:26px;border-top:1px solid var(--line);letter-spacing:-.01em}
   h1.sect:first-of-type{border-top:none}
   section:first-of-type h1.sect{margin-top:34px}
@@ -293,7 +298,7 @@
   .key{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:6px;vertical-align:-1px}
   .combline{font-family:"IBM Plex Mono";font-size:13px;color:var(--muted);margin:10px 0 36px}
   .combline b{color:var(--ember)}
-  section{border-top:1px solid var(--line);padding:34px 0}
+  section{border-top:1px solid var(--line);padding:22px 0}
   h2{font-family:Lato;font-weight:700;font-size:14.5px;margin-bottom:14px;
      text-transform:uppercase;letter-spacing:.05em}
   /* section sub-headings: same face as h2, used where a label sits over a
@@ -362,6 +367,12 @@
   .coolsplit{display:grid;grid-template-columns:1fr 1fr;gap:28px;
              align-items:start;margin:18px 0 0}
   @media (max-width:860px){.coolsplit{grid-template-columns:1fr;gap:20px}}
+  /* Panel 4's two projection charts, same treatment and same reason: one
+     asks what has to be built, the other what it costs to run, and stacked
+     they put the panel's conclusion two screens below its first chart. */
+  .gridsplit{display:grid;grid-template-columns:1fr 1fr;gap:26px;
+             align-items:start;margin:10px 0 0}
+  @media (max-width:860px){.gridsplit{grid-template-columns:1fr;gap:18px}}
   .cddblk{margin:14px 0 0}
   .cddplot{position:relative;height:120px;display:flex;align-items:flex-end;
            gap:2px;border-bottom:1px solid var(--line)}
@@ -1234,12 +1245,10 @@
   </section>
 
   <section id="routes" hidden>
-    <h1 class="sect" id="gridhead" tabindex="-1">4. Electricity grid impacts — the 20% what-if, hour by hour</h1>
-    <p class="lede">One fifth of Britain's heat, replaced three ways —
-    air-source heat pumps, ground source, and geothermal networks —
-    hour by hour across the last twelve months. Where the heat comes from
-    decides how much electricity Britain has to find on its coldest
-    hour.</p>
+    <h1 class="sect" id="gridhead" tabindex="-1">4. Geothermal infrastructure
+      supports the electrification pathway</h1>
+    <p class="lede">The electricity system was not designed for electrified
+      heat, and where the heat comes from decides how much has to be built.</p>
 
     <!-- CHART B, 21 Nov 2026 - Simon. The projection the rest of this panel
          is missing: everything below measures today's system, and the
@@ -1267,11 +1276,18 @@
          the Winter Outlook margin arithmetic - two unrelated routes, 3%
          apart, which is why this chart can sit on the same page as the
          observed one without the two disagreeing. -->
-    <div class="h2lab" id="fespklab">Winter peak to 2050, and how little of it
-      is firm</div>
-    <div class="trendbar" id="feswin" style="margin:8px 0 2px"></div>
-    <div id="fespeak" style="height:300px;margin:8px 0 4px"></div>
-    <p class="costnote" id="fespeaknote"></p>
+    <!-- The label declares what the chart IS, in its first three words. The
+         old one led on the finding, which left a reader working out what
+         the axes were from the legend. -->
+    <div class="trendbar" id="feswin" style="margin:14px 0 2px"></div>
+    <div class="gridsplit">
+      <div>
+        <div class="h2lab" id="fespklab">Capacity against winter peak
+          <span class="qual">— GW</span></div>
+        <div id="fespeak" style="height:205px;margin:6px 0 0"></div>
+        <div class="cddkey" id="fespeakkey"></div>
+      </div>
+      <div>
 
     <!-- CHART A. Drawn on the heat component alone, not on total demand:
          against 705 TWh a year the whole heat-route lever is about 5% and
@@ -1290,64 +1306,79 @@
          on the face. Years between are interpolated, because FES publishes
          the endpoint improvement and not a trajectory - said in the note
          rather than smoothed over. -->
-    <div class="h2lab" id="feshplab" style="margin-top:26px">The same heat, and
-      what the route costs in electricity</div>
-    <div id="feshp" style="height:280px;margin:8px 0 4px"></div>
-    <p class="costnote" id="feshpnote"></p>
-
-    <div class="h2lab">View</div>
-    <div class="trendctl" style="margin-top:2px">
-      <span>VIEW</span>
-      <button data-rt="h" aria-pressed="true">Hourly · 7d</button>
-      <button data-rt="d">Daily · 90d</button>
-      <button data-rt="m">Monthly · falcon</button>
-      <span id="rt_span"></span>
+        <div class="h2lab" id="feshplab">Annual electricity for that heat
+          <span class="qual">— TWh/yr</span></div>
+        <div id="feshp" style="height:205px;margin:6px 0 0"></div>
+        <div class="cddkey" id="feshpkey"></div>
+      </div>
     </div>
-    <div id="rt_main" style="width:100%;height:340px;margin-top:10px"></div>
 
-    <div class="h2lab">The coldest hour <span class="qual">— extra electricity the fifth would need</span></div>
-    <div class="statrow" id="rt_winter"></div>
-    <div id="rt_winbars" style="width:100%;height:300px;margin-top:12px"></div>
-    <button class="pngbtn" onclick="exportChart('rt_winbars','The tightest week on record','hourly requirement against the winter capacity block')">⬇ PNG FOR SLIDES</button>
-    <div class="h2lab" id="rt_bindlbl" hidden>The tightest hour of the year <span class="qual">— what Britain’s power stations would have to cover with the new fifth of electrified heat†</span></div>
-    <div class="statrow" id="rt_bind"></div>
-    <div id="rt_bindbars" style="width:100%;height:300px;margin-top:12px" hidden></div>
-    <div class="h2lab" id="rt_limlbl" hidden>How would electrified heat have sat against national capacity, in the winters on record? <span class="qual">— †</span></div>
-    <div class="statrow limrow" id="rt_lim"></div>
-    <div id="rt_limbars" style="width:100%;height:320px;margin-top:12px" hidden></div>
-    <p class="costnote" id="rt_limnote"></p>
-    <div class="h2lab">The hottest hour <span class="qual">— cooling, and what doubling it would cost†</span></div>
-    <div class="statrow" id="rt_summer"></div>
-    <div id="rt_sumbars" style="width:100%;height:300px;margin-top:12px" hidden></div>
-    <div class="h2lab" id="rt_wklbl">The tightest week of the year</div>
-    <div id="rt_worst" style="width:100%;height:320px;margin-top:8px"></div>
-    <details class="fold" id="fold_cop"><summary>METHOD —
-      <b>how much heat each route gets per unit of electricity, by temperature</b></summary>
+    <!-- THE BOTTOM LINE, two sentences, written by the charts rather than
+         typed beside them: every figure in it is one the reader can find on
+         the axes above. It sits on the face because it is the panel's
+         conclusion, and the detail that supports it is one click away. -->
+    <p class="lede" id="gridbottom" style="margin-top:20px">—</p>
+
+    <details class="fold" id="fold_grid"><summary>WHY THESE NUMBERS —
+      <b>where the projection comes from, and what it rests on</b></summary>
     <div class="foldbody">
-    <div id="rt_cop" style="width:100%;height:260px;margin-top:8px"></div>
-    <p class="costnote" id="rt_note"></p>
+      <p class="costnote"><b>The capacity bands, bottom to top.</b> They are
+        ordered by how dependable each one is, and that ordering is the
+        argument. <b>Base load</b> and <b>dispatchable</b> plant are there
+        whatever the weather — the dotted line on the chart is the top of
+        them. <b>Storage</b> is there for as long as its duration lasts,
+        which a chart drawn in GW cannot show. <b>Interconnectors</b> are
+        there if the countries at the other end are not short at the same
+        moment, which in a north-west European still, cold spell is exactly
+        when they are. <b>Wind at peak</b> is de-rated. Hover any band on
+        the chart to name it.</p>
+      <p class="costnote" id="fespeaknote">—</p>
+      <p class="costnote" id="feshpnote">—</p>
+
+      <!-- Three sibling folds, not one carrying three subjects. METHOD had
+           grown to hold the COP curve, the blend behind SPF* and the measured
+           evidence for it, so opening it dumped all three. A reader after the
+           assumption should not have to read the chart method to reach it. -->
+      <details class="fold" id="fold_blend" style="display:none"><summary>WHAT SPF* ASSUMES —
+        <b>the blend behind it, and the shares it rests on</b></summary>
+      <div class="foldbody">
+        <p class="costnote" id="blendnote">—</p>
+        <table class="geotbl" id="blendtbl" style="margin-top:12px"><tbody></tbody></table>
+        <p class="costnote" id="blendcheck" style="margin-top:12px">—</p>
+        <p class="costnote" id="blendcond" style="margin-top:14px">—</p>
+      </div></details>
+
+      <details class="fold" id="fold_spfev" style="display:none"><summary>WHAT HAS BEEN MEASURED —
+        <b>other fleets, and the boundary each figure sits on</b></summary>
+      <div class="foldbody">
+        <p class="costnote" id="spfevnote">—</p>
+        <table class="geotbl" id="spfevtbl" style="margin-top:12px"><tbody></tbody></table>
+        <p class="costnote" id="spfevfind" style="margin-top:14px">—</p>
+      </div></details>
     </div></details>
 
-    <!-- Three sibling folds, not one carrying three subjects. METHOD had
-         grown to hold the COP curve, the blend behind SPF* and the measured
-         evidence for it, so opening it dumped all three. A reader after the
-         assumption should not have to read the chart method to reach it. -->
-    <details class="fold" id="fold_blend" style="display:none"><summary>WHAT SPF* ASSUMES —
-      <b>the blend behind it, and the shares it rests on</b></summary>
-    <div class="foldbody">
-      <p class="costnote" id="blendnote">—</p>
-      <table class="geotbl" id="blendtbl" style="margin-top:12px"><tbody></tbody></table>
-      <p class="costnote" id="blendcheck" style="margin-top:12px">—</p>
-      <p class="costnote" id="blendcond" style="margin-top:14px">—</p>
-    </div></details>
+    <!-- THE SEVEN OBSERVED CHARTS CAME OUT ON 21 Nov 2026 - Simon. The route
+         traces, the coldest hour, the binding hour, the capacity-share
+         chart, the hottest hour, the tightest week and the COP curve all
+         measured TODAY's system against a 20% what-if, and every one of
+         them said a version of the same thing. The two projection charts
+         above subsume them and answer the question the panel is actually
+         for, which is about a system that does not exist yet. Their method
+         goes to the Methodology Statement, as the cooling tiers did.
 
-    <details class="fold" id="fold_spfev" style="display:none"><summary>WHAT HAS BEEN MEASURED —
-      <b>other fleets, and the boundary each figure sits on</b></summary>
-    <div class="foldbody">
-      <p class="costnote" id="spfevnote">—</p>
-      <table class="geotbl" id="spfevtbl" style="margin-top:12px"><tbody></tbody></table>
-      <p class="costnote" id="spfevfind" style="margin-top:14px">—</p>
-    </div></details>
+         THE TWO SPF FOLDS BELOW ARE KEPT DELIBERATELY. They are not the old
+         charts' folds - they are the defence of SPF* 5.0, written after
+         peer review, and both new charts rest on exactly that number. The
+         chart they sat under has gone; the assumption they justify has
+         not. Delete them and the central figure of the panel is undefended. -->
+
+
+    <button type="button" class="panelnext" data-to="climatehead">
+      <span class="arrow">&darr;</span>
+      <span>Less electricity at the peak is less plant, less network and
+        less imported fuel. <b>What that is worth in carbon, and in energy
+        Britain does not have to buy.</b></span>
+    </button>
   </section>
 
   <!-- PANEL 4, 21 Nov 2026 - Simon. "What it emits" was a sub-section of
@@ -1947,7 +1978,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.17.0';
+const SITE_VERSION = '9.18.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -5937,532 +5968,24 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       (v.status==='lagging'?' — source publishes on a lag':'')+'</span>');
   });
 
-  // ===== v7: three-routes panel ==========================================
+  // ===== panel 4: reveal only ==============================================
+  // WHAT WAS HERE. Five hundred lines building the seven observed charts -
+  // the route traces, the coldest hour, the binding hour, the capacity
+  // share, the hottest hour, the tightest week and the COP curve. They came
+  // out with their markup on 21 Nov 2026 (Simon); the two projection charts
+  // answer the question the panel is for, and the method moves to the
+  // Methodology Statement.
+  //
+  // THIS STUB IS NOT A LEFTOVER. The section is hidden in the markup and
+  // something has to unhide it once the payload proves there is a panel to
+  // show. Deleting the block outright left a correctly built panel that no
+  // reader ever saw, which is the quietest way to lose a chart. The
+  // condition is the original one: the projection charts have their own
+  // data, but they live in this section, so they appear on the same test.
   (function(){
-    const WR = d.whatif_routes;
-    if(!WR || !WR.stress) return;
-    document.getElementById('routes').hidden = false;
-    const RC = {ashp:'#e06c5c', shallow:'#5ca8e0', network:css('--geo')};
-    const RN = {ashp:'air-source', shallow:'ground source',
-                network:'SCOP-5 geothermal network'};
-    const AMB = '#e0b13c';
-    const st = WR.stress, ss = WR.stress_summer;
-    const stat = (fig, cap, col) =>
-      '<div class="stat"><div class="fig"' +
-      (col ? ' style="color:' + col + '"' : '') + '>' + fig +
-      '</div><div class="cap">' + cap + '</div></div>';
-    document.getElementById('rt_winter').innerHTML =
-      stat(st.worst_hour.slice(5,13).replace('T',' ') + '<small>h ' +
-           st.worst_hour.slice(0,4) + '</small>',
-           // SCOPE TRAVELS WITH THE HOUR, read from the payload. The search
-           // widened from the trailing year to the whole store on 20 Nov
-           // 2026; a label that said "worst modelled hour" either way would
-           // have been quietly describing a different quantity.
-           'worst modelled hour ' +
-           (st.worst_hour_scope === 'the record' ? 'on record' : 'this year') +
-           '\u2020 \u00b7 ' + st.worst_hour_heat_GWh +
-           ' GWh of heat at ' + st.worst_hour_temp_C + ' \u00b0C') +
-      ['ashp','shallow','network'].map(r => stat(
-        '+' + st[r].added_GW + '<small> GW</small>',
-        RN[r] + (st[r].pct_of_hour != null
-          ? ' \u00b7 ' + Math.round(st[r].pct_of_hour)
-            + "% on top of what Britain was using that hour"
-          : ' added load'), RC[r])).join('');
-    (function(){
-      const fifth = 0.2 * st.worst_hour_heat_GWh;      // GW of heat
-      const RK = ['ashp','shallow','network'];
-      const cats = ['plug-in electric<br>heating'].concat(
-        RK.map(r => RN[r].replace(' ', '<br>')));
-      const elec = [fifth].concat(RK.map(r => st[r].added_GW));
-      const free = elec.map(e => Math.round((fifth - e) * 10) / 10);
-      Plotly.newPlot('rt_winbars', [
-        {type:'bar', width:0.55, name:'electricity bought',
-         x:cats, y:elec,
-         marker:{color:['#6f7883'].concat(RK.map(r => RC[r])),
-                 line:{color:css('--paper'), width:1.2}},
-         text:elec.map(v => v.toFixed(1) + ' GW'),
-         textposition:'inside', insidetextanchor:'middle',
-         textfont:{color:'#0d1117', size:14},
-         hovertemplate:'%{y:.1f} GW of electricity<extra></extra>'},
-        {type:'bar', width:0.55,
-         name:'heat harvested free from the ground or air',
-         x:cats, y:free,
-         marker:{color:'rgba(87,194,107,0.22)',
-                 line:{color:css('--geo'), width:1.2}},
-         text:free.map(v => v > 0.5 ? '+' + v.toFixed(1) + ' GW free' : ''),
-         textposition:'inside', insidetextanchor:'middle',
-         textfont:{color:css('--geo'), size:13},
-         hovertemplate:'%{y:.1f} GW harvested<extra></extra>'}],
-        {paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
-         font:{family:'Lato', color:css('--muted'), size:11},
-         barmode:'stack', showlegend:true,
-         legend:{orientation:'h', y:1.02, yanchor:'bottom', font:{size:12},
-                 traceorder:'reversed'},
-         margin:{l:48,r:10,t:46,b:44},
-         xaxis:{gridcolor:css('--line')},
-         yaxis:{title:'GW at the worst hour', gridcolor:css('--line')},
-         annotations:[{x:0.5, xref:'paper', y:fifth, yshift:14,
-           showarrow:false, font:{color:css('--muted'), size:11},
-           text:'every bar delivers the same ' + fifth.toFixed(1) +
-                ' GW of heat \u2014 the fifth, at the worst hour'}]},
-        {displayModeBar:false, responsive:true});
-    })();
-    if(ss){
-      document.getElementById('rt_summer').innerHTML =
-        stat(ss.peak_hour.slice(5,13).replace('T',' ') + '<small>h ' +
-             ss.peak_hour.slice(0,4) + '</small>',
-             'peak cooling hour \u00b7 ' + ss.peak_temp_C + ' \u00b0C' +
-             (ss.today_pct_of_hour != null
-               ? " \u00b7 " + ss.today_pct_of_hour +
-                 "% of that hour's observed demand"
-               : (ss.today_pct_of_same_day != null
-                  ? " \u00b7 " + ss.today_pct_of_same_day +
-                    "% of that day's demand\u2020" : ''))) +
-        stat(ss.today_GW + '<small> GW</small>',
-             "cooling Britain already runs \u2014 this is inside today's " +
-             'demand, not on top of it', AMB) +
-        stat('+' + ss.x2_scenario_added_GW + '<small> GW</small>',
-             'if cooling doubles over the next 10 years\u2020 \u2014 added on ' +
-             'top', AMB) +
-        stat('\u2212' + ss.whatif_relief_GW + '<small> GW</small>',
-             'what a geothermal fifth would take back off\u2020',
-             css('--geo'));
-    }
-    if(ss && ss.hour_demand_GW){
-      const sb = document.getElementById('rt_sumbars');
-      sb.hidden = false;
-      const rest = Math.round((ss.hour_demand_GW - ss.today_GW) * 10) / 10;
-      const cool0 = ss.today_GW;
-      const dbl = ss.x2_scenario_added_GW;
-      const relief = ss.whatif_relief_GW;
-      const cats = ['today',
-                    'if cooling doubles\u2020<br>on today\u2019s kit',
-                    'if it doubles\u2020 with<br>a geothermal fifth'];
-      Plotly.newPlot(sb, [
-        {type:'bar', width:0.52, name:'everything else on the grid',
-         x:cats, y:[rest, rest, rest], marker:{color:'#6f7883'},
-         text:[rest + ' GW', '', ''], textposition:'inside',
-         insidetextanchor:'middle', hovertemplate:'%{y:.1f} GW<extra></extra>',
-         textfont:{color:'#0d1117', size:13}},
-        {type:'bar', width:0.52, name:'cooling electricity',
-         x:cats, y:[cool0, cool0 + dbl, cool0 + dbl - relief],
-         marker:{color:AMB},
-         text:[cool0.toFixed(1) + ' GW', (cool0 + dbl).toFixed(1) + ' GW',
-               (cool0 + dbl - relief).toFixed(1) + ' GW'],
-         textposition:'inside', insidetextanchor:'middle',
-         hovertemplate:'%{y:.1f} GW of cooling<extra></extra>',
-         textfont:{color:'#0d1117', size:14}},
-        {type:'bar', width:0.52,
-         name:'avoided by ground cooling (COP 20\u2020)',
-         x:cats, y:[0, 0, relief],
-         marker:{color:'rgba(87,194,107,0.30)',
-                 line:{color:css('--geo'), width:1.5}},
-         text:['', '', '\u2212' + relief.toFixed(1) + ' GW'],
-         textposition:'outside', cliponaxis:false,
-         hovertemplate:'%{y:.1f} GW avoided<extra></extra>',
-         textfont:{color:css('--geo'), size:14}}],
-        {paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
-         font:{family:'Lato', color:css('--muted'), size:11},
-         barmode:'stack', showlegend:true,
-         legend:{orientation:'h', y:1.02, yanchor:'bottom', font:{size:12},
-                 traceorder:'reversed'},
-         margin:{l:48,r:10,t:46,b:44},
-         xaxis:{gridcolor:css('--line')},
-         yaxis:{title:'GW at the peak cooling hour',
-                gridcolor:css('--line')}},
-        {displayModeBar:false, responsive:true});
-    }
-    const sv = WR.system;
-    if(sv){
-      document.getElementById('rt_bindlbl').hidden = false;
-      const rb = sv.routes;
-      document.getElementById('rt_bind').innerHTML =
-        stat(rb.ashp.binding_hour.slice(5,13).replace('T',' ') +
-             '<small>h ' + rb.ashp.binding_hour.slice(0,4) + '</small>',
-             'the binding hour — highest net requirement on ' +
-             'dispatchable supply · ' + rb.ashp.binding_temp_C +
-             ' °C, wind ' + rb.ashp.binding_wind_GW + ' GW') +
-        ['ashp','shallow','network'].map(r => stat(
-          rb[r].dispatch_req_GW + '<small> GW</small>',
-          RN[r] + ' \u00b7 ' + (rb[r].headroom_GW >= 0 ? '' : 'short by ') +
-          Math.abs(rb[r].headroom_GW) + ' GW of spare capacity left\u2020' +
-          (rb[r].hours_above_block
-            ? ' \u00b7 ' + rb[r].hours_above_block + ' hours over the line'
-            : ''), RC[r])).join('');
-      const bb = document.getElementById('rt_bindbars');
-      bb.hidden = false;
-      const RK = ['ashp','shallow','network'];
-      const base = RK.map(r => Math.round(
-        (rb[r].dispatch_req_GW - rb[r].net_add_GW) * 10) / 10);
-      Plotly.newPlot(bb, [
-        {type:'bar', width:0.5, name:'actual use',
-         x:RK.map(r => RN[r]), y:base,
-         marker:{color:'#6f7883'},
-         text:base.map(v => v + ' GW'),
-         textposition:'inside', insidetextanchor:'middle',
-         textfont:{color:'#0d1117', size:14}},
-        {type:'bar', width:0.5, name:'+ 20% what-if (net\u2020)',
-         x:RK.map(r => RN[r]),
-         y:RK.map(r => rb[r].net_add_GW),
-         marker:{color:RK.map(r => RC[r])},
-         text:RK.map(r => '+' + rb[r].net_add_GW + ' GW'),
-         textposition:'outside', cliponaxis:false,
-         textfont:{color:css('--paper'), size:14}}],
-        {paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
-          font:{family:'Lato', color:css('--muted'), size:11},
-          xaxis:{gridcolor:css('--line')}, barmode:'stack',
-          showlegend:true, legend:{orientation:'h', y:1.02, yanchor:'bottom',
-                                   font:{size:12}, traceorder:'reversed'},
-          margin:{l:46,r:10,t:46,b:26},
-          yaxis:{title:'GW at the binding hour',
-                 gridcolor:css('--line'),
-                 range:[0, sv.dispatch_derated_GW * 1.12]},
-          shapes:[{type:'line', x0:-0.5, x1:2.5, xref:'x',
-                   y0:sv.dispatch_derated_GW, y1:sv.dispatch_derated_GW,
-                   line:{color:css('--muted'), width:1.5, dash:'dashdot'}}],
-          annotations:[{x:0.01, xref:'paper',
-            y:sv.dispatch_derated_GW, yref:'y', yshift:9, showarrow:false,
-            xanchor:'left', font:{color:css('--muted'), size:11},
-            text:'capacity to deliver\u2020 \u2014 ' + sv.dispatch_derated_GW +
-                 ' GW (NESO Winter Outlook 2025/26)'}]},
-        {displayModeBar:false, responsive:true});
-    }
-    if(sv && sv.limits){
-      const L = sv.limits, RKl = ['ashp','shallow','network'];
-      document.getElementById('rt_limlbl').hidden = false;
-      // A static sentence in the first column, so the three figures sit over
-      // their own bars in the chart below rather than floating free.
-      document.getElementById('rt_lim').innerHTML =
-        '<div class="limlead">Each route is solved hour by hour against the ' +
-        'same ceiling \u2014 today\u2019s de-rated fleet plus the wind and ' +
-        'solar actually generated. The figure is the share of Britain\u2019s ' +
-        'building heat that fits underneath it.</div>' +
-        RKl.map(r => stat(
-          Math.round(L.routes[r].share_pct) + '<small>%</small>',
-          (L.routes[r].all_of_it ? 'all of Britain\u2019s building heat \u2014 ' : '') +
-          RN[r] + ' \u00b7 ' + L.routes[r].heat_TWh.toLocaleString() +
-          ' TWh a year, electrified, before the winter peak fills ' +
-          'today\u2019s fleet\u2020', RC[r])).join('');
-
-      const lb = document.getElementById('rt_limbars');
-      lb.hidden = false;
-      const obs = RKl.map(r => L.routes[r].share_pct);
-      const stl = (L.scenarios.find(x => x.key === 'zero') || {}).shares;
-      const hex2rgba = (h, a) => {
-        const c = h.trim().replace('#','');
-        const n = parseInt(c.length === 3 ? c.split('').map(x=>x+x).join('') : c, 16);
-        return 'rgba(' + [(n>>16)&255, (n>>8)&255, n&255].join(',') + ',' + a + ')';
-      };
-      const tr = [{type:'bar', name:'with last winter\u2019s actual wind',
-        x:RKl.map(r => RN[r]), y:obs,
-        marker:{color:RKl.map(r => RC[r])},
-        text:obs.map(v => v.toFixed(0) + '%'),
-        textposition:'outside', cliponaxis:false,
-        hovertemplate:'%{y:.0f}% of Britain\u2019s heat<extra></extra>',
-        textfont:{color:css('--paper'), size:14}}];
-      if(stl){
-        tr.push({type:'bar', name:'if the wind had never blown, all winter',
-          x:RKl.map(r => RN[r]), y:RKl.map(r => stl[r]),
-          marker:{color:RKl.map(r => hex2rgba(RC[r], 0.28)),
-                  line:{width:1.4, color:RKl.map(r => RC[r])}},
-          text:RKl.map(r => stl[r].toFixed(0) + '%'),
-          textposition:'outside', cliponaxis:false,
-          hovertemplate:'%{y:.0f}% with no wind<extra></extra>',
-          textfont:{color:css('--muted'), size:13}});
-      }
-      Plotly.newPlot(lb, tr, {
-        paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
-        font:{family:'Lato', color:css('--muted'), size:11},
-        barmode:'group', bargap:0.34, bargroupgap:0.08,
-        showlegend:true, legend:{orientation:'h', y:1.02, yanchor:'bottom', font:{size:12}},
-        margin:{l:52,r:12,t:46,b:30},
-        xaxis:{gridcolor:css('--line')},
-        yaxis:{title:'% of Britain\u2019s building heat', gridcolor:css('--line'),
-               range:[0, Math.max(120, Math.max.apply(null, obs) * 1.22)]},
-        shapes:[{type:'line', x0:-0.5, x1:2.5, xref:'x', y0:100, y1:100,
-                 line:{color:css('--muted'), width:1.4, dash:'dash'}}],
-        annotations:[{x:0.01, xref:'paper', y:100, yref:'y', yshift:9,
-          showarrow:false, xanchor:'left',
-          font:{color:css('--muted'), size:11},
-          text:'all Britain\u2019s building heat'}]},
-        {displayModeBar:false, responsive:true});
-
-      const mid = L.scenarios.filter(x => x.key === 'cap5' || x.key === 'still')
-        .map(x => x.label + ' \u2014 ' +
-             RKl.map(r => Math.round(x.shares[r]) + '%').join(' / ')).join('; ');
-      document.getElementById('rt_limnote').textContent =
-        'Bars are air-source / ground source / geothermal networks. ' +
-        'Between the two cases shown: ' + mid + '. The ordering never ' +
-        'changes \u2014 all three draw on the same ceiling, so wind moves ' +
-        'how far you get, not which route gets furthest. ' + L.note;
-    }
-    // The coincidence premium panel was withdrawn on 9 Aug 2026: hard to
-    // read at a glance and it was not carrying weight in the argument.
-    // The statistic is still computed and logged each run (retro.py,
-    // premium block) so the question stays answered, just not drawn.
-
-    const P = {paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
-               font:{family:'Lato', color:css('--muted'), size:11},
-               margin:{l:46,r:46,t:46,b:28},
-               legend:{orientation:'h', y:1.02, yanchor:'bottom', yanchor:'bottom'},
-               xaxis:{gridcolor:css('--line')}};
-    function windowTraces(w){
-      const t0 = new Date(w.start + ':00:00Z');
-      const x = w.temp_C.map((_,i) => new Date(t0.getTime() + i*3600e3));
-      const tr = [{x, y:w.heat_GWh,
-        name:'all buildings heat, delivered (modelled\u2020)',
-        line:{color:'#c9d2da', width:1.1, dash:'dash'}, fill:'tozeroy',
-        fillcolor:'rgba(200,210,220,0.06)'}];
-
-      for(const r of ['ashp','shallow','network'])
-        tr.push({x, y:w.routes[r], yaxis:'y2',
-                 name:'the fifth via ' + RN[r],
-                 line:{color:RC[r], width:1.7}});
-      return tr;
-    }
-    const LAYW = Object.assign({}, P, {
-      yaxis:{title:'heat delivered, GWh per hour',
-             gridcolor:css('--line'), rangemode:'tozero'},
-      yaxis2:{title:'electricity, GWh per hour (= average GW)',
-              overlaying:'y', side:'right',
-              rangemode:'tozero', showgrid:false}});
-    (function(){
-      const w = (WR.system && WR.binding_week) ? WR.binding_week
-                                              : WR.worst_week;
-      if(!(WR.system && w.demand_GW)){
-        Plotly.newPlot('rt_worst', windowTraces(w), LAYW,
-                       {displayModeBar:false, responsive:true});
-        return;
-      }
-      const t0 = new Date(w.start + ':00:00Z');
-      const x = w.temp_C.map((_,i) => new Date(t0.getTime() + i*3600e3));
-      const ceil = w.wind_GW.map((wv,i) =>
-        WR.system.dispatch_derated_GW + wv + w.solar_GW[i]);
-      const dsp = w.displaced_GW || w.temp_C.map(() => 0);
-      const tr = [
-        {x, y:ceil, name:'capacity to deliver\u2020 (NESO Winter Outlook block + the wind and solar actually generated)',
-         line:{color:css('--muted'), width:1.7, dash:'dashdot'},
-         fill:'tozeroy', fillcolor:'rgba(154,164,174,0.07)'},
-        {x, y:w.demand_GW, name:'actual use', fill:'tozeroy',
-         fillcolor:'rgba(13,17,23,0.85)',
-         line:{color:'#c9d2da', width:1.5}}];
-      for(const r of ['ashp','shallow','network'])
-        tr.push({x, y:w.routes[r].map((g,i) =>
-                   w.demand_GW[i] + Math.max(0, g - dsp[i])),
-                 name:'actual use + ' + RN[r] + ' fifth (net\u2020)',
-                 line:{color:RC[r], width:1.7}});
-      const bh = WR.system.routes.ashp.binding_hour;
-      const bi = x.findIndex(dd => dd.toISOString().slice(0,13) === bh);
-      Plotly.newPlot('rt_worst', tr, Object.assign({}, P, {
-        yaxis:{title:'GW', gridcolor:css('--line'),
-               range:[Math.max(0, Math.min(...w.demand_GW) - 6),
-                      Math.max(...ceil) + 3]},
-        annotations: bi >= 0 ? [{x:x[bi],
-          y:w.demand_GW[bi] + Math.max(0, w.routes.ashp[bi] - dsp[bi]),
-          showarrow:true, arrowhead:2, ax:-64, ay:-46,
-          font:{color:RC.ashp, size:11}, arrowcolor:RC.ashp,
-          text:'the binding hour'}] : []}),
-        {displayModeBar:false, responsive:true});
-    })();
-    (function(){
-      const ew = (WR.system && WR.binding_week) ? WR.binding_week
-                                                : WR.worst_week;
-      const t0 = new Date(ew.start + ':00:00Z');
-      const t1 = new Date(t0.getTime() + 167*3600e3);
-      const f = d => d.toLocaleDateString('en-GB',
-        {day:'numeric', month:'short', year:'numeric', timeZone:'UTC'});
-      // heading face, with the dates and the qualifier in the lighter run-on
-      document.getElementById('rt_wklbl').innerHTML =
-        (WR.system && WR.binding_week
-          ? 'The tightest week of the year<span class="qual"> \u2014 ' + f(t0)
-            + ' to ' + f(t1) + ' \u00b7 the seven days around that hour</span>'
-          : 'The worst week under the ceiling<span class="qual"> \u2014 ' + f(t0)
-            + ' to ' + f(t1) + ' \u00b7 the rolling 168 hours of maximum heat, '
-            + 'empirically located, not a calendar week</span>');
-    })();
-
-    function drawMain(mode){
-      if(mode === 'h'){
-        const lw = WR.hourly_live_7d;
-        const hmax = Math.max(...lw.heat_GWh) * 1.3;
-        const emax = Math.max(...['ashp','shallow','network']
-          .map(r => Math.max(...lw.routes[r]))) * 1.4;
-        Plotly.react('rt_main', windowTraces(lw), Object.assign({}, LAYW,
-          {yaxis:Object.assign({}, LAYW.yaxis, {range:[0, hmax]}),
-           yaxis2:Object.assign({}, LAYW.yaxis2, {range:[0, emax]})}),
-          {displayModeBar:false, responsive:true});
-        document.getElementById('rt_span').textContent =
-          'live rolling week \u00b7 hourly \u00b7 summer heat is hot water only'
-          + ' \u2014 cooling sits in the Daily and Monthly views';
-      } else if(mode === 'd'){
-        const D = WR.daily_90, x = D.map(r => r.date);
-        const tr = [{x, y:D.map(r => r.heat_GWh),
-          name:'all buildings heat, delivered (modelled\u2020)',
-          line:{color:'#c9d2da', width:1, dash:'dash'}, fill:'tozeroy',
-          fillcolor:'rgba(200,210,220,0.06)'}];
-        if(D[0].cool_GWh != null) tr.push({x, y:D.map(r => r.cool_GWh),
-          yaxis:'y2', name:'cooling electricity today (embedded\u2020)',
-          line:{color:AMB, width:1.3, dash:'dash'}});
-        for(const r of ['ashp','shallow','network'])
-          tr.push({x, y:D.map(q => q[r + '_GWh']), yaxis:'y2',
-                   name:'the fifth via ' + RN[r],
-                   line:{color:RC[r], width:1.7}});
-        Plotly.react('rt_main', tr, Object.assign({}, P,
-          {yaxis:{title:'heat delivered, GWh per day',
-                  gridcolor:css('--line'), rangemode:'tozero'},
-           yaxis2:{title:'electricity, GWh per day',
-                   overlaying:'y', side:'right', rangemode:'tozero',
-                   showgrid:false}}),
-          {displayModeBar:false, responsive:true});
-        document.getElementById('rt_span').textContent =
-          'last 90 days \u00b7 daily sums';
-      } else {
-        const M = WR.monthly_calendar || WR.monthly_13;
-        const x = M.map(r => r.label || r.month);
-        const tr = [{x, y:M.map(r => r.heat_GWh/1000),
-          name:'all buildings heat, delivered (modelled\u2020)',
-          line:{color:'#c9d2da', width:1, dash:'dash'}, fill:'tozeroy',
-          fillcolor:'rgba(200,210,220,0.07)'},
-          {x, y:M.map(r => 0.2*r.heat_GWh/1000), yaxis:'y2',
-           name:'the same fifth on plug-in electric heating \u2014 the comparison case',
-           line:{color:'#77808a', width:1.3, dash:'dot'}}];
-        if(M[0].cool_GWh != null){
-          tr.push({x, y:M.map(r => r.cool_GWh/1000), yaxis:'y2',
-            name:'cooling electricity today (embedded\u2020)',
-            line:{color:AMB, width:1.5, dash:'dash'}, fill:'tozeroy',
-            fillcolor:'rgba(224,177,60,0.10)'});
-          tr.push({x, y:M.map(r => 2*r.cool_GWh/1000), yaxis:'y2',
-            name:'cooling electricity if doubled\u2020',
-            line:{color:AMB, width:1, dash:'dot'}});
-        }
-        for(const r of ['ashp','shallow','network'])
-          tr.push({x, y:M.map(q => q[r + '_GWh']/1000), yaxis:'y2',
-                   name:'the fifth via ' + RN[r],
-                   mode:'lines+markers', marker:{size:4},
-                   line:{color:RC[r], width:2}});
-        Plotly.react('rt_main', tr, Object.assign({}, P,
-          {xaxis:{gridcolor:css('--line'), type:'category'},
-           yaxis:{title:'heat delivered, TWh per month',
-                  gridcolor:css('--line'), rangemode:'tozero'},
-           yaxis2:{title:'electricity, TWh per month',
-                   overlaying:'y', side:'right', rangemode:'tozero',
-                   showgrid:false}}),
-          {displayModeBar:false, responsive:true});
-        document.getElementById('rt_span').textContent =
-          (WR.monthly_calendar
-            ? 'the falcon curve \u00b7 calendar year, latest complete months'
-            : 'the falcon curve \u00b7 trailing months');
-      }
-    }
-    const ctl = document.querySelector('#routes .trendctl');
-    ctl.addEventListener('click', e => {
-      const b = e.target.closest('button[data-rt]');
-      if(!b) return;
-      ctl.querySelectorAll('button').forEach(x =>
-        x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
-      drawMain(b.dataset.rt);
-    });
-    drawMain('h');
-
-    const cal = WR.calibration, eta = cal.eta;
-    const fAt = cal.flow_at || [15, -5];
-    // air_approach is published as a MAGNITUDE (+3 K). It must be
-    // SUBTRACTED from outdoor air to give the evaporating source. The chart
-    // previously added it, and the fallback carried -3 so the bug only
-    // appeared once the real payload arrived. Found in peer review,
-    // 17 Aug 2026. Fallback now carries the same sign as the payload.
-    const src = cal.sources || {air_approach: 3, ground_c: 8, network_c: 19.6};
-    const airSrc = t => t - Math.abs(src.air_approach);
-    const flow = t => cal.flow[0] + (cal.flow[1]-cal.flow[0]) *
-                      Math.min(1, Math.max(0, (fAt[0]-t)/(fAt[0]-fAt[1])));
-    // The lift floor is the model's, not the chart's. retro.py raised
-    // MIN_LIFT_K from 5 to 8 and this literal was not moved with it, so the
-    // published COP curve ran above the model that produced its anchors
-    // wherever the lift fell below 8 K - which is exactly the warm-source,
-    // mild-weather corner the network route occupies. Read from the payload.
-    const MINLIFT = (cal.min_lift_k != null) ? cal.min_lift_k : 8;
-    const carnot = (tf, tsrc) => (tf+273.15)/Math.max(MINLIFT, tf-tsrc);
-    const dfr = t => 1 - cal.defrost_max*Math.exp(-(((t-2)/3)**2));
-    const ts = Array.from({length:61}, (_,i) => -10 + i*0.5);
-    Plotly.newPlot('rt_cop', [
-      {x:ts, y:ts.map(t => Math.max(1, eta.ashp*carnot(flow(t), airSrc(t))*dfr(t))),
-       name:RN.ashp, line:{color:RC.ashp, width:2}},
-      {x:ts, y:ts.map(t => Math.max(1, eta.shallow*carnot(flow(t), src.ground_c))),
-       name:RN.shallow, line:{color:RC.shallow, width:2}},
-      {x:ts, y:ts.map(t => Math.max(1, eta.network*carnot(flow(t), src.network_c))),
-       name:RN.network, line:{color:RC.network, width:2}}],
-      Object.assign({}, P, {
-        xaxis:{title:'air temperature \u00b0C', gridcolor:css('--line')},
-        yaxis:{title:'COP', gridcolor:css('--line'), rangemode:'tozero'},
-        margin:{l:46,r:10,t:46,b:32}}),
-      {displayModeBar:false, responsive:true});
-
-    // The calibration disclosure runs in BOTH branches. It was written
-    // inside the long branch first, where a payload carrying basis_short
-    // short-circuits past it - the fractions are the point, so they are
-    // appended unconditionally.
-    const rtBase = (sv && sv.basis_short) ? sv.basis_short :
-      WR.basis + ' ' + st.basis + (ss ? ' ' + ss.basis : '') +
-      (sv ? ' ' + sv.basis + ' ' + sv.displaced_note : '') + ' ' +
-      '\u03b7 calibrated so each route ' +
-      'integrates to its published anchor (2.80 / 3.24 / SPF* 5.0 \u2014 the ' +
-      'last an assumed blend across geothermal archetypes, wired to an ' +
-      'assumed 19.6 \u00b0C source and the same Carnot fraction, not a ' +
-      'measured fleet figure), all three ' +
-      'on a WHOLE-SYSTEM boundary: electricity metered at the supply point ' +
-      'over heat delivered at the building boundary, so pumping, ' +
-      'circulation, controls, distribution losses and store round-trip are ' +
-      'all inside it \u2014 the same basis as the monitored H4 figures the ' +
-      'first two come from, and not a plant-only COP\u2020. ' +
-      'The network ' +
-      'parasitic load is the part most likely to be optimistic: a plant-level ' +
-      '5.6 becomes a whole-system 5.0 at about 10% of delivered heat going to ' +
-      'circulation, which is mid-range for European ambient-loop and aquifer ' +
-      'storage schemes. The ' +
-      'air-source defrost band\u2020 is shaped on the monitored fleet, ' +
-      'level re-anchored.';
-    // THE ANCHORS ARE A CHOICE, appended unconditionally. It sits here and not
-    // in rtBase above because that expression short-circuits on a payload
-    // carrying basis_short, and this is the assumption a reader most needs.
-    // The assignment is textContent, so no HTML tags: they render literally.
-    const anchorNote =
-      ' THE ANCHORS ARE A CHOICE. Both come from representative samples: ' +
-      'Electrification of Heat recruited 742 households to span the housing ' +
-      'stock, and the Ofgem analysis covers metering returns across 2017-22. ' +
-      'A self-selected, self-monitored fleet gives materially higher ' +
-      'numbers: HeatpumpMonitor.org reports a mean SPF of 3.98 for air ' +
-      'source across 323 systems (range 2.3\u20135.3) and 5.04 for ground ' +
-      'source across just 3 (range 4.4\u20136.0), at the MID H4 boundary ' +
-      'with at least a year of data, out of 672 monitored in total. Read ' +
-      '19 Nov 2026; the site publishes no API, so these are transcribed and ' +
-      'carry a date rather than updating themselves. Three ground-source ' +
-      'systems is not a fleet and the mean of them is barely a statistic. ' +
-      'Neither set is wrong; they measure different populations. This site ' +
-      'models a national transition, so it takes the representative figure ' +
-      '\u2014 conservative for air source and, because the network route is ' +
-      'compared against it, the choice that flatters the geothermal case. ' +
-      'The consequence is material: at 2.80 a heat pump at the meter costs ' +
-      'about 25% more per useful kWh than a gas boiler on the current cap; ' +
-      'at 3.98 it costs about 12% less. Whether heat pumps beat boilers on ' +
-      'running cost today turns on which fleet anchors the model, not on ' +
-      'prices or method\u2020.';
-    document.getElementById('rt_note').textContent = anchorNote + rtBase +
-      ' Sources: air is outdoor less a ' +
-      Math.abs(src.air_approach) + ' K approach, shallow ground ' +
-      src.ground_c + '\u00b0C, network ' + src.network_c + '\u00b0C\u2020 ' +
-      '\u2014 a UTES and intermediate-doublet blend recharged by summer ' +
-      'cooling rejection, not virgin ground, and derived rather than ' +
-      'measured. It is chosen so that the Future Geothermal route ' +
-      'reproduces its assumed SPF* of 5.0 at the same Carnot fraction ' +
-      'as the other two, so ' +
-      'the agreement of the three fractions (' +
-      ['ashp','shallow','network'].map(r => (eta[r]||0).toFixed(3)).join(' / ') +
-      ') is not independent evidence for either quantity \u2014 it is how ' +
-      'the ' +
-      'source was derived. The pair is internally consistent and physically ' +
-      'plausible; neither is separately measured, and both are Causeway ' +
-      'estimates\u2020. The 15% drift gate remains a wiring check, not a ' +
-      'validation.';
+    if(!d.whatif_routes || !d.whatif_routes.stress) return;
+    const sec = document.getElementById("routes");
+    if(sec) sec.hidden = false;
   })();
 }).catch(()=>{document.getElementById('stamp').textContent='data.json not found — run the workflow once';});
 
@@ -6808,17 +6331,38 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
         // Its own layout: the panel's shared P is scoped inside the routes
         // builder, and reaching across for it would tie this chart to a
         // block it has nothing else to do with.
+        // NO PLOTLY LEGEND. At half the panel's width eight entries stack
+        // into a column that takes more height than the plot. The unit is
+        // in the heading, a one-line key sits under the chart, and the full
+        // naming is in the fold - Simon, 21 Nov 2026. Hover still names
+        // every band, so identity is not carried by colour alone.
         Plotly.newPlot('fespeak', traces, {
           paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
           font: {family: 'Lato', color: css('--muted'), size: 11},
-          height: 300, margin: {l: 48, r: 10, t: 8, b: 26},
-          yaxis: {gridcolor: css('--line'), title: {text: 'GW'},
-                  zerolinecolor: css('--line')},
-          xaxis: {gridcolor: css('--line'), dtick: 5},
-          hovermode: 'x unified',
-          legend: {orientation: 'h', y: -0.13, x: 0,
-                   font: {size: 10, color: css('--muted')}}
+          height: 205, margin: {l: 34, r: 8, t: 6, b: 22},
+          showlegend: false,
+          yaxis: {gridcolor: css('--line'), zerolinecolor: css('--line')},
+          xaxis: {gridcolor: css('--line'), dtick: 10},
+          // Call-outs: Plotly's default is a white box with the trace
+          // colour as the text, which on this page put white text on white.
+          // 50% white with black text - Simon, 21 Nov 2026.
+          hoverlabel: {bgcolor: 'rgba(255,255,255,0.5)',
+                       bordercolor: 'rgba(0,0,0,0.35)',
+                       font: {color: '#000', size: 11}},
+          hovermode: 'x unified'
         }, {displayModeBar: false, responsive: true});
+        // ONLY THE TWO LINES ON THE FACE. The five stacked bands are named
+        // in the fold and by hover; the lines are the argument, and seven
+        // chips wrapped to three rows cost more height than the plot saved.
+        const pkey = document.getElementById('fespeakkey');
+        if(pkey) pkey.innerHTML =
+          '<span><i class="rule" style="border-top-color:' + css('--ember') +
+            ';opacity:1"></i>peak demand</span>' +
+          (PKC && PKC.air && PKC.network
+            ? '<span><i class="rule" style="border-top-style:dashed;' +
+              'border-top-color:' + css('--geo') + ';opacity:1"></i>' +
+              'the same heat on networks</span>' : '') +
+          '';
 
         // The headline is the share of the peak that is NOT firm, in the
         // last year, computed rather than typed.
@@ -6857,6 +6401,43 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
               ' across the season, because cold air is a worse source and ' +
               'a warmed store is not. '
             : '') + '†';
+
+        // THE BOTTOM LINE. Two sentences, every figure read off the chart
+        // above rather than typed: the gap, what the switch closes, and
+        // what that is worth on the same avoided-peak rate the value-for-
+        // money panel uses. Written here because this is where the numbers
+        // are; if the heat-pump series is missing it says the first
+        // sentence alone rather than inventing the second.
+        // READ FROM THE VALUE-FOR-MONEY PANEL'S OWN LEVER, not restated as a
+        // literal here. That slider is where this site decides what a kW of
+        // avoided winter peak is worth; two panels quoting it independently
+        // is how 4,800 and 4,727 happened on the cooling legend. If the
+        // lever is not on the page the sentence drops its money clause
+        // rather than inventing a rate.
+        const pkLever = document.getElementById('lv_pk');
+        const PK_GBP_KW_YR = pkLever ? +pkLever.value : null;
+        const bl = document.getElementById('gridbottom');
+        const hpN = hpPeak(PW, yN);
+        if(bl) bl.innerHTML =
+          'Britain plans a <b>' + pk.toFixed(0) + ' GW</b> winter peak for ' +
+          yN + ' with only <b>' + firm.toFixed(0) + ' GW</b> of firm plant ' +
+          'behind it; the rest leans on storage, imports and wind, which one ' +
+          'long still, cold spell limits together.' +
+          (PKC && PKC.air && PKC.network && hpN != null
+            ? ' Geothermal networks take <b>' +
+              (hpN * (1 - PKC.air / PKC.network)).toFixed(1) + ' GW</b> off ' +
+              'that peak — <b>' +
+              Math.round(100 * (hpN * (1 - PKC.air / PKC.network)) /
+                         (pk - firm)) + '% of the gap</b>' +
+              (PK_GBP_KW_YR
+                ? ', about <b>£' +
+                  (hpN * (1 - PKC.air / PKC.network) * 1e6 *
+                   PK_GBP_KW_YR / 1e9).toFixed(1) + 'bn a year</b> at ' +
+                  'panel 7’s £' + PK_GBP_KW_YR + '/kW·yr'
+                : '') +
+              ' — by not needing the electricity, which is the one kind of ' +
+              'capacity weather cannot take away.'
+            : '');
       }
 
       // THE SECTION IS HIDDEN UNTIL data.json ARRIVES, and this block does
@@ -6992,17 +6573,29 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
              '--paper', 'dot')];
 
       const drawIt = () => {
+        // Same as its neighbour: unit in the heading, key on one line under
+        // the chart, full naming in the fold.
         Plotly.newPlot('feshp', traces, {
           paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
           font: {family: 'Lato', color: css('--muted'), size: 11},
-          height: 280, margin: {l: 48, r: 10, t: 8, b: 26},
-          yaxis: {gridcolor: css('--line'), rangemode: 'tozero',
-                  title: {text: 'TWh of electricity a year'}},
-          xaxis: {gridcolor: css('--line'), dtick: 5},
-          hovermode: 'x unified',
-          legend: {orientation: 'h', y: -0.15, x: 0,
-                   font: {size: 10, color: css('--muted')}}
+          height: 205, margin: {l: 34, r: 8, t: 6, b: 22},
+          showlegend: false,
+          yaxis: {gridcolor: css('--line'), rangemode: 'tozero'},
+          xaxis: {gridcolor: css('--line'), dtick: 10},
+          hoverlabel: {bgcolor: 'rgba(255,255,255,0.5)',
+                       bordercolor: 'rgba(0,0,0,0.35)',
+                       font: {color: '#000', size: 11}},
+          hovermode: 'x unified'
         }, {displayModeBar: false, responsive: true});
+        const hkey = document.getElementById('feshpkey');
+        if(hkey) hkey.innerHTML =
+          '<span><i class="rule" style="border-top-color:' + css('--ember') +
+            ';opacity:1"></i>air, ' + TODAY.toFixed(2) + '</span>' +
+          '<span><i class="rule" style="border-top-style:dotted;' +
+            'border-top-color:' + css('--paper') + ';opacity:1"></i>' +
+            'FES, ' + SPF50.toFixed(2) + '</span>' +
+          '<span><i class="rule" style="border-top-color:' + css('--geo') +
+            ';opacity:1"></i>network, ' + NET.toFixed(2) + '</span>';
 
         const h50 = heat(2050);
         const flat = h50 / TODAY, fes = h50 / SPF50, net = h50 / NET;
