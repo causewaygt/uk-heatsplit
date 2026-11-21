@@ -1652,7 +1652,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.5.2';
+const SITE_VERSION = '9.5.4';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -3875,6 +3875,42 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
         'counts what metered buildings actually consumed. Each tier below ' +
         'states whether it sits inside that figure or outside it \u2014 they ' +
         'are not all additions to it.</div>' +
+        // WHAT A MULTI-YEAR WINDOW IS AND IS NOT, 21 Nov 2026. Every series on
+        // this chart is a fixed coefficient times that day's weather: tier 1 is
+        // k x CDD^2 with ONE k, tier 2 is degree-hours x one per-dwelling
+        // response, the dotted line is one regression. So the fleet is held
+        // constant by construction and the chart CANNOT show stock growth -
+        // checked on the payload, where every tier 1 value maps to exactly one
+        // tier 2 value and the two estimates never cross.
+        //
+        // Re-levelling tier 1 on ECUK each year was tried and rejected on
+        // 21 Nov 2026: ECUK's services cooling line is a fixed 13.4085% of
+        // services electricity in every year of two editions, so it would have
+        // tracked the services denominator and presented it as cooling. The
+        // derivation is in build.py beside ANNUAL_TWH.
+        //
+        // Said only on windows holding more than one summer, because that is
+        // where a reader starts reading a trend off it. On 4W or 12W there is
+        // no year-to-year comparison to misread.
+        //
+        // NOTHING HERE NAMES A YEAR. The first draft said "July 2022 towers
+        // over the others because it reached 40 C", which is true on the 60-
+        // month view and points at an empty stretch of axis on the 24-month
+        // one. The claim is about the tallest summer ON SCREEN, so it is
+        // written that way and holds on every window.
+        (dates.length > 365
+          ? '<div style="color:var(--muted);margin-bottom:10px">' +
+            '<b>Year to year, this chart is weather \u2014 not growth.</b> ' +
+            'Every series on it is a fixed response to temperature, so the ' +
+            'cooling stock is held constant across the whole span. The ' +
+            'tallest summer here is the hottest one, not the one with the ' +
+            'most cooling installed. What a long window shows ' +
+            'is how much the SAME fleet swings on the weather it actually ' +
+            'gets \u2014 which is the case for sizing to summers like 2022 ' +
+            'rather than to an average one. Whether the fleet itself has ' +
+            'grown is a different question, and this chart does not answer ' +
+            'it\u2020.</div>'
+          : '') +
         // ONE SENTENCE, and only when the window reaches back past the fit.
         // The shading on the chart would otherwise be unexplained, and the
         // tier 1 entry below says "measured from grid demand" - true of the
@@ -3943,7 +3979,27 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
         x.setAttribute('aria-pressed', String(x === b)));
       drawTiers(+b.dataset.tw);
     });
-    drawTiers(365);
+    // SIXTY MONTHS BY DEFAULT since 21 Nov 2026 - Simon, on the panel moving
+    // to position 2. The reason is seasonal: this panel's subject is cooling,
+    // and a reader landing on it in November sees a flat line on any window
+    // that holds one summer. Five summers makes the growth the panel is about
+    // the first thing visible, and makes the November zero read as the shape
+    // of the year rather than as an empty panel.
+    //
+    // CHOSEN FROM THE RECORD, NOT TYPED. The button bar above hides any window
+    // longer than the data reaches, so a hardcoded 1826 would press a hidden
+    // button and then caption the chart "the last sixty months" over whatever
+    // it actually drew - today's payload carries 735 days, because the build
+    // that lifted the 735-day cap has not been run yet. Falling back to the
+    // longest window the record can fill keeps the caption true on every
+    // payload, and promotes itself to 60M on its own once the archive is
+    // rebuilt. Same rule as the panel above: a number the page states about a
+    // span it does not read is a number that will drift.
+    const PREF = [1826, 1461, 730, 365];
+    const start = PREF.find(w => HAVE >= w) || 365;
+    bar.querySelectorAll('button').forEach(x =>
+      x.setAttribute('aria-pressed', String(+x.dataset.tw === start)));
+    drawTiers(start);
   })();
 
   // ---- the night elbow, both summers --------------------------------------
