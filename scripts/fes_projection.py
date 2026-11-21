@@ -213,6 +213,52 @@ def supply(path):
     return years, out
 
 
+def scop_improvement(path):
+    """{pathway: TWh of 2050 demand avoided by SCOP improvement}, from F.05.
+
+    FES PUBLISHES NO ABSOLUTE SPF. What it publishes is this: the saving
+    attributable to heat pumps running better in 2050 than today, defined in
+    the sheet's own words as the ratio of SCOP improvement multiplied by
+    electricity demand from heat pumps and district heat. Divided by that
+    electricity it gives the improvement RATIO, and multiplied by an
+    independently sourced figure for today it gives FES's implied 2050
+    efficiency. That chain is the only route to the number, so it is worth
+    the awkward parse.
+
+    F.05 is a chart sheet, not a data table: no header row covering the
+    block, values scattered by a layout meant for a figure. So this finds
+    the column headed "SCOP improvements" and, for each pathway label found
+    anywhere to its left, takes the first number below that label in that
+    column. Returns {} rather than failing if the sheet has moved - the
+    page draws the projection without the efficiency chain and says so.
+    """
+    try:
+        rows = load_sheet(path, "F.05", max_rows=200)
+    except Missing:
+        return {}
+    col = None
+    for r in rows:
+        for i, c in enumerate(r[1:]):
+            if c is not None and str(c).strip() == "SCOP improvements":
+                col = i
+                break
+        if col is not None:
+            break
+    if col is None:
+        return {}
+    out, current = {}, None
+    for r in rows:
+        cells = r[1:]
+        for c in cells[:col]:
+            if c is not None and str(c).strip() in PATHWAYS:
+                current = str(c).strip()
+        if current and current not in out and col < len(cells):
+            v = num(cells, col)
+            if v:
+                out[current] = v
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("workbook")
@@ -225,6 +271,7 @@ def main():
     try:
         dyears, dem, units, missing = demand(args.workbook)
         syears, sup = supply(args.workbook)
+        scop = scop_improvement(args.workbook)
     except Missing as e:
         sys.exit("this workbook does not have the shape expected: %s\n"
                  "Run fes_inventory.py on it and check the layout." % e)
@@ -239,6 +286,11 @@ def main():
         "demand": dem,
         "capacity_years": syears,
         "capacity_MW": sup,
+        "scop_improvement_TWh": scop,
+        "scop_improvement_note": (
+            "F.05: 2050 electricity demand avoided by heat pumps running "
+            "better than today, against demand from heat pumps and district "
+            "heat. FES publishes this saving, not an absolute SPF."),
         "note": ("Capacity is published installed capacity, NOT derated. The "
                  "firm/weather-dependent split and any derating at a winter "
                  "peak hour are assumptions made on the panel, not here."),
