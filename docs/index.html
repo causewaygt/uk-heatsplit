@@ -329,6 +329,28 @@
   .viewrow .trendbar{margin:0}
   .vsep{width:1px;height:17px;background:var(--line);flex:none}
   @media (max-width:720px){.vsep{display:none}}
+  /* ---- panel 3, the seasonal store case study ----------------------- */
+  /* One row a month: demand as the bar, the source as a rule across it. The
+     part of the bar left of the rule is met directly; the part right of it
+     in winter is the shortfall, and the gap left of it in summer is the
+     surplus that charges the store. Same picture read twice, which is the
+     whole argument in one shape. */
+  .scwrap{margin:12px 0 0}
+  .scrow{display:grid;grid-template-columns:34px 1fr 70px;gap:10px;
+         align-items:center;margin-bottom:4px}
+  .scm{font-family:"JetBrains Mono",monospace;font-size:11px;
+       color:var(--muted);text-align:right}
+  .sct{position:relative;height:17px;background:rgba(255,255,255,.03);
+       border-radius:2px}
+  .scbar,.scfill{position:absolute;top:0;height:17px;border-radius:2px}
+  .scsrc{position:absolute;top:-3px;width:2px;height:23px;
+         background:var(--paper);opacity:.85}
+  .scv{font-family:"JetBrains Mono",monospace;font-size:11.5px;
+       color:var(--muted);text-align:right}
+  .sckey{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;
+         color:var(--muted);margin-top:10px}
+  .sckey i{width:10px;height:10px;border-radius:2px;display:inline-block;
+           margin-right:6px;vertical-align:-1px}
   /* ---- cooling panel, 21 Nov 2026 ---------------------------------- */
   /* Four context facts, promoted out of the fold. A grid rather than a list
      because they are peers - none is the headline - and because at this
@@ -360,13 +382,21 @@
   .useason .ush{font-family:"JetBrains Mono",monospace;font-size:11px;
                 letter-spacing:.12em;text-transform:uppercase;
                 color:var(--muted);margin-bottom:7px}
+  /* A BUTTON, not a div. These were written as divs on 21 Nov 2026 and
+     looked exactly like the top card's working hand-off while doing nothing
+     at all - an arrow and an invitation to scroll with no handler behind
+     them. Styled to sit flat in the page, but a real button so it is
+     keyboard-reachable and announces itself. */
   .panelnext{display:flex;align-items:center;gap:11px;margin-top:30px;
-            padding-top:15px;border-top:1px solid var(--line);
-            color:var(--paper);font-size:14px;line-height:1.5}
+            padding:15px 0 0;border:0;border-top:1px solid var(--line);
+            background:none;width:100%;text-align:left;font:inherit;
+            cursor:pointer;color:var(--paper);font-size:14px;line-height:1.5}
   .panelnext .arrow{width:22px;height:22px;border-radius:50%;flex:0 0 22px;
                    border:1px solid var(--line);display:flex;
                    align-items:center;justify-content:center;color:var(--geo);
-                   font-size:12px}
+                   font-size:12px;transition:border-color .15s,transform .15s}
+  .panelnext:hover .arrow{border-color:var(--geo);transform:translateY(2px)}
+  .panelnext:focus-visible{outline:2px solid var(--geo);outline-offset:3px}
   .usave{font-size:12.5px;color:var(--muted);text-align:right;
          margin:-3px 0 0;padding-right:2px}
   .usave b{color:var(--paper)}
@@ -827,9 +857,16 @@
         <button data-hc="on">RESISTIVE CEILING</button>
       </div>
     </div>
-    <p class="costnote" style="margin:7px 0 0">Figures at the right of the
-      chart are the <b>heat-weighted mean</b> over the window shown —
-      <span id="hpwmeanlbl"></span>.</p>
+    <!-- THE HEAT-WEIGHTING EXPLANATION WENT ON 21 Nov 2026 - Simon. It said
+         the figures at the right are a heat-weighted mean and why, which is
+         a method note and belongs in the fold, where "Why the means are
+         weighted by heat" already says it at more length.
+         WHAT SURVIVES is the exception. On a short window with no heat of
+         the selected service - a summer month on SPACE HEATING - the weights
+         sum to zero and the figures fall back to a plain mean of the days.
+         That changes what the numbers ARE, so it is not a method note, and
+         this line appears only when it happens. Hidden otherwise. -->
+    <p class="costnote" id="hpwmeanlbl" style="margin:7px 0 0" hidden></p>
     <button class="pngbtn" onclick="exportChart('hpchart','What heat costs to make','by route, in pence per kWh of delivered heat \u2014 with the heat actually delivered beneath','hpvol')">⬇ PNG FOR SLIDES</button>
     <!-- RECONCILIATION, written by draw() rather than typed. This panel states
          two 'what gas costs' figures in the same unit: a snapshot on today's
@@ -908,12 +945,12 @@
          that every route it priced can only ADD heat, and one of them can
          also take it away through the same boreholes - which is also the
          fact that makes the cooling panel's own price comparison land. -->
-    <div class="panelnext">
-      <div class="arrow">&darr;</div>
-      <div>Every route above can only <b>add</b> heat. One of them can also
+    <button type="button" class="panelnext" data-to="coolhead">
+      <span class="arrow">&darr;</span>
+      <span>Every route above can only <b>add</b> heat. One of them can also
         take it away &mdash; through the same boreholes, at a fraction of a
-        chiller. <b>And that demand is the one that is growing.</b></div>
-    </div>
+        chiller. <b>And that demand is the one that is growing.</b></span>
+    </button>
   </section>
 
 
@@ -968,24 +1005,9 @@
          what the urban heat island would add - and that is method, not a
          caption. The element keeps its id so its writer is untouched. -->
 
-    <!-- UTES, AS A DECOMPOSITION - NOT AN ADDITION. The store's benefit is
-         already inside the network route: retro.py sets its source to 19.6 C
-         and says why ("UTES and intermediate-doublet blend, NOT virgin
-         ground"), and build.py puts store charging and recovery losses inside
-         the SCOP boundary. So panel 1's network line ALREADY contains it, and
-         presenting a UTES benefit here on top of that would count it twice.
-         What this block does instead is take the existing figure apart: the
-         same machine on virgin ground, which is what the store is worth.
-         BOTH BARS ARE ELECTRICITY, one per season, which is what makes the
-         absence of double counting visible rather than merely asserted. The
-         thermal energy recovered from the store is NOT shown as a benefit -
-         a ground loop would have drawn that heat anyway; the benefit is that
-         it draws it across a smaller lift. -->
-    <div class="h2lab" style="margin-top:28px">What the store is worth
-      <span class="qual">— one loop, two seasons, counted once</span></div>
-    <div id="utesdecomp"></div>
-    <p class="costnote" id="utesdecompnote"></p>
-
+    <!-- The UTES decomposition moved to panel 3 on 21 Nov 2026 - Simon,
+         to keep this panel on cooling. Its builder is untouched and simply
+         finds its elements one section further down. -->
     <details class="fold" id="fold_cool"><summary>WHY THESE NUMBERS —
       <b>what cooling data can and cannot tell you, in plain terms</b></summary>
     <div class="foldbody">
@@ -1078,16 +1100,62 @@
     <!-- HAND-OFF into the grid panel. The argument that carries across is
          the seasonal one: heating and cooling peak at opposite ends of the
          year, which is what the grid panel then has to reckon with. -->
-    <div class="panelnext">
-      <div class="arrow">&darr;</div>
-      <div>Heating peaks in January, cooling in July. One electricity system
-        has to carry both &mdash; <b>and the coldest hour is the one that
-        sizes it</b>.</div>
-    </div>
+    <button type="button" class="panelnext" data-to="storagehead">
+      <span class="arrow">&darr;</span>
+      <span>Heating peaks in January, cooling in July &mdash; and the ground
+        between them does not care which way round it is.
+        <b>What if the summer heat could wait?</b></span>
+    </button>
+  </section>
+
+  <!-- PANEL 3, 21 Nov 2026 - Simon. The store was making two separate
+       arguments inside the cooling panel and crowding it: that one loop can
+       run both ways, and that a year-round source can be banked for winter.
+       They belong together and they belong on their own. -->
+  <section id="storagesection">
+    <h1 class="sect" id="storagehead" tabindex="-1">3. The potential for
+      storing heat underground</h1>
+    <p class="lede">Heat is awkward because it is wanted in January and
+      produced all year. The ground is the only store large enough and cheap
+      enough to hold a season of it.</p>
+    <!-- UTES, AS A DECOMPOSITION - NOT AN ADDITION. The store's benefit is
+         already inside the network route: retro.py sets its source to 19.6 C
+         and says why ("UTES and intermediate-doublet blend, NOT virgin
+         ground"), and build.py puts store charging and recovery losses inside
+         the SCOP boundary. So panel 1's network line ALREADY contains it, and
+         presenting a UTES benefit here on top of that would count it twice.
+         What this block does instead is take the existing figure apart: the
+         same machine on virgin ground, which is what the store is worth.
+         BOTH BARS ARE ELECTRICITY, one per season, which is what makes the
+         absence of double counting visible rather than merely asserted. The
+         thermal energy recovered from the store is NOT shown as a benefit -
+         a ground loop would have drawn that heat anyway; the benefit is that
+         it draws it across a smaller lift. -->
+    <div class="h2lab" style="margin-top:28px">What the store is worth
+      <span class="qual">— one loop, two seasons, counted once</span></div>
+    <div id="utesdecomp"></div>
+    <p class="costnote" id="utesdecompnote"></p>
+
+
+    <!-- THE SECOND ARGUMENT: a source that never stops, against a demand
+         that halves in summer. Figures are a worked case from a real UK
+         scheme, anonymised at Simon's instruction - no location, no names.
+         They are a STATIC case study with their own vintage, not a live
+         series, and the markup says so. -->
+    <div class="h2lab" style="margin-top:30px">A year-round source, a seasonal
+      demand <span class="qual">— worked from a real UK scheme</span></div>
+    <div id="storecase"></div>
+    <p class="costnote" id="storecasenote"></p>
+
+    <button type="button" class="panelnext" data-to="gridhead">
+      <span class="arrow">&darr;</span>
+      <span>Storing heat moves it through the year. The other thing a
+        network has to survive is a single hour &mdash; <b>the coldest one</b>.</span>
+    </button>
   </section>
 
   <section id="routes" hidden>
-    <h1 class="sect" id="gridhead" tabindex="-1">3. Electricity grid impacts — the 20% what-if, hour by hour</h1>
+    <h1 class="sect" id="gridhead" tabindex="-1">4. Electricity grid impacts — the 20% what-if, hour by hour</h1>
     <p class="lede">One fifth of Britain's heat, replaced three ways —
     air-source heat pumps, ground source, and geothermal networks —
     hour by hour across the last twelve months. Where the heat comes from
@@ -1155,7 +1223,7 @@
        unchanged; only where they sit has moved, so every writer that
        targets carbline / carbchart / carbrows / carbnote still finds them. -->
   <section id="climatesection">
-    <h1 class="sect" id="climatehead" tabindex="-1">4. Geothermal benefits to
+    <h1 class="sect" id="climatehead" tabindex="-1">5. Geothermal benefits to
       climate and energy security</h1>
     <p class="lede">The same swap that lowers the bill lowers the carbon, and
       moves the energy onshore. Ground heat is not imported, not burnt, and
@@ -1176,7 +1244,7 @@
   </section>
 
   <section id="geosection">
-    <h1 class="sect">5. UK geothermal: now, next and benchmarks</h1>
+    <h1 class="sect">6. UK geothermal: now, next and benchmarks</h1>
       <div class="geofig" id="geofig">—<small> GWh of heat from geothermal this week (estimate)</small></div>
       <p class="geosub" id="geoshare"></p>
       <div class="geobars" id="geobars"></div>
@@ -1294,7 +1362,7 @@
   </section>
 
   <section>
-    <h1 class="sect">6. Value for money? An illustrative appraisal of geothermal against an air-source-led network</h1>
+    <h1 class="sect">7. Value for money? An illustrative appraisal of geothermal against an air-source-led network</h1>
       <div id="capitalpanel" style="display:none">
 
         <div class="kind">One counterfactual, on Green Book conventions — not a full appraisal</div>
@@ -1745,7 +1813,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.9.2';
+const SITE_VERSION = '9.10.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -3272,6 +3340,38 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
   // top of the page there is nothing to go back to. Scrolling alone moves
   // the viewport but not the keyboard, so each jump also moves focus to the
   // target - otherwise tabbing from the button carries on from the footer.
+  // PANEL HAND-OFFS. Same scroll-and-focus as the back-nav below, kept
+  // separate because these live inline in the page rather than in the
+  // floating bar. Delegated from the document so it does not matter when a
+  // panel's markup arrives, and it tolerates a target that is still hidden:
+  // the grid section is revealed by its own builder, and a hand-off clicked
+  // before that lands would otherwise scroll nowhere silently.
+  (function(){
+    const reduce = window.matchMedia &&
+                   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document.addEventListener('click', ev => {
+      const b = ev.target.closest('.panelnext');
+      if(!b) return;
+      const t = document.getElementById(b.dataset.to);
+      if(!t) return;
+      const sect = t.closest('section');
+      if(sect && sect.hidden) return;   // nothing to scroll to yet
+      t.scrollIntoView({behavior: reduce ? 'auto' : 'smooth', block: 'start'});
+      setTimeout(() => t.focus({preventScroll: true}), reduce ? 0 : 420);
+    });
+    // A hand-off that cannot go anywhere should not look like it can.
+    const sync = () => document.querySelectorAll('.panelnext').forEach(b => {
+      const t = document.getElementById(b.dataset.to);
+      const dead = !t || (t.closest('section') && t.closest('section').hidden);
+      b.disabled = !!dead;
+      b.style.opacity = dead ? '.45' : '';
+    });
+    sync();
+    window.addEventListener('load', sync);
+    setTimeout(sync, 1500);
+    setTimeout(sync, 4000);
+  })();
+
   (function(){
     const nav = document.getElementById('backnav');
     if(!nav) return;
@@ -3810,6 +3910,83 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       'Observed cooling analysis pending sufficient summer data.';
     document.getElementById('coolcurve').style.display = 'none';
   }
+
+  // ---- panel 3: a year-round source against a seasonal demand ----------
+  // A STATIC CASE STUDY, and the only one on this site. Everything else here
+  // is computed from a payload that rebuilds nightly; this is worked from a
+  // single UK scheme's heat model and cannot move until that model does, so
+  // it carries its own vintage and says on the page that it is a case study.
+  // Anonymised at Simon's instruction - no location, no scheme or party
+  // names - which is why the prose describes the scheme by its shape.
+  //
+  // WHY THESE NUMBERS AND NOT THE SCHEME'S OWN PHASE 1. Checked across all
+  // six demand tiers in that model: a seasonal store adds EXACTLY NOTHING at
+  // any of them, and the reason is scale rather than physics. The phase-1
+  // source is a flat ~2,600 MWh a month; tiers 1-3 never reach it, so there
+  // is surplus in every month and no deficit to fill, and tiers 4-6 exceed
+  // it in every month, so there is deficit everywhere and no surplus to
+  // bank. A store only earns its keep when the source sits BETWEEN the
+  // demand's summer trough and its winter peak. So the case study is the
+  // full buildout with a source sized to it, which is the configuration a
+  // mature campus actually reaches - and the panel says that plainly rather
+  // than implying the scheme needs a store at its current phase.
+  const STORECASE = {
+    vintage: 'scheme heat model, November 2026',
+    months: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+    src: [24795,22395,24795,23995,24795,23995,24795,24795,23995,24795,23995,24795],
+    dem: [38164,33996,32801,24918,17372,10766,8145,8295,11484,19415,28280,36928],
+    source_MWh: 291939, demand_MWh: 270565,
+    stored_MWh: 50184, charge_MWh: 71692, round_trip: 0.7,
+    no_store_pct: 81, src_MW: 33.3
+  };
+  (() => {
+    const C = STORECASE;
+    const box = document.getElementById('storecase');
+    if(!box) return;
+    const top = Math.max(...C.dem, ...C.src);
+    // One row per month: the constant source as a rule across a bar of
+    // demand, so surplus and deficit are the same picture read twice.
+    box.innerHTML =
+      '<div class="scwrap">' + C.months.map((m, i) => {
+        const d = C.dem[i], a = C.src[i], def = d > a;
+        const w = 100 * d / top, sw = 100 * a / top;
+        // The under-bar runs to whichever is LONGER. In a deficit month that
+        // is demand, and the ember tail past the rule is the shortfall; in a
+        // surplus month it is the source, and the grey tail past the green
+        // is heat with nowhere to go. Drawn to demand in both cases - the
+        // first version - the summer surplus was covered by its own green
+        // fill and the legend promised a colour that never appeared.
+        return '<div class="scrow"><div class="scm">' + m + '</div>' +
+          '<div class="sct">' +
+            '<div class="scbar" style="width:' + Math.max(w, sw).toFixed(1) +
+              '%;background:' + (def ? css('--ember') : css('--line')) +
+              '"></div>' +
+            '<div class="scfill" style="width:' + Math.min(w, sw).toFixed(1) +
+              '%;background:' + css('--geo') + '"></div>' +
+            '<div class="scsrc" style="left:' + sw.toFixed(1) + '%"></div>' +
+          '</div>' +
+          '<div class="scv">' + (def ? '−' : '+') +
+            fmt(Math.abs(d - a)) + '</div></div>';
+      }).join('') + '</div>' +
+      '<div class="sckey">' +
+        '<span><i style="background:' + css('--geo') + '"></i>met directly by the source</span>' +
+        '<span><i style="background:' + css('--ember') + '"></i>winter shortfall — the store covers this</span>' +
+        '<span><i style="background:' + css('--line') + '"></i>summer surplus — charges the store</span>' +
+      '</div>';
+    const note = document.getElementById('storecasenote');
+    if(note) note.innerHTML =
+      'A real UK scheme, anonymised: a town-centre heat network of <b>' +
+      fmt(C.demand_MWh) + ' MWh a year</b> at full buildout, with waste heat ' +
+      'from a data centre on it — <b>' + C.src_MW.toFixed(1) + ' MW</b> ' +
+      'of recoverable heat that arrives at the same rate every month of the ' +
+      'year. Matched annually, the two still miss each other by a season: ' +
+      'without a store the source covers <b>' + C.no_store_pct + '%</b> of ' +
+      'demand and <b>' + fmt(C.charge_MWh) + ' MWh</b> of summer heat has ' +
+      'nowhere to go. Bank that in the ground and <b>' + fmt(C.stored_MWh) +
+      ' MWh</b> comes back for winter at a ' + Math.round(C.round_trip * 100) +
+      '% round trip, taking cover to <b>100%</b>. ' +
+      '<b>The store is what makes a constant source a seasonal one</b>†.';
+  })();
 
   // ---- cooling panel lead, on the YEAR ------------------------------------
   // Every weekly figure in this panel is zero from about October to April.
@@ -4849,12 +5026,16 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
           });
         });
       })();
+      // Shown ONLY in the fallback case - see the markup note.
       const wl = document.getElementById('hpwmeanlbl');
-      if(wl) wl.textContent = unweighted
-        ? 'no heat of the selected service was delivered in this window, '
-          + 'so the figures at the right are a plain mean of the days'
-        : 'weighted by the heat delivered each day, not by day, because an '
-          + 'unweighted mean flatters whichever route does best in mild weather';
+      if(wl){
+        wl.hidden = !unweighted;
+        wl.innerHTML = unweighted
+          ? '<b>No heat of the selected service was delivered in this '
+            + 'window</b>, so the figures at the right are a plain mean of '
+            + 'the days rather than a heat-weighted one.'
+          : '';
+      }
       // TIE THE TWO 'WHAT GAS COSTS' FIGURES TOGETHER. The line at the top of
       // the panel prices a single day on today's cap at an annual SPF; the
       // chart prices every day on its own tariff at that day's weather and
