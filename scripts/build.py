@@ -2503,6 +2503,15 @@ def main():
             "whatif_cool_kt": e["whatif_cool_kt"],
             "whatif_saving_kt": e["saving_kt"],
             "routes_g_per_useful_kwh": routes,
+            # PUBLISHED FOR THE ENERGY-SECURITY CHART, 21 Nov 2026 - Simon.
+            # These origin shares already drive the indigenous headline; the
+            # panel 5 chart needs them per route, and a page that typed them
+            # beside a build that owns them is how two numbers for one
+            # quantity start. The page reads these or draws nothing.
+            # Ambient and ground heat are 100% indigenous by construction -
+            # harvested where used - which is the whole point of the chart,
+            # so it is stated here rather than assumed in the page.
+            "indig_origin_share": dict(INDIG, ambient=1.0),
             "note": ("Combustion factors: DESNZ GHG conversion factors 2025 "
                      "(natural gas 0.18296 kgCO2e/kWh = 183 g, gross calorific "
                      "value basis, consistent with UK metered gas "
