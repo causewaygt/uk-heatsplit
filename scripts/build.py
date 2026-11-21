@@ -1180,7 +1180,7 @@ ANCHOR_YEAR = 2024   # ECUK vintage the space-heat anchor is drawn from;
 #                      the ratio drifts (found 8 Aug 2026: hdd_2024 fell
 #                      2137 -> 2048 in six days, ratio 1.092 -> 1.047,
 #                      purely because the window had rolled past 11 Jan).
-HISTORY_SCHEMA = 8   # 2: indig_pct at one decimal (restated Jul 2026)
+HISTORY_SCHEMA = 9   # 2: indig_pct at one decimal (restated Jul 2026)
                      # 3: per-week heat/cool split of purchased energy
                      #    (restated Aug 2026, same stored-CI mechanism)
                      # 4: what-if heat/cool split per week (Aug 2026)
@@ -1192,6 +1192,11 @@ HISTORY_SCHEMA = 8   # 2: indig_pct at one decimal (restated Jul 2026)
                      # 8: ventilation as its own per-week field, so the
                      #    trend layer can report it apart from cooling
                      #    (17 Aug 2026)
+                     # 9: wf_fuels - the what-if twin of the per-fuel block,
+                     #    with the ground heat and the avoided boiler losses
+                     #    beside it, so the what-if energy bars honour the
+                     #    window buttons instead of silently showing the
+                     #    live week under an annual heading (21 Nov 2026)
 
 # ANCHOR_EPOCH tracks a changed BASIS rather than new FIELDS: bump it
 # whenever a constant changes what a past week WOULD have computed, and
@@ -1245,6 +1250,51 @@ def _fuel_block(r):
     out["cool"] = {"i": round(mix.get("cooling", 0.0), 1),
                    "u": round(use.get("cooling_delivered", 0.0), 1)}
     return out
+
+
+def _wf_fuel_block(r):
+    """The WHAT-IF twin of _fuel_block, added 21 Nov 2026.
+
+    Without it the what-if energy bars could only ever show the live week.
+    History entries carried `fuels` for every week and a `whatif` block of
+    TOTALS, so a windowed call fell back to the weekly figures and drew them
+    under the window's own heading - weekly numbers labelled as annual. The
+    components were never missing from the model, only from the payload:
+    compute_week already returns the adjusted mix as r["adj"].
+
+    Two derived figures ride with it, because the panel draws the saving as
+    two blocks and neither can be recovered from the purchased mix alone:
+
+      amb    the heat lifted from the ground - never bought, so it appears
+             in no purchased total anywhere, and is the whole point of the
+             comparison.
+      avoid  boiler losses no longer incurred. It is the REMAINDER, derived
+             as (saved - amb), not measured: it is whatever the fall in
+             purchased energy is that the ground heat does not account for.
+             Published so the page never has to compute it - and so the two
+             blocks are guaranteed to close on the as-bought total rather
+             than leaving an unexplained sliver.
+
+    `avoid` is not clamped. On the present figures it is firmly positive
+    (the route displaces more fuel than the pumps draw), but a week with
+    almost no heating and heavy cooling could in principle invert it, and a
+    silently clamped zero would hide that rather than show it. The front end
+    guards instead.
+    """
+    adj = r["adj"]
+    amb = (r["heat_repl_elec"] * (GEO_NETWORK_SCOP - 1.0)
+           + r["cool_repl_elec"] * (PASSIVE_COOL_COP - 1.0))
+    saved = r["total_in"] - r["new_total"]
+    return {
+        "gas": round(adj["gas"], 1),
+        "oil": round(adj["oil"], 1),
+        "bio_other": round(adj["bio"], 1),
+        "solid": round(adj["solid"], 1),
+        "heat_networks": round(adj["hn"], 1),
+        "electricity": round(adj["elec"], 1),
+        "amb": round(amb, 1),
+        "avoid": round(saved - amb, 1),
+    }
 
 
 def build_history(prev, dd, base, slope, target, archive=None):
@@ -1431,6 +1481,7 @@ def build_history(prev, dd, base, slope, target, archive=None):
                 "emissions_kt": e["whatif_kt"],
             },
             "fuels": _fuel_block(r),
+            "wf_fuels": _wf_fuel_block(r),
             "grid_ci": week_ci,
             # cap_from is None, not a clamped date, when no real price was
             # found: a stamp of 2024-04-01 on a 2022 week would read as

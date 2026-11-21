@@ -89,6 +89,28 @@ def payload(path_keys):
     return True, "data.json carries %s" % ".".join(path_keys)
 
 
+def history_field(name):
+    """True when EVERY history entry carries `name`.
+
+    history is a list, so payload() cannot reach into it - and a check on
+    the list itself would pass vacuously while the field was missing from
+    every week in it. Every entry, not any: the front end's own guard is
+    rows.every(), so a partial restatement degrades the panel and the
+    status should say so rather than read done.
+    """
+    s = _read("docs/data.json")
+    if s is None:
+        return None, "docs/data.json unreadable"
+    try:
+        h = json.loads(s).get("history") or []
+    except ValueError:
+        return None, "docs/data.json unparseable"
+    if not h:
+        return False, "data.json has no history"
+    n = sum(1 for e in h if isinstance(e, dict) and e.get(name))
+    return (n == len(h)), "%d of %d history weeks carry %s" % (n, len(h), name)
+
+
 def both(code_args, payload_keys):
     """Code AND payload - an item the front end reads from the build."""
     ok_c, why_c = code(*code_args)
@@ -139,8 +161,16 @@ ITEMS = [
     # in is the fix, and a renamed comment would not change that.
     (13, 3, "Common scale on both states of the what-if bar",
      lambda: code("docs/index.html",
-                  r"drawWhatIfBars\(agg, sc\)")),
-    (14, 3, "Split geothermal out in its own green, direct labels", None),
+                  r"drawWhatIfBars\(agg, sc")),
+    # Checkable since 21 Nov 2026: the ghost blocks need the payload field
+    # as well as the drawing code, so both layers are tested.
+    (14, 3, "Split geothermal out in its own green, direct labels",
+     lambda: (lambda c, p: (None, c[1] + "; " + p[1]) if c[0] is None
+              or p[0] is None else
+              ("stale", c[1] + "; " + p[1]) if c[0] and not p[0] else
+              (c[0] and p[0], c[1] + "; " + p[1]))(
+                  code("docs/index.html", r"function drawGhost\("),
+                  history_field("wf_fuels"))),
     # The buttons render upper case, so the marker is case-insensitive on the
     # rendered label rather than on the document's sentence-case wording.
     (15, 3, "Button labels 'Today' / 'With a geothermal fifth'",
