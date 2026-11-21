@@ -951,9 +951,13 @@
     <div id="tierlegend"></div>
     <p class="costnote" id="tierdailynote"></p>
 
-    <div class="h2lab">The comfort deficit <span class="qual">— buildings with no cooling at all</span></div>
-    <div class="billline" id="deficitline"></div>
-    <p class="geosub" id="deficitcontext"></p>
+    <!-- THE WEEKLY COMFORT-DEFICIT READOUT WENT ON 21 Nov 2026 - Simon. It
+         read "0 °C·h ... latent need ~0–0 GWh" for roughly half the year,
+         and from November a reader met three zeros under a heading about
+         buildings that overheat. The deficit itself is NOT gone: it is tier
+         2 on the chart above, its scale is the card strip under the lede,
+         and its derivation is in the fold. Only the weekly line has gone,
+         because a weekly figure for a summer phenomenon is a weekly zero. -->
     <!-- deficitnote moved into the fold on 21 Nov 2026. Its payload text is
          a base-temperature derivation - which base, why not CIBSE's 26 C,
          what the urban heat island would add - and that is method, not a
@@ -1057,19 +1061,15 @@
          where the tier itself appears. -->
     </div></details>
 
-    <div class="h2lab">The geocooling dividend <span class="qual">— if a fifth of today’s cooling were ground-served</span></div>
-    <div class="trendbar" id="dividwin" style="margin:8px 0 2px">
-      <button data-dw="28">4W</button>
-      <button data-dw="84">12W</button>
-      <button data-dw="365" aria-pressed="true">12M</button>
-      <button data-dw="730">24M</button>
-    </div>
-    <div id="dividend" style="height:280px;margin:10px 0 4px"></div>
-    <p class="costnote" id="dividnote"></p>
-    <div class="h2lab" style="margin-top:26px">And the heat it rejects <span class="qual">— banked in summer, recovered in winter</span></div>
-    <div id="utesbars" style="margin:10px 0 4px"></div>
-    <p class="costnote" id="utesnote"></p>
-
+    <!-- THE GEOCOOLING DIVIDEND and AND THE HEAT IT REJECTS went on
+         21 Nov 2026 - Simon. Both were saying what the decomposition block
+         above already says, in a second unit: the dividend chart is the
+         national total of the same per-unit saving, and the reject bars are
+         the thermal side of the store whose worth is stated in electricity
+         higher up. Two charts for one argument is the repetition this panel
+         was being cut for. The store's seasonality survives in the
+         decomposition's own note; the national saving is one line there
+         too. -->
     <!-- HAND-OFF into the grid panel. The argument that carries across is
          the seasonal one: heating and cooling peak at opposite ends of the
          year, which is what the grid panel then has to reckon with. -->
@@ -1740,7 +1740,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.9.0';
+const SITE_VERSION = '9.9.1';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -4516,6 +4516,12 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
   // a fifteenth of the conventional one and would be invisible beside it. The
   // stack keeps the conventional total visible and shows the residual as the
   // sliver it is.
+  // INERT SINCE 21 Nov 2026: the geocooling dividend and the heat-rejection
+  // bars were removed from the cooling panel as duplicates of the
+  // decomposition block. This builder is left in place rather than spliced
+  // out - it already returns on a missing #dividend, so it costs nothing,
+  // and putting the two charts back is a matter of restoring their markup.
+  // The note above still describes why the chart was built the way it was.
   (() => {
     const td = (d.comfort_deficit || {}).tier_daily;
     const box = document.getElementById('dividend');
@@ -5304,26 +5310,13 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
 
   const cd = d.comfort_deficit;
   if(cd && cd.scenarios){
-    const c = cd.scenarios.central, lo = cd.scenarios.low, hi = cd.scenarios.high;
-    document.getElementById('deficitline').innerHTML =
-      // Key renamed 10 Aug 2026 when the tier moved from an hourly count above
-      // 26 °C to cooling degree-hours on the daily mean. index.html deploys on
-      // a Pages push while data.json only changes at the daily build, so this
-      // reads either until the next run has landed.
-      'This week: <b>' + (cd.cdh_week_degC_h ?? cd.odh26_week_degC_h) +
-      ' °C·h</b> above a <b>' + cd.threshold_c + '°C</b> daily-mean outdoor ' +
-      'base · <b>' + lo.dwellings_M + '–' +
-      hi.dwellings_M + ' million homes</b> overheating with no cooling ' +
-      '(central ' + c.dwellings_M + 'M) · latent need ~<b>' +
-      fmt(lo.latent_thermal_GWh) + '–' + fmt(hi.latent_thermal_GWh) +
-      ' GWh</b> of cooling that no equipment exists to deliver';
+    // THE WEEKLY DEFICIT LINE AND ITS CONTEXT WRITER went on 21 Nov
+    // 2026 with the markup they filled. c / lo / hi were read only by
+    // them. What remains in this block is the fold's caveat below,
+    // which still needs fx / eerLo / eerHi.
     const fx = (d.weekly_useful || {}).factors || {};
     const eerLo = (fx.cool_eer_range || [2.5, 4.0])[0];
     const eerHi = (fx.cool_eer_range || [2.5, 4.0])[1];
-    document.getElementById('deficitcontext').innerHTML =
-      'Serving the central load would draw ~' + cd.elec_if_ground_GWh +
-      ' GWh of electricity via passive ground cooling vs ~' +
-      cd.elec_if_air_GWh + ' GWh via air-source compressors\u2020.';
     // MOVED TO THE FOLD, 21 Nov 2026. Three things used to ride on the end of
     // that line: the four context sentences (now the card strip under the
     // lede), the NHS incident count, and the fleet-efficiency caveat. The
