@@ -715,191 +715,15 @@
        panel's published default and is worth keeping recoverable until
        that claim has a new home. -->
 
-  <div class="hero">
-    <h1 id="startline" tabindex="-1">1. The starting point — how Britain
-      <span class="ember">heated</span> and <span class="cool">cooled</span>
-      itself <span id="startwin">in the last week</span>.</h1>
-    <div class="h2lab" id="displaylab" hidden>Display</div>
-    <div class="trendctl" id="trendctl" style="justify-content:flex-start;margin-top:2px" hidden>
-      <button data-win="2" aria-pressed="true">1w</button>
-      <button data-win="5">4w</button>
-      <button data-win="13">12w</button>
-      <button data-win="53">12m</button>
-      <button data-win="105">24m</button>
-      <!-- Hidden at runtime unless the record can fill them, by the existing
-           WEEKS_ON_RECORD rule (any window past 53 weeks must be covered).
-           No extra gate here: a second mechanism doing the same job is how
-           the two sumN maps drifted apart in August. -->
-      <button data-win="157">36m</button>
-      <button data-win="209">48m</button>
-      <button data-win="261">60m</button>
-      <span id="trendspan"></span>
-    </div>
-    <p class="sub">A weekly estimate of the energy behind Britain's building heat and
-      cooling, by source — and how much can be saved when geothermal is adopted. Gas space heating
-      is estimated live from grid data; other sources are official annual figures
-      shaped by this week's weather. Estimates, not measurements.</p>
-    <div class="statrow">
-      <div class="stat"><div class="fig" id="st_energy">—</div>
-        <div class="cap" id="st_energy_cap">GWh of heating &amp; cooling energy purchased this week</div>
-        <div class="trend" data-trend="purchased_GWh" data-good="down" hidden></div></div>
-      <div class="stat"><div class="fig" id="st_indig">—</div>
-        <div class="cap">estimated UK-indigenous share of heat &amp; cooling delivered</div>
-        <div class="trend" data-trend="indig_pct" data-good="up" hidden></div></div>
-      <div class="stat"><div class="fig" id="st_bill">—</div>
-        <div class="cap" id="st_bill_cap">national energy bill this week</div>
-        <div class="trend" data-trend="bill_Mgbp" data-good="down" hidden></div></div>
-      <div class="stat"><div class="fig" id="st_carbon">—</div>
-        <div class="cap" id="st_carbon_cap">heating &amp; cooling emissions this week</div>
-        <div class="trend" data-trend="emissions_kt" data-good="down" hidden></div></div>
-    </div>
-    <div class="whatifrow">
-      <div class="wtitle" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">WHAT IF
-        <span style="font-size:2.2em;font-weight:700;color:var(--geo);line-height:1">20%</span>
-        OF HEAT &amp; COOLING MOVED TO
-        <span style="font-size:2.2em;font-weight:700;color:var(--geo);line-height:1">GEOTHERMAL?</span></div>
-      <div class="statrow">
-        <div class="stat"><div class="fig" id="wf_energy">—</div>
-          <div class="cap" id="wf_energy_cap">GWh purchased — the ground supplies the rest free</div></div>
-        <div class="stat"><div class="fig" id="wf_indig">—</div>
-          <div class="cap">UK-indigenous share</div></div>
-        <div class="stat"><div class="fig" id="wf_bill">—</div>
-          <div class="cap" id="wf_bill_cap">national bill</div></div>
-        <div class="stat"><div class="fig" id="wf_carbon">—</div>
-          <div class="cap" id="wf_carbon_cap">emissions</div></div>
-      </div>
-    </div>
-    <div class="context" id="peakctx" style="margin-top:14px"></div>
-  </div>
-  <div class="hero">
-    <div class="h2lab">The energy balance</div>
-    <div class="trendbar" id="balwin" style="margin:2px 0 10px">
-      <!-- Item 15. "AS BOUGHT" reads as a procurement term and gave no hint
-           that the pair is a comparison. "Today" against "With a geothermal
-           fifth" names both sides in the reader's own terms. -->
-      <button data-bw="now" aria-pressed="true">TODAY</button>
-      <button data-bw="wf">WITH A GEOTHERMAL FIFTH</button>
-    </div>
-    <div class="barlabel" id="balancesection">ENERGY IN — fuel &amp; electricity purchased<span id="barwin"></span></div>
-    <div class="barrow">
-      <div class="btot" id="tot_in">—</div>
-      <div class="track">
-        <div class="mixbar" id="mixbar" aria-label="This week's heat and cooling mix — energy in"></div>
-        <div class="ghostwrap" id="ghostwrap" aria-label="Energy no longer purchased — ground heat and avoided boiler losses"></div>
-      </div>
-    </div>
-    <div class="barlabel">USEFUL HEAT &amp; COOL OUT — after boiler losses, heat-pump harvest and cooling delivery</div>
-    <div class="barrow">
-      <div class="btot" id="tot_out">—</div>
-      <div class="mixbar" id="usebar" aria-label="This week's useful heat and cooling delivered"></div>
-    </div>
-    <div class="legendgrp"><span class="legendhdr">ENERGY IN</span>
-      <div class="legend" id="mixlegend"></div></div>
-    <div class="legendgrp"><span class="legendhdr">ENERGY OUT — USEFUL</span>
-      <div class="legend" id="uselegend"></div></div>
-    <div class="combline" id="combline"></div>
-    <button class="pngbtn" onclick="exportBars('The energy balance','what Britain bought for heat and cooling, and what it delivered')">⬇ PNG FOR SLIDES</button>
-  </div>
-
-    <details class="fold" id="fold_start"><summary>METHOD —
-      <b>where every number on this page comes from, and what it cannot see</b></summary>
-    <div class="foldbody">
-    <h2>The gas engine room: daily gas to buildings vs the heating signal</h2>
-    <div id="ts"></div>
-    <div class="burnbar" id="burnbar" aria-label="This week's buildings gas split"></div>
-    <div class="legend">
-      <span><span class="key" style="background:var(--ember)"></span><b>Space heating</b> (useful)</span>
-      <span><span class="key" style="background:repeating-linear-gradient(135deg,#b83f1e 0 4px,#7e2c15 4px 8px)"></span><b>Wasted at the boiler</b> (~15–17.5%)</span>
-      <span><span class="key" style="background:var(--ash)"></span><b>Non-weather gas to buildings</b> (hot water, cooking, industry on the distribution network)</span>
-    </div>
-    <h2>Method &amp; caveats</h2>
-    <p class="geosub" style="margin-bottom:10px">Full technical methodology — equations, calibration figures, limitations, and a table of corrections found and declared since v7: <a href="uk-heatsplit-methodology.pdf" style="color:var(--geo)">UK Heat Split: data sources and estimation methodology, v8 (PDF)</a>. Currently under peer review.</p>
-    <p style="color:var(--geo);font-size:15px;line-height:1.6">† Current
-      Causeway Energies estimate – challenge and input welcome at
-      <a href="mailto:contact@causewaygt.com" style="color:var(--geo)">contact@causewaygt.com</a>.</p>
-    <p><b>Gas (live).</b> Daily gas offtake to Britain's local distribution zones
-      (LDZ — the network serving homes and most businesses) is regressed against
-      population-weighted GB heating degree days (ERA5 reanalysis via Open-Meteo).
-      The temperature-sensitive component is attributed to space heating.
-      Directly-connected power stations are excluded. Approach follows the
-      published Watson/Sansom method. Current fit: <span id="fit">—</span>.</p>
-    <p><b>Everything else (shaped annual).</b> Oil, electric heating, bioenergy,
-      heat networks, solid fuel and cooling take their annual levels from the
-      DESNZ ECUK 2025 End Use tables (calendar 2024) and are distributed across
-      the year by heating/cooling degree days. They do not respond to live grid
-      data. Cooling is the weakest element: the ECUK figure combines cooling and
-      ventilation, split here 50% flat / 50% weather-shaped by assumption, and UK
-      cooling demand is poorly measured. Electric heating counts the electricity
-      into heat pumps, not the ambient heat they harvest — so the useful heat
-      delivered by heat pumps is understated for now.</p>
-    <p><b>The two bars.</b> The top bar is final energy — fuel and electricity
-      purchased. The bottom bar is useful heat and cooling delivered: combustion
-      derated by measured in-situ efficiencies (gas 83.5%, oil 82%, bio 70%,
-      solid 55% — the last three are estimates), heat networks shown at delivered
-      heat, resistive electric at 100%, heat pumps multiplied by a blended SPF of
-      2.8 (Electrification of Heat, 742 metered homes) with the harvested ambient heat
-      shown in teal, and the weather-driven half of cooling multiplied by an
-      assumed EER of 3. Heat-pump electricity is the ECUK 2025 domestic figure
-      (2.0 TWh, 2024); non-domestic heat pumps are not yet counted, so the teal
-      segment is understated.</p>
-    <p><b>Boiler efficiency, by end use.</b> Space heating and hot water are
-      converted at <b>different</b> efficiencies. A boiler serving only a
-      cylinder fires in short bursts, cools between them, and returns water
-      above the condensing dewpoint, losing its latent recovery: gas is 0.835
-      for space heating and <b>0.73</b> for hot water, oil 0.82 and
-      <b>0.71</b>. Both hot-water figures are the mean SAP 2012 Table 4b
-      summer/winter ratio applied to the in-situ winter anchor, and SAP applies
-      the summer figure to hot water in every month, not seasonally. Summer
-      runs 82–89% of winter across that table. Bioenergy and solid fuel keep
-      a single figure, because Table 4b does not cover them. The effect is that
-      the effective gas efficiency now moves with the season — about 0.81 in
-      January and 0.74 in July, when the load is almost all hot water.</p>
-    <p><b>Known biases.</b> Hot-water heating is treated as flat but is mildly
-      seasonal (colder mains water in winter), so gas space heating carries a
-      small upward bias. Table 4b is SAP’s fallback for boilers absent from
-      the Product Characteristics Database, so it is conservative and skewed to
-      older plant; a PCDB-weighted fleet figure would beat it. Table 4c deducts
-      5 points where a regular boiler has no interlock, which is not applied
-      here.</p>
-    <p><b>Geothermal panel.</b> Today's heat figure is anchored on the EGEC
-      2025 UK Country Update (1,430 GWhth/yr from ~55,210 GSHP units,
-      847–861 MWth installed — a 2023 estimate from sales data; the
-      Environment Agency's 2024 review suggests only ~30–38k of those units
-      may be operational, hence the 1.4–2.0 range) plus ~0.07 TWh/yr from
-      mine-water, deep and open-loop district schemes. No national metering
-      or single register of ground-source systems exists; cooling is anchored
-      only on 11 ATES systems (~8 MWth cold) and historic Southampton data.
-      Forward bars are third-party pathways (CCC, Project InnerSpace/REA/ARUP)
-      or explicitly flagged Causeway derivations, not predictions. The 2031
-      bar carries a range of roughly 3.5–6 TWh/yr. If the NI DfE licensing
-      proposals (consultation to 7 Aug 2026; heat below 100&nbsp;m depth)
-      proceed, the resulting register with published system performance would
-      be the UK's first mandatory geothermal data source — this panel is
-      designed to ingest it from ~2027.</p>
-    <p><b>Northern Ireland, and the UK-to-GB step.</b> NI is
-      not on the GB network shown here. NI heating is estimated annually from
-      subnational consumption statistics shaped by NI degree days, and that
-      estimate now has a source: NIHE and BRE modelled NI domestic heat at
-      14.2 TWh (10,700 GWh primary space heating plus 3,500 GWh water) from the
-      House Condition Survey, which is within 2% of the figure this site was
-      already carrying.
-      <b>The annual figures behind every other series are UK totals from ECUK,
-      scaled to GB per fuel.</b> Until 17 August 2026 a single gas-network
-      factor of 0.985 was applied to all of them, which is a statement about
-      the GB gas grid and does not transfer. It was wrong for oil, where
-      NI holds a far larger share than its population: NIHE put NI oil heat at
-      10.8 TWh on a 2016 basis, and the Irish sibling site estimates 8.3 TWh on
-      a trailing twelve months — not a conflict but nine years apart, with
-      NISRA showing the oil share of NI homes falling from 68% to 61% over that
-      period. On the current basis NI holds about 17% of UK oil heat, so the
-      shares are now per fuel: gas 0.988, <b>oil 0.830</b>, solid fuel 0.893,
-      everything else the household share of 0.972†. GB oil heat falls
-      about 16%. Found in peer review.</p>
-    <p id="trendpara" style="display:none"><b>Trends.</b> <span id="trendnote">—</span></p>
-    <p><b>Indigenous share &amp; 20% what-if.</b> <span id="indignote">—</span></p>
-    <p><b>Calibration.</b> <span id="calib">—</span></p>
-    <div class="status" id="status"></div>
-    </div></details>
+  <!-- THE OLD PANEL 1 WENT ON 21 Nov 2026 - Simon. It opened the site with
+       "The starting point", eight stat tiles and a week's what-if, all of
+       which the new top card and the cost panel now do better and sooner.
+       Its two parts that were worth keeping - the energy balance and the
+       method fold behind it - moved to Appendix A at the foot of the page,
+       which is where the physics belongs once the economics has been made.
+       The tiles' writers are not deleted: they are rewired through gone(),
+       because they are spread across this file and several of them compute
+       figures that OTHER panels read. See the note on gone() above. -->
 
   <section id="costsection">
     <h1 class="sect" id="costhead" tabindex="-1">1. What heat costs now — and what geothermal would change</h1>
@@ -909,9 +733,9 @@
     <div class="billline" id="billline"></div>
     <div class="h2lab" id="hplab" hidden>What heat costs to make <span class="qual" id="hpbasislbl">— by route, wholesale commodity</span></div>
     <div class="trendbar" id="hpsvc" style="margin:8px 0 2px">
-      <button data-hs="space" aria-pressed="true">SPACE HEATING</button>
+      <button data-hs="space">SPACE HEATING</button>
       <button data-hs="dhw">HOT WATER</button>
-      <button data-hs="blend">AS DELIVERED</button>
+      <button data-hs="blend" aria-pressed="true">AS DELIVERED</button>
     </div>
     <!-- AT THE METER leads. A reader arriving from the top card has just
          been shown a bill, and this is the basis that answers it; wholesale
@@ -1117,6 +941,11 @@
       <button data-tw="730">24M</button>
       <button data-tw="1461">48M</button>
       <button data-tw="1826">60M</button>
+    </div>
+    <!-- The second estimate is a disputed line, not a tier. Its own control,
+         off by default - see the note where the trace is built. -->
+    <div class="trendbar" style="margin:2px 0 2px">
+      <button id="tieralt" aria-pressed="false">SHOW THE SECOND ESTIMATE</button>
     </div>
     <div id="tierdaily" style="height:300px;margin:10px 0 4px"></div>
     <button class="pngbtn" onclick="exportChart('tierdaily','Cooling day by day','what is delivered, and what is not')">⬇ PNG FOR SLIDES</button>
@@ -1563,6 +1392,150 @@
       </div>
   </section>
 
+  <!-- APPENDIX A, 21 Nov 2026. The energy balance is the mechanism behind
+       every money figure on this page: what is bought, what is delivered,
+       and the gap between them that a heat pump moves. It led the site for
+       months and led with its hardest idea. Moved here so the argument runs
+       cost -> cooling -> grid -> value first, and the physics is available
+       to the reader who wants to check it rather than imposed on the one
+       who does not. Nothing inside has changed. -->
+  <section id="appendixa">
+    <h1 class="sect" id="appendixahead" tabindex="-1">Appendix A: the physics
+      behind the economics</h1>
+    <p class="lede">Every figure on this page rests on one accounting: what
+      Britain buys, what it actually gets, and the gap between them. This is
+      that accounting, week by week.</p>
+    <div class="h2lab">The energy balance</div>
+    <div class="trendbar" id="balwin" style="margin:2px 0 10px">
+      <!-- Item 15. "AS BOUGHT" reads as a procurement term and gave no hint
+           that the pair is a comparison. "Today" against "With a geothermal
+           fifth" names both sides in the reader's own terms. -->
+      <button data-bw="now" aria-pressed="true">TODAY</button>
+      <button data-bw="wf">WITH A GEOTHERMAL FIFTH</button>
+    </div>
+    <div class="barlabel" id="balancesection">ENERGY IN — fuel &amp; electricity purchased<span id="barwin"></span></div>
+    <div class="barrow">
+      <div class="btot" id="tot_in">—</div>
+      <div class="track">
+        <div class="mixbar" id="mixbar" aria-label="This week's heat and cooling mix — energy in"></div>
+        <div class="ghostwrap" id="ghostwrap" aria-label="Energy no longer purchased — ground heat and avoided boiler losses"></div>
+      </div>
+    </div>
+    <div class="barlabel">USEFUL HEAT &amp; COOL OUT — after boiler losses, heat-pump harvest and cooling delivery</div>
+    <div class="barrow">
+      <div class="btot" id="tot_out">—</div>
+      <div class="mixbar" id="usebar" aria-label="This week's useful heat and cooling delivered"></div>
+    </div>
+    <div class="legendgrp"><span class="legendhdr">ENERGY IN</span>
+      <div class="legend" id="mixlegend"></div></div>
+    <div class="legendgrp"><span class="legendhdr">ENERGY OUT — USEFUL</span>
+      <div class="legend" id="uselegend"></div></div>
+    <div class="combline" id="combline"></div>
+    <button class="pngbtn" onclick="exportBars('The energy balance','what Britain bought for heat and cooling, and what it delivered')">⬇ PNG FOR SLIDES</button>
+  </div>
+
+    <details class="fold" id="fold_start"><summary>METHOD —
+      <b>where every number on this page comes from, and what it cannot see</b></summary>
+    <div class="foldbody">
+    <h2>The gas engine room: daily gas to buildings vs the heating signal</h2>
+    <div id="ts"></div>
+    <div class="burnbar" id="burnbar" aria-label="This week's buildings gas split"></div>
+    <div class="legend">
+      <span><span class="key" style="background:var(--ember)"></span><b>Space heating</b> (useful)</span>
+      <span><span class="key" style="background:repeating-linear-gradient(135deg,#b83f1e 0 4px,#7e2c15 4px 8px)"></span><b>Wasted at the boiler</b> (~15–17.5%)</span>
+      <span><span class="key" style="background:var(--ash)"></span><b>Non-weather gas to buildings</b> (hot water, cooking, industry on the distribution network)</span>
+    </div>
+    <h2>Method &amp; caveats</h2>
+    <p class="geosub" style="margin-bottom:10px">Full technical methodology — equations, calibration figures, limitations, and a table of corrections found and declared since v7: <a href="uk-heatsplit-methodology.pdf" style="color:var(--geo)">UK Heat Split: data sources and estimation methodology, v8 (PDF)</a>. Currently under peer review.</p>
+    <p style="color:var(--geo);font-size:15px;line-height:1.6">† Current
+      Causeway Energies estimate – challenge and input welcome at
+      <a href="mailto:contact@causewaygt.com" style="color:var(--geo)">contact@causewaygt.com</a>.</p>
+    <p><b>Gas (live).</b> Daily gas offtake to Britain's local distribution zones
+      (LDZ — the network serving homes and most businesses) is regressed against
+      population-weighted GB heating degree days (ERA5 reanalysis via Open-Meteo).
+      The temperature-sensitive component is attributed to space heating.
+      Directly-connected power stations are excluded. Approach follows the
+      published Watson/Sansom method. Current fit: <span id="fit">—</span>.</p>
+    <p><b>Everything else (shaped annual).</b> Oil, electric heating, bioenergy,
+      heat networks, solid fuel and cooling take their annual levels from the
+      DESNZ ECUK 2025 End Use tables (calendar 2024) and are distributed across
+      the year by heating/cooling degree days. They do not respond to live grid
+      data. Cooling is the weakest element: the ECUK figure combines cooling and
+      ventilation, split here 50% flat / 50% weather-shaped by assumption, and UK
+      cooling demand is poorly measured. Electric heating counts the electricity
+      into heat pumps, not the ambient heat they harvest — so the useful heat
+      delivered by heat pumps is understated for now.</p>
+    <p><b>The two bars.</b> The top bar is final energy — fuel and electricity
+      purchased. The bottom bar is useful heat and cooling delivered: combustion
+      derated by measured in-situ efficiencies (gas 83.5%, oil 82%, bio 70%,
+      solid 55% — the last three are estimates), heat networks shown at delivered
+      heat, resistive electric at 100%, heat pumps multiplied by a blended SPF of
+      2.8 (Electrification of Heat, 742 metered homes) with the harvested ambient heat
+      shown in teal, and the weather-driven half of cooling multiplied by an
+      assumed EER of 3. Heat-pump electricity is the ECUK 2025 domestic figure
+      (2.0 TWh, 2024); non-domestic heat pumps are not yet counted, so the teal
+      segment is understated.</p>
+    <p><b>Boiler efficiency, by end use.</b> Space heating and hot water are
+      converted at <b>different</b> efficiencies. A boiler serving only a
+      cylinder fires in short bursts, cools between them, and returns water
+      above the condensing dewpoint, losing its latent recovery: gas is 0.835
+      for space heating and <b>0.73</b> for hot water, oil 0.82 and
+      <b>0.71</b>. Both hot-water figures are the mean SAP 2012 Table 4b
+      summer/winter ratio applied to the in-situ winter anchor, and SAP applies
+      the summer figure to hot water in every month, not seasonally. Summer
+      runs 82–89% of winter across that table. Bioenergy and solid fuel keep
+      a single figure, because Table 4b does not cover them. The effect is that
+      the effective gas efficiency now moves with the season — about 0.81 in
+      January and 0.74 in July, when the load is almost all hot water.</p>
+    <p><b>Known biases.</b> Hot-water heating is treated as flat but is mildly
+      seasonal (colder mains water in winter), so gas space heating carries a
+      small upward bias. Table 4b is SAP’s fallback for boilers absent from
+      the Product Characteristics Database, so it is conservative and skewed to
+      older plant; a PCDB-weighted fleet figure would beat it. Table 4c deducts
+      5 points where a regular boiler has no interlock, which is not applied
+      here.</p>
+    <p><b>Geothermal panel.</b> Today's heat figure is anchored on the EGEC
+      2025 UK Country Update (1,430 GWhth/yr from ~55,210 GSHP units,
+      847–861 MWth installed — a 2023 estimate from sales data; the
+      Environment Agency's 2024 review suggests only ~30–38k of those units
+      may be operational, hence the 1.4–2.0 range) plus ~0.07 TWh/yr from
+      mine-water, deep and open-loop district schemes. No national metering
+      or single register of ground-source systems exists; cooling is anchored
+      only on 11 ATES systems (~8 MWth cold) and historic Southampton data.
+      Forward bars are third-party pathways (CCC, Project InnerSpace/REA/ARUP)
+      or explicitly flagged Causeway derivations, not predictions. The 2031
+      bar carries a range of roughly 3.5–6 TWh/yr. If the NI DfE licensing
+      proposals (consultation to 7 Aug 2026; heat below 100&nbsp;m depth)
+      proceed, the resulting register with published system performance would
+      be the UK's first mandatory geothermal data source — this panel is
+      designed to ingest it from ~2027.</p>
+    <p><b>Northern Ireland, and the UK-to-GB step.</b> NI is
+      not on the GB network shown here. NI heating is estimated annually from
+      subnational consumption statistics shaped by NI degree days, and that
+      estimate now has a source: NIHE and BRE modelled NI domestic heat at
+      14.2 TWh (10,700 GWh primary space heating plus 3,500 GWh water) from the
+      House Condition Survey, which is within 2% of the figure this site was
+      already carrying.
+      <b>The annual figures behind every other series are UK totals from ECUK,
+      scaled to GB per fuel.</b> Until 17 August 2026 a single gas-network
+      factor of 0.985 was applied to all of them, which is a statement about
+      the GB gas grid and does not transfer. It was wrong for oil, where
+      NI holds a far larger share than its population: NIHE put NI oil heat at
+      10.8 TWh on a 2016 basis, and the Irish sibling site estimates 8.3 TWh on
+      a trailing twelve months — not a conflict but nine years apart, with
+      NISRA showing the oil share of NI homes falling from 68% to 61% over that
+      period. On the current basis NI holds about 17% of UK oil heat, so the
+      shares are now per fuel: gas 0.988, <b>oil 0.830</b>, solid fuel 0.893,
+      everything else the household share of 0.972†. GB oil heat falls
+      about 16%. Found in peer review.</p>
+    <p id="trendpara" style="display:none"><b>Trends.</b> <span id="trendnote">—</span></p>
+    <p><b>Indigenous share &amp; 20% what-if.</b> <span id="indignote">—</span></p>
+    <p><b>Calibration.</b> <span id="calib">—</span></p>
+    <div class="status" id="status"></div>
+    </div></details>
+
+  </section>
+
   <h1 class="sect" style="margin-top:44px">Footnotes</h1>
 
   <section>
@@ -1666,8 +1639,9 @@
 </div></footer>
 
 <nav class="backnav" id="backnav" aria-label="Back to top sections">
-  <button type="button" data-to="front"><b>&uarr;</b>The case</button>
-  <button type="button" data-to="startline"><b>&uarr;</b>The starting point</button>
+  <!-- "The starting point" went with the old panel 1 on 21 Nov 2026. The
+       jump target is the cost panel, which is now where the reader starts. -->
+  <button type="button" data-to="costhead"><b>&uarr;</b>What heat costs</button>
 </nav>
 
 <script>
@@ -1675,13 +1649,22 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.6.1';
+const SITE_VERSION = '9.7.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
 });
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const fmt = n => Math.round(n).toLocaleString('en-GB');
+// NULL-SAFE ELEMENT ACCESSOR, for markup that has been deleted but whose
+// writers remain. The old panel 1 went on 21 Nov 2026 - its eight stat tiles,
+// their captions and the peak context line - and those were written from
+// about fifteen call sites scattered through this file, none of them guarded.
+// Returning a throwaway object lets an assignment land harmlessly instead of
+// throwing at the first one and taking the whole page down with it.
+// USE THIS ONLY for ids that are deliberately absent. Anywhere the code needs
+// to KNOW whether an element exists, keep document.getElementById and test it.
+const gone = id => document.getElementById(id) || {};
 
 // ---- chart export: presentation PNG on white -------------------------------
 // Screenshots of a dark dashboard transfer badly to slides and to LinkedIn.
@@ -2221,17 +2204,17 @@ fetch('data.json').then(r=>r.json()).then(d=>{
     const totalOut = u ? (u.total_GWh || 1) : 0;
     const scale = Math.max(totalIn, totalOut);
 
-    document.getElementById('st_energy').textContent = fmt(totalIn);
+    gone('st_energy').textContent = fmt(totalIn);
     const hh = d.headlines;
     if(hh && hh.indigenous_pct != null){
-      document.getElementById('st_indig').textContent = hh.indigenous_pct + '%';
+      gone('st_indig').textContent = hh.indigenous_pct + '%';
       if(hh.heat_GWh != null && hh.cooling_GWh != null){
         // Ventilation is named SEPARATELY from 17 Aug 2026. It was previously
         // folded into "cooling", which made this headline and the cooling
         // panel use one word for two quantities - the panel excludes
         // ventilation entirely, because fans move air rather than heat.
         // The three must still sum to the purchased total.
-        document.getElementById('st_energy_cap').textContent =
+        gone('st_energy_cap').textContent =
           'GWh of heating & cooling energy purchased this week (heat ' +
           fmt(hh.heat_GWh) + ' \u00b7 cooling ' + fmt(hh.cooling_GWh) +
           (hh.ventilation_GWh != null
@@ -2239,31 +2222,31 @@ fetch('data.json').then(r=>r.json()).then(d=>{
       }
     }
     if(d.cost && d.cost.national_week_total_Mgbp != null){
-      document.getElementById('st_bill').textContent =
+      gone('st_bill').textContent =
         '£' + fmt(d.cost.national_week_total_Mgbp) + 'm';
       if(d.cost.national_week_heat_Mgbp != null){
-        document.getElementById('st_bill_cap').textContent =
+        gone('st_bill_cap').textContent =
           'national bill this week (heat £' + fmt(d.cost.national_week_heat_Mgbp) +
           'm · cooling £' + fmt(d.cost.national_week_cool_Mgbp) + 'm)';
       }
     }
     if(d.carbon && d.carbon.week_kt != null){
-      document.getElementById('st_carbon').textContent =
+      gone('st_carbon').textContent =
         fmt(d.carbon.week_kt) + ' kt';
-      document.getElementById('st_carbon_cap').textContent =
+      gone('st_carbon_cap').textContent =
         'heating & cooling emissions this week (CO2e; heat ' +
         fmt(d.carbon.week_heat_kt) + ' kt · cooling ' +
         fmt(d.carbon.week_cool_kt) + ' kt)';
     }
     if(hh && hh.whatif_20pct_geothermal){
       const w = hh.whatif_20pct_geothermal;
-      document.getElementById('wf_energy').textContent = fmt(w.purchased_GWh);
+      gone('wf_energy').textContent = fmt(w.purchased_GWh);
       if(w.heat_GWh != null && w.cooling_GWh != null){
         // The route's OWN electricity is named, so the saving can be seen to
         // be NET rather than gross. It is inside the what-if bill already -
         // but a difference of two bills does not show its own workings, and
         // "is this net?" is the first question a reader should ask.
-        document.getElementById('wf_energy_cap').textContent =
+        gone('wf_energy_cap').textContent =
           'GWh purchased (heat ' + fmt(w.heat_GWh) + ' \u00b7 cooling ' +
           fmt(w.cooling_GWh) + ' \u00b7 saves ' +
           fmt(hh.purchased_GWh - w.purchased_GWh) +
@@ -2272,11 +2255,11 @@ fetch('data.json').then(r=>r.json()).then(d=>{
           + ' of electricity the geothermal route itself buys; '
           + 'the ground supplies the rest free';
       }
-      document.getElementById('wf_indig').textContent =
+      gone('wf_indig').textContent =
         (w.indigenous_pct != null ? w.indigenous_pct + '%' : '—');
-      document.getElementById('wf_bill').textContent = '£' + fmt(w.bill_Mgbp) + 'm';
+      gone('wf_bill').textContent = '£' + fmt(w.bill_Mgbp) + 'm';
       if(w.bill_heat_Mgbp != null && w.bill_cool_Mgbp != null){
-        document.getElementById('wf_bill_cap').textContent =
+        gone('wf_bill_cap').textContent =
           'national bill (heat \u00a3' + fmt(w.bill_heat_Mgbp) +
           'm \u00b7 cooling \u00a3' + fmt(w.bill_cool_Mgbp) + 'm' +
           (d.cost && d.cost.national_week_total_Mgbp != null
@@ -2285,9 +2268,9 @@ fetch('data.json').then(r=>r.json()).then(d=>{
               'm this week' : '') + ')';
       }
       if(d.carbon && d.carbon.whatif_20pct_kt != null){
-        document.getElementById('wf_carbon').textContent =
+        gone('wf_carbon').textContent =
           fmt(d.carbon.whatif_20pct_kt) + ' kt';
-        document.getElementById('wf_carbon_cap').textContent =
+        gone('wf_carbon_cap').textContent =
           'emissions (' + (d.carbon.whatif_heat_kt != null
             ? 'heat ' + fmt(d.carbon.whatif_heat_kt) + ' \u00b7 cooling ' +
               fmt(d.carbon.whatif_cool_kt) + ' kt \u00b7 ' : '') +
@@ -3531,7 +3514,7 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
   })();
 
   if(d.peak_week){
-    document.getElementById('peakctx').textContent =
+    gone('peakctx').textContent =
       'For scale: last winter\'s peak week (w/e ' + d.peak_week.week_ending +
       ') burned ~' + fmt(d.peak_week.space_heat_GWh) + ' GWh of gas for space heating alone.';
   }
@@ -3933,7 +3916,11 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
                     1826:'the last sixty months'};
     const tot = a => (a || []).reduce((s_, v) => s_ + (v || 0), 0);
 
+    // CURW is remembered so the second-estimate toggle can redraw the window
+    // the reader is actually looking at rather than resetting it.
+    let ALT = false, CURW = 365;
     function drawTiers(tw){
+      CURW = tw;
       const n = Math.min(tw, HAVE);
       const cut = a => (a || []).slice(-n);
       const dates = cut(td.dates);
@@ -3951,7 +3938,16 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
         marker: {color: r[2], line: {width: 0}},
         hovertemplate: '%{x}<br>%{y:.1f} GWh thermal<extra>' + r[0] + '</extra>'
       }));
-      if(has(cut(td.t1_alt_GWh))){
+      // THE SECOND ESTIMATE IS OFF BY DEFAULT since 21 Nov 2026 - Simon, on
+      // the grounds that it remains speculative. It is an independent
+      // regression whose 95% interval, refitted on five summers on 20 Nov
+      // 2026, now runs 63-88% of the ECUK anchor and therefore EXCLUDES it:
+      // the two estimators disagree rather than corroborating each other.
+      // Drawing a disputed line over the published bars by default invites a
+      // reader to average them, which is the one thing the disagreement says
+      // they must not do. It stays available because the disagreement is a
+      // real finding and hiding it would be worse than showing it.
+      if(ALT && has(cut(td.t1_alt_GWh))){
         traces.push({
           x: dates, y: cut(td.t1_alt_GWh),
           name: 'Whole equipped fleet \u00b7 second estimate',
@@ -4182,14 +4178,20 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
             'Tier 0 process cooling', null,
             'cold stores, data centres, food retail \u2014 flat all year and ' +
             'four times the rest, so not plotted\u2020') +
-        (has(td.t1_alt_GWh)
+        // ONLY WHEN IT IS DRAWN, and it says that the two estimates
+        // DISAGREE. Compressing this entry on 21 Nov 2026 left it reading
+        // "74% of the anchor", which sounds like broad agreement. The 20 Nov
+        // refit puts the interval at 63-88%, which EXCLUDES 100% - the
+        // estimators contradict each other, and that is the whole reason the
+        // line is worth a toggle rather than a quiet default.
+        (ALT && has(td.t1_alt_GWh)
           ? key(css('--paper') + ';height:2px;margin-top:5px',
                 'Second estimate', null,
                 'an independent read of the <b>whole</b> equipped load, not ' +
-                'another tier: ' + uf.annual_TWh.toFixed(2) + ' TWh a year (' +
-                uf.annual_TWh_lo.toFixed(2) + '\u2013' +
-                uf.annual_TWh_hi.toFixed(2) + '), ' +
-                uf.share_of_ecuk_anchor_pct + '% of the anchor\u2020')
+                'another tier: ' + uf.annual_TWh.toFixed(2) + ' TWh a year, ' +
+                uf.share_lo_pct + '\u2013' + uf.share_hi_pct + '% of the ' +
+                'anchor. <b>That interval excludes the anchor</b>, so the two ' +
+                'estimates disagree \u2014 do not average them\u2020')
           : '') +
         '</div>';
       document.getElementById('tierdailynote').textContent = '';
@@ -4217,6 +4219,16 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     // payload, and promotes itself to 60M on its own once the archive is
     // rebuilt. Same rule as the panel above: a number the page states about a
     // span it does not read is a number that will drift.
+    // The second estimate's latching toggle. Off until asked for.
+    const altbtn = document.getElementById('tieralt');
+    if(altbtn){
+      if(!has(td.t1_alt_GWh)) altbtn.style.display = 'none';
+      altbtn.addEventListener('click', () => {
+        ALT = !ALT;
+        altbtn.setAttribute('aria-pressed', String(ALT));
+        drawTiers(CURW);
+      });
+    }
     const PREF = [1826, 1461, 730, 365];
     const start = PREF.find(w => HAVE >= w) || 365;
     bar.querySelectorAll('button').forEach(x =>
@@ -4504,7 +4516,14 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     // two by the mix actually being served that day, and is the only one that
     // moves with the load. Gas differs by service too, since a cylinder
     // boiler loses its latent recovery.
-    let SVC = 'space';
+    // AS DELIVERED by default since 21 Nov 2026 - Simon. It is the only one
+    // of the three that moves with the load: space heating and hot water
+    // blended by the mix actually being served each day. A reader landing on
+    // the panel in July on the SPACE HEATING view was being shown a price for
+    // something almost nobody was buying that month. It also costs the heat
+    // pumps their best case, which is the right default for a site arguing
+    // for them.
+    let SVC = 'blend';
     // AT THE METER by default since 21 Nov 2026 - see the markup note.
     let BASIS = 'retail';
     // The resistive ceiling is OFF until asked for.
@@ -5337,7 +5356,7 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       : [];
     if(hist.length < 2) return;
     const els = [...document.querySelectorAll('.trend')];
-    const ctl = document.getElementById('trendctl');
+    const ctl = gone('trendctl');
     ctl.hidden = false;
 
     // Money stops at the price-cap table. Before it households were on the
@@ -5345,7 +5364,7 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     // a null bill; the bill trend must not read a null as zero.
     const pricedFrom = d.history_priced_from || null;
     const annualTo = d.history_annual_price_to || null;
-    document.getElementById('trendspan').textContent =
+    gone('trendspan').textContent =
       '· ' + hist.length + ' wks on record · what-if in green' +
       (pricedFrom && hist[0].week_ending < pricedFrom
         ? ' · bills from ' + pricedFrom : '');
