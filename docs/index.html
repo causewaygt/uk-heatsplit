@@ -351,6 +351,49 @@
          color:var(--muted);margin-top:10px}
   .sckey i{width:10px;height:10px;border-radius:2px;display:inline-block;
            margin-right:6px;vertical-align:-1px}
+  /* ---- 25-year CDD record, 21 Nov 2026 ----------------------------- */
+  /* Chart left, figures right, because the two halves say different
+     things: the bars are the trend and the figures are where it has got
+     to. Vertical bars at 110px rather than the panel's usual 300 - a
+     quarter-century of one number a year needs height for the shape, not
+     for precision, and the panel cannot spare more. */
+  .cddblk{display:grid;grid-template-columns:1fr 212px;gap:26px;
+          align-items:start;margin:14px 0 0}
+  @media (max-width:860px){.cddblk{grid-template-columns:1fr;gap:18px}}
+  .cddplot{position:relative;height:150px;display:flex;align-items:flex-end;
+           gap:2px;border-bottom:1px solid var(--line)}
+  .cddcol{flex:1 1 0;position:relative;display:flex;flex-direction:column;
+          justify-content:flex-end;height:100%;min-width:0}
+  .cddbar{width:100%;border-radius:2px 2px 0 0;background:var(--cool)}
+  .cddbar.hot{background:var(--ember)}
+  /* The mean of the earlier years, drawn across the whole plot: the bars
+     that break it are the finding, so the rule has to be visible over the
+     fill rather than under it. */
+  .cddmean{position:absolute;left:0;right:0;height:1px;
+           background:var(--paper);opacity:.55}
+  /* The mean's label lives UNDER the axis, not on the rule. On the rule it
+     has to sit somewhere along a line that bars cross at both ends, and in
+     the first build it landed on top of the two tallest years. */
+  .cddax{display:flex;gap:2px;margin-top:5px}
+  .cddax span{flex:1 1 0;font-family:"JetBrains Mono",monospace;font-size:10px;
+              color:var(--muted);text-align:center;min-width:0;
+              white-space:nowrap;overflow:visible}
+  .cddkey{display:flex;gap:15px;flex-wrap:wrap;font-size:11.5px;
+          color:var(--muted);margin-top:9px;align-items:center}
+  .cddkey i{width:10px;height:10px;border-radius:2px;display:inline-block;
+            margin-right:6px;vertical-align:-1px}
+  .cddkey i.rule{height:0;border-top:1px solid var(--paper);opacity:.8;
+                 width:14px;border-radius:0;vertical-align:3px}
+  .cddpk{position:absolute;left:50%;transform:translate(-50%,-14px);
+         font-family:"JetBrains Mono",monospace;font-size:10px;
+         color:var(--paper);white-space:nowrap}
+  .cddfig{border-left:2px solid var(--line);padding-left:13px;
+          margin-bottom:16px}
+  .cddfig:last-child{margin-bottom:0}
+  .cddfig .fv{font-family:"JetBrains Mono",monospace;font-size:22px;
+              color:var(--paper);line-height:1.1}
+  .cddfig .ft{font-size:12px;line-height:1.4;color:var(--paper);margin-top:4px}
+  .cddfig .fs{font-size:11px;line-height:1.35;color:var(--muted);margin-top:3px}
   /* ---- cooling panel, 21 Nov 2026 ---------------------------------- */
   /* Four context facts, promoted out of the fold. A grid rather than a list
      because they are peers - none is the headline - and because at this
@@ -966,6 +1009,18 @@
     <p class="lede" id="coollede">—</p>
     <div class="coolctx" id="coolctx"></div>
 
+    <!-- THE ONE LONG SERIES THIS PANEL CAN HONESTLY DRAW. The tiers below
+         are deterministic functions of one day's weather, so sixty months
+         of them show five summers and cannot show the fleet growing. The
+         weather itself is a real record with a real trend and needs no
+         assumption about install base - see scripts/cdd_history.py. Drawn
+         from docs/cdd_history.json, every figure computed on render. -->
+    <div class="h2lab" style="margin-top:26px" id="cddlab">What the climate is
+      asking for <span class="qual">— a quarter-century of GB cooling
+      degree-days</span></div>
+    <div id="cddblk"></div>
+    <p class="costnote" id="cddnote"></p>
+
     <!-- WHAT THE HEADING PROMISES. The panel is called "and geothermal's
          role" and before 21 Nov 2026 it never priced it once. Read from the
          same cost table panel 1 draws, so the two panels cannot diverge. -->
@@ -1016,6 +1071,11 @@
          derivations belong in the methodology statement, and what belongs
          here is why the figures behave the way they do. The method sections
          that follow were already good and are kept intact underneath. -->
+
+    <!-- Written by the degree-day block, so the provenance and the
+         cross-check cannot say one thing here and another on the face. -->
+    <p class="costnote" id="cddfold" hidden></p>
+
     <p class="costnote"><b>Why nobody can just measure national cooling.</b>
       Cooling is electricity, and electricity all looks the same on a meter.
       A chiller running in an office is indistinguishable from a kettle
@@ -1813,7 +1873,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.10.0';
+const SITE_VERSION = '9.11.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -3987,6 +4047,7 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       '% round trip, taking cover to <b>100%</b>. ' +
       '<b>The store is what makes a constant source a seasonal one</b>†.';
   })();
+
 
   // ---- cooling panel lead, on the YEAR ------------------------------------
   // Every weekly figure in this panel is zero from about October to April.
@@ -6607,6 +6668,214 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       'validation.';
   })();
 }).catch(()=>{document.getElementById('stamp').textContent='data.json not found — run the workflow once';});
+
+  // ---- the 25-year cooling degree-day record ------------------------------
+  // WHY THIS IS THE ONLY LONG CHART ON THIS PANEL. Every tier below is a
+  // fixed coefficient times one day's weather, so a sixty-month window of
+  // them is five summers of weather wearing the costume of a time series.
+  // The weather on its own is a real record: ERA5 reaches back to 1940 and
+  // needs no assumption about how much plant exists. So this draws what the
+  // panel can actually evidence over a quarter-century - how much cooling
+  // the CLIMATE has been asking for - and leaves the install base alone.
+  //
+  // Nothing here is typed. The mean, the trend between halves, the record
+  // year and every ratio are computed from the file on render, because a
+  // number the page states about a series it does not read is a number that
+  // will drift. Its own fetch, outside the data.json chain: that chain ends
+  // in a .catch() that replaces the header stamp, so an exception in here
+  // would be reported to the reader as a missing payload.
+  (() => {
+    const box = document.getElementById('cddblk');
+    const lab = document.getElementById('cddlab');
+    const note = document.getElementById('cddnote');
+    if(!box) return;
+    const hide = () => {
+      box.hidden = true;
+      if(lab) lab.hidden = true;
+      if(note) note.hidden = true;
+    };
+    const BASE = '15.5', HOT = '20.0';   // the page's base, and its hot tail
+
+    // THE CROSS-CHECK IS COMPUTED, NOT CLAIMED. This chart's annual totals
+    // and the daily series the rest of the site runs on are built by two
+    // different scripts from the same archive, and the whole credibility of
+    // a bar 1.5x the previous record rests on them agreeing. Stating an
+    // agreement measured once by hand is the failure this page has a rule
+    // against, so the overlap is re-measured on every render and the
+    // sentence reports whatever it finds - including a disagreement. If
+    // daily.json will not load, the claim is dropped rather than asserted.
+    const daily = fetch('daily.json')
+      .then(r => r.ok ? r.json() : null).catch(() => null);
+
+    fetch('cdd_history.json').then(r => {
+      if(!r.ok) throw new Error('no cdd_history.json');
+      return r.json();
+    }).then(d => Promise.all([d, daily])).then(([d, dj]) => {
+      const S = d.bases && d.bases[BASE];
+      if(!S) throw new Error('base ' + BASE + ' not in cdd_history.json');
+      const dpy = d.days_per_year || {};
+      const yrs = Object.keys(S).sort((a, b) => +a - +b);
+      if(yrs.length < 10) throw new Error('too few years to draw');
+      const cur = yrs[yrs.length - 1];
+      const thru = String(d.through || '');
+
+      // IS THE LAST YEAR COMPARABLE? Cooling degree-days accrue between
+      // about May and September: on the daily series behind this site not
+      // one of the last five years put a single CDD past 15 November. So a
+      // record running to mid-November is complete for cooling even at 319
+      // days, and marking it partial would be the misleading choice. A run
+      // in, say, July is a different matter, hence the test rather than an
+      // assumption: the bar is flagged when the record stops before October.
+      const partial = thru.slice(0, 4) === cur && thru.slice(5) < '10-01';
+
+      // Reference set: every year before the current one that is complete.
+      // The current year is excluded from its own comparison.
+      const ref = yrs.slice(0, -1).filter(y => (dpy[y] || 365) >= 360);
+      if(!ref.length) throw new Error('no complete reference years');
+      const rv = ref.map(y => S[y]);
+      const mean = rv.reduce((a, b) => a + b, 0) / rv.length;
+      const rec = Math.max(...rv);
+      const recy = ref[rv.indexOf(rec)];
+
+      // Two halves rather than a fitted slope. A regression line is a
+      // thing the chart would state and not draw, and its slope is the
+      // most fragile number in the file; the difference between the first
+      // and second halves of the record needs no fit at all.
+      const h = Math.floor(ref.length / 2);
+      const m1 = rv.slice(0, h).reduce((a, b) => a + b, 0) / h;
+      const m2 = rv.slice(h).reduce((a, b) => a + b, 0) / (ref.length - h);
+      // Headroom. The tallest bar carries its own value above it, so the
+      // scale runs a quarter past the maximum rather than to it - at full
+      // height that label is drawn outside the plot box and clipped, which
+      // loses precisely the number the chart exists to show.
+      const top = Math.max(...yrs.map(y => S[y])) * 1.25;
+      const span = ref[0] + '–' + ref[ref.length - 1];
+      const degC = b => String(b).replace(/\.0$/, '') + '&nbsp;°C';
+
+      // The hot tail, if the file carries that base: how much of the year
+      // sits well above the comfort base rather than just past it.
+      let tail = '';
+      const H = d.bases[HOT];
+      if(H && H[cur] != null){
+        const hr = ref.filter(y => H[y] != null);
+        if(hr.length){
+          const hm = hr.reduce((a, y) => a + H[y], 0) / hr.length;
+          const nil = hr.filter(y => H[y] < 1).length;
+          tail = ' Above ' + degC(HOT) + ', where cooling stops being ' +
+            'optional: <b>' + fmt(H[cur]) + '</b> against a mean of ' +
+            fmt(hm) + ', and ' + nil + ' of those ' + hr.length +
+            ' years had none at all.';
+        }
+      }
+
+      box.innerHTML =
+        '<div class="cddblk"><div>' +
+          '<div class="cddplot">' +
+            '<div class="cddmean" style="bottom:' +
+              (100 * mean / top).toFixed(2) + '%"></div>' +
+            yrs.map(y => {
+              const v = S[y], hot = v > mean, show = y === cur || y === recy;
+              return '<div class="cddcol" title="' + y + ': ' + v.toFixed(0) +
+                ' CDD">' +
+                (show ? '<div class="cddpk" style="bottom:' +
+                  (100 * v / top).toFixed(2) + '%">' + v.toFixed(0) +
+                  '</div>' : '') +
+                '<div class="cddbar' + (hot ? ' hot' : '') + '" style="height:' +
+                  Math.max(1, 100 * v / top).toFixed(2) + '%' +
+                  (y === cur && partial ? ';opacity:.55' : '') +
+                '"></div></div>';
+            }).join('') +
+          '</div>' +
+          // Every fifth year only. The current year is named by the figure
+          // beside the chart and by the value above its own bar, and
+          // labelling it here collides with the five-year mark whenever it
+          // lands next to one - as 2026 does.
+          '<div class="cddax">' + yrs.map(y =>
+            '<span>' + (+y % 5 === 0 ? y : '') + '</span>').join('') +
+          '</div>' +
+          '<div class="cddkey">' +
+            '<span><i class="rule"></i>' + fmt(mean) + ' CDD, the ' + span +
+              ' mean</span>' +
+            '<span><i style="background:' + css('--ember') +
+              '"></i>years above it</span>' +
+            '<span><i style="background:' + css('--cool') +
+              '"></i>years below</span>' +
+          '</div>' +
+        '</div><div>' +
+          fig((m2 > m1 ? '+' : '') + Math.round(100 * (m2 / m1 - 1)) + '%',
+              'mean cooling degree-days, ' + ref[h] + '–' +
+              ref[ref.length - 1] + ' against ' + ref[0] + '–' + ref[h - 1],
+              fmt(m1) + ' rising to ' + fmt(m2) + ' — two halves of the ' +
+              'record, with no trend line fitted.') +
+          fig((S[cur] / mean).toFixed(1) + '×',
+              cur + ' against that mean' + (partial ? ', part year' : ''),
+              'Also <b>' + (S[cur] / rec).toFixed(2) + '×</b> the highest ' +
+              'year before it (' + recy + ', ' + fmt(rec) + ').' + tail) +
+        '</div></div>';
+
+      // Re-derive the annual totals from the site's own daily temperatures
+      // and report the worst disagreement found. Only whole years both
+      // series cover are compared - a year the daily file starts partway
+      // through would show a difference that is not an error.
+      let agree = '';
+      if(dj && Array.isArray(dj.dates) && Array.isArray(dj.gb_mean_temp)){
+        const sum = {}, n = {};
+        dj.dates.forEach((dt, i) => {
+          const t = dj.gb_mean_temp[i];
+          if(t == null) return;
+          const y = String(dt).slice(0, 4);
+          sum[y] = (sum[y] || 0) + Math.max(0, t - +BASE);
+          n[y] = (n[y] || 0) + 1;
+        });
+        const both = Object.keys(sum).filter(y =>
+          S[y] != null && n[y] >= (dpy[y] || 365) - 1);
+        if(both.length){
+          const worst = Math.max(...both.map(y => Math.abs(sum[y] - S[y])));
+          agree = ' Re-derived from the daily temperatures this site ' +
+            'already publishes, the ' + (both.length === 1 ? 'one year both ' +
+            'series cover agrees' : both.length + ' years both series cover ' +
+            'agree') + ' to within <b>' + worst.toFixed(1) + ' CDD</b>' +
+            (worst < 1 ? ' — the two cannot drift apart unseen.' : '.');
+        }
+      }
+
+      // The face carries the one thing a reader must not misread; the
+      // provenance and the cross-check go to the fold. Four lines of small
+      // print under a chart this compact is the prose the panel has twice
+      // been told to shed.
+      if(note) note.innerHTML =
+        '<b>This is the weather, not the demand</b> — what the climate asked ' +
+        'for, not what was installed to answer it. The tiers below are the ' +
+        'attempt at that, and the gap is this panel’s subject†.';
+
+      const fold = document.getElementById('cddfold');
+      if(fold){
+        fold.hidden = false;
+        fold.innerHTML =
+          '<b>Why the quarter-century chart is weather and not demand.</b> ' +
+          'Every tier on the chart below it is a fixed coefficient times one ' +
+          'day’s weather, so a long window of tiers shows a handful of ' +
+          'summers and cannot show the cooling fleet growing — the thing a ' +
+          'reader would most want a long chart to tell them. The weather on ' +
+          'its own has no such problem: it is a measured record that needs ' +
+          'no assumption about how much plant exists, so it is the one ' +
+          'series this panel can honestly draw over ' + yrs.length +
+          ' years. It is degree-days above ' + degC(BASE) + ' on ' +
+          'population-weighted GB daily mean temperature, twelve points — ' +
+          'the base and the weighting every other cooling figure here uses ' +
+          '— from the ERA5 reanalysis via open-meteo, ' + yrs[0] + ' to ' +
+          (thru || cur) + '.' + agree + ' Reading it the other way round, ' +
+          'as a demand series, would double-count the growth of the fleet ' +
+          'against the warming of the climate.';
+      }
+
+      function fig(v, t, s){
+        return '<div class="cddfig"><div class="fv">' + v + '</div>' +
+          '<div class="ft">' + t + '</div>' +
+          '<div class="fs">' + s + '</div></div>';
+      }
+    }).catch(() => hide());
+  })();
 
 // ===== measured SPF evidence (sub-block of the COP method fold) ==========
 // Jonny Walker asked whether there is any analysis of international
