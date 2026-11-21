@@ -341,14 +341,14 @@
      surplus that charges the store. Same picture read twice, which is the
      whole argument in one shape. */
   .scwrap{margin:12px 0 0}
-  .scrow{display:grid;grid-template-columns:34px 1fr 70px;gap:10px;
-         align-items:center;margin-bottom:4px}
+  .scrow{display:grid;grid-template-columns:30px 1fr 64px;gap:9px;
+         align-items:center;margin-bottom:2px}
   .scm{font-family:"JetBrains Mono",monospace;font-size:11px;
        color:var(--muted);text-align:right}
-  .sct{position:relative;height:17px;background:rgba(255,255,255,.03);
+  .sct{position:relative;height:15px;background:rgba(255,255,255,.03);
        border-radius:2px}
-  .scbar,.scfill{position:absolute;top:0;height:17px;border-radius:2px}
-  .scsrc{position:absolute;top:-3px;width:2px;height:23px;
+  .scbar,.scfill{position:absolute;top:0;height:15px;border-radius:2px}
+  .scsrc{position:absolute;top:-3px;width:2px;height:21px;
          background:var(--paper);opacity:.85}
   .scv{font-family:"JetBrains Mono",monospace;font-size:11.5px;
        color:var(--muted);text-align:right}
@@ -438,6 +438,11 @@
      read against each other, not off a scale. */
   .useasons{display:grid;grid-template-columns:1fr 1fr;gap:26px;
             align-items:start}
+  /* In the half-width column of panel 3 the two seasons stack instead,
+     and the bar tracks come in again to match. */
+  .storesplit .useasons{grid-template-columns:1fr;gap:0}
+  .storesplit .useasons .crow{grid-template-columns:116px 1fr 68px;gap:8px}
+  .storesplit .useason{margin-bottom:10px}
   @media (max-width:860px){.useasons{grid-template-columns:1fr;gap:4px}}
   .useasons .crow{grid-template-columns:134px 1fr 74px;gap:9px;
                   margin-bottom:7px}
@@ -1200,9 +1205,8 @@
   <section id="storagesection">
     <h1 class="sect" id="storagehead" tabindex="-1">3. The potential for
       storing heat underground</h1>
-    <p class="lede">Heat is awkward because it is wanted in January and
-      produced all year. The ground is the only store large enough and cheap
-      enough to hold a season of it.</p>
+    <p class="lede">Heat is wanted in January and produced all year, and the
+      ground is the only store big enough to hold a season of it.</p>
     <!-- UTES, AS A DECOMPOSITION - NOT AN ADDITION. The store's benefit is
          already inside the network route: retro.py sets its source to 19.6 C
          and says why ("UTES and intermediate-doublet blend, NOT virgin
@@ -1219,23 +1223,34 @@
     <!-- Heading written by the block below, from the same SCOPs the bars
          use. The fallback text here is what shows if the air-source figure
          cannot be computed - never a typed percentage. -->
-    <div class="h2lab" style="margin-top:28px" id="uteshead">What the store is
-      worth <span class="qual">— one loop, two seasons, counted once</span></div>
-    <div id="utesdecomp"></div>
-    <p class="costnote" id="utesdecompnote"></p>
+    <!-- TWO ARGUMENTS, SIDE BY SIDE - 21 Nov 2026, Simon. The efficiency
+         decomposition and the seasonal case study are separate claims about
+         the same store, and stacked they put the panel's second half below
+         the fold of a laptop screen. The seasons inside the left block
+         stack rather than sitting side by side at this width; the case
+         study's twelve rows take the right.
 
+         The decomposition's caveats and the case study's provenance are
+         both in the fold now. The headings carry the findings and the bars
+         carry the numbers. -->
+    <div class="gridsplit storesplit">
+      <div>
+        <div class="h2lab" id="uteshead">What the store is worth</div>
+        <div id="utesdecomp"></div>
+      </div>
+      <div>
+        <div class="h2lab">Summer waste heat, stored for winter</div>
+        <div id="storecase"></div>
+        <p class="costnote" id="storecaseline"></p>
+      </div>
+    </div>
 
-    <!-- THE SECOND ARGUMENT: a source that never stops, against a demand
-         that halves in summer. Figures are a worked case from a real UK
-         scheme, anonymised at Simon's instruction - no location, no names.
-         They are a STATIC case study with their own vintage, not a live
-         series, and the markup says so. -->
-    <!-- No qual: the heading already runs the width, and the note under the
-         chart says the figures are a worked case from a real scheme. -->
-    <div class="h2lab" style="margin-top:30px">Year-round waste heat can be
-      stored in the summer to meet winter demand</div>
-    <div id="storecase"></div>
-    <p class="costnote" id="storecasenote"></p>
+    <details class="fold" id="fold_store"><summary>WHY THESE NUMBERS —
+      <b>what the store is doing, and what the case study rests on</b></summary>
+    <div class="foldbody">
+      <p class="costnote" id="utesdecompnote">—</p>
+      <p class="costnote" id="storecasenote">—</p>
+    </div></details>
 
     <button type="button" class="panelnext" data-to="gridhead">
       <span class="arrow">&darr;</span>
@@ -1978,7 +1993,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.18.0';
+const SITE_VERSION = '9.19.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -4134,10 +4149,20 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
             fmt(Math.abs(d - a)) + '</div></div>';
       }).join('') + '</div>' +
       '<div class="sckey">' +
-        '<span><i style="background:' + css('--geo') + '"></i>met directly by the source</span>' +
-        '<span><i style="background:' + css('--ember') + '"></i>winter shortfall — the store covers this</span>' +
-        '<span><i style="background:' + css('--line') + '"></i>summer surplus — charges the store</span>' +
+        '<span><i style="background:' + css('--geo') + '"></i>met by the source</span>' +
+        '<span><i style="background:' + css('--ember') + '"></i>winter shortfall</span>' +
+        '<span><i style="background:' + css('--line') + '"></i>summer surplus</span>' +
       '</div>';
+    // ONE LINE ON THE FACE, the rest in the fold - 21 Nov 2026, Simon. The
+    // face sentence carries the two numbers the chart exists to produce:
+    // what the source covers without a store, and with one. Everything
+    // else - the scheme's size, the heat wasted, the round trip - is
+    // provenance, and provenance belongs behind the fold.
+    const line = document.getElementById('storecaseline');
+    if(line) line.innerHTML =
+      'A real UK scheme, anonymised: without a store the source covers <b>' +
+      C.no_store_pct + '%</b> of demand, with one <b>100%</b>†.';
+
     const note = document.getElementById('storecasenote');
     // ABBREVIATED 21 Nov 2026 - Simon. Every figure the long form carried is
     // still here; what went was the narration between them, which the chart
@@ -4402,28 +4427,24 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     const wTop = sAir ? 1 / sAir : 1 / sVirgin, sTop = 1 / eer;
     box.innerHTML =
       '<div class="useasons">' +
-      '<div class="useason"><div class="ush">Winter · per unit of heat ' +
-      'delivered</div>' +
-      (sAir ? bar('Air source', 'ambient source, SCOP ' + sAir.toFixed(2),
+      '<div class="useason"><div class="ush">Winter · per kWh of heat</div>' +
+      (sAir ? bar('Air source', 'SCOP ' + sAir.toFixed(2),
           1 / sAir, wTop, css('--ember'),
           (1 / sAir).toFixed(3) + '<small>kWh elec</small>') : '') +
-      bar('Virgin ground', src.ground_c.toFixed(1) + ' °C source, SCOP ' +
-          sVirgin.toFixed(2), 1 / sVirgin, wTop, css('--elec'),
+      bar('Virgin ground', 'SCOP ' + sVirgin.toFixed(2),
+          1 / sVirgin, wTop, css('--elec'),
           (1 / sVirgin).toFixed(3) + '<small>kWh elec</small>') +
-      bar('Warmed by the store', src.network_c.toFixed(1) +
-          ' °C source, SCOP ' + sUtes.toFixed(2), 1 / sUtes, wTop,
+      bar('Warmed by the store', 'SCOP ' + sUtes.toFixed(2), 1 / sUtes, wTop,
           css('--geo'), (1 / sUtes).toFixed(3) + '<small>kWh elec</small>') +
       '<div class="usave">the store alone removes <b>' +
-      (100 * (1 - sVirgin / sUtes)).toFixed(0) + '%</b> of the ' +
-      'electricity, for the same heat</div></div>' +
-      '<div class="useason"><div class="ush">Summer · per unit of ' +
-      'cooling delivered</div>' +
+      (100 * (1 - sVirgin / sUtes)).toFixed(0) + '%</b></div></div>' +
+      '<div class="useason"><div class="ush">Summer · per kWh of cooling</div>' +
       bar('Air-cooled chiller', 'EER ' + eer.toFixed(1), 1 / eer, sTop,
           css('--ember'), (1 / eer).toFixed(3) + '<small>kWh elec</small>') +
-      bar('Into the same store', 'circulation only, COP ~' + pcop, 1 / pcop,
+      bar('Into the store', 'COP ~' + pcop, 1 / pcop,
           sTop, css('--cool'), (1 / pcop).toFixed(3) + '<small>kWh elec</small>') +
       '<div class="usave">and <b>' + (100 * (1 - eer / pcop)).toFixed(0) +
-      '%</b> of the electricity, for the same cooling</div></div>' +
+      '%</b> of the cooling electricity</div></div>' +
       '</div>';
 
     // THE HEADING CARRIES THE COMPARISON, so it is written here from the
@@ -4439,15 +4460,22 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     const r2 = x => Math.round(x * 100) / 100;
     const hd = document.getElementById('uteshead');
     if(hd && sAir) hd.innerHTML =
-      'Geothermal heating and cooling is <b>' +
+      'Geothermal heat and cooling: <b>' +
       Math.round(100 * (r2(sUtes) / r2(sAir) - 1)) + '% more efficient ' +
-      'than air</b> <span class="qual">— and far more than that in ' +
-      'summer</span>';
+      'than air</b>';
     const note = document.getElementById('utesdecompnote');
     if(note) note.innerHTML =
-      'Not a better heat pump — <b>the same machine across a smaller ' +
-      'gap</b>, because last summer’s cooling warmed the ground. Both ' +
-      'bars are electricity, so nothing is counted twice. The ' +
+      // THE SOURCE TEMPERATURES LIVE HERE NOW. They came off the bar
+      // labels on 21 Nov 2026 to get the panel into a viewport, and they
+      // are the physical basis of the whole decomposition - a reader who
+      // wants to know why 3.24 becomes 5.03 needs them, so they cannot
+      // simply be dropped.
+      'The three winter bars are the same machine across different gaps: ' +
+      'virgin ground at <b>' + src.ground_c.toFixed(1) + ' °C</b>, the ' +
+      'store at <b>' + src.network_c.toFixed(1) + ' °C</b> because last ' +
+      'summer’s cooling warmed it, and air at whatever the weather is ' +
+      'doing. <b>Not a better heat pump — a smaller lift.</b> Both seasons ' +
+      'are measured in electricity, so nothing is counted twice, and the ' +
       src.network_c.toFixed(1) + ' °C source is <b>derived, not ' +
       'measured</b>†.';
   })();
