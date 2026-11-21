@@ -420,6 +420,21 @@
   .crow .cv{font-family:"JetBrains Mono",monospace;font-size:13.5px;
             color:var(--paper)}
   .crow .cv small{display:block;font-size:10px;color:var(--muted)}
+  /* Winter and summer side by side since 21 Nov 2026 - Simon. The two are
+     one argument, and stacked they ran the panel past a screen. The bar
+     tracks shrink to pay for it: the label and figure columns come in and
+     the track takes what is left, which is enough because these bars are
+     read against each other, not off a scale. */
+  .useasons{display:grid;grid-template-columns:1fr 1fr;gap:26px;
+            align-items:start}
+  @media (max-width:860px){.useasons{grid-template-columns:1fr;gap:4px}}
+  .useasons .crow{grid-template-columns:134px 1fr 74px;gap:9px;
+                  margin-bottom:7px}
+  .useasons .crow .cl{font-size:12px;line-height:1.2}
+  .useasons .crow .cl small{font-size:10px}
+  .useasons .crow .ct,.useasons .crow .cb{height:22px}
+  .useasons .crow .cv{font-size:12.5px}
+  .useasons .crow .cv small{font-size:9.5px}
   .useason{margin-bottom:16px}
   .useason .ush{font-family:"JetBrains Mono",monospace;font-size:11px;
                 letter-spacing:.12em;text-transform:uppercase;
@@ -1159,9 +1174,11 @@
          year, which is what the grid panel then has to reckon with. -->
     <button type="button" class="panelnext" data-to="storagehead">
       <span class="arrow">&darr;</span>
-      <span>Heating peaks in January, cooling in July &mdash; and the ground
-        between them does not care which way round it is.
-        <b>What if the summer heat could wait?</b></span>
+      <!-- Rewritten 21 Nov 2026 - Simon: the old one asked a rhetorical
+           question and never said what was on the other side of the click.
+           One line, and it names the destination. -->
+      <span>Cooling in July puts that heat into the ground, and January
+        wants it back. <b>What storing it is worth.</b></span>
     </button>
   </section>
 
@@ -1188,8 +1205,11 @@
          thermal energy recovered from the store is NOT shown as a benefit -
          a ground loop would have drawn that heat anyway; the benefit is that
          it draws it across a smaller lift. -->
-    <div class="h2lab" style="margin-top:28px">What the store is worth
-      <span class="qual">— one loop, two seasons, counted once</span></div>
+    <!-- Heading written by the block below, from the same SCOPs the bars
+         use. The fallback text here is what shows if the air-source figure
+         cannot be computed - never a typed percentage. -->
+    <div class="h2lab" style="margin-top:28px" id="uteshead">What the store is
+      worth <span class="qual">— one loop, two seasons, counted once</span></div>
     <div id="utesdecomp"></div>
     <p class="costnote" id="utesdecompnote"></p>
 
@@ -1199,8 +1219,10 @@
          scheme, anonymised at Simon's instruction - no location, no names.
          They are a STATIC case study with their own vintage, not a live
          series, and the markup says so. -->
-    <div class="h2lab" style="margin-top:30px">A year-round source, a seasonal
-      demand <span class="qual">— worked from a real UK scheme</span></div>
+    <!-- No qual: the heading already runs the width, and the note under the
+         chart says the figures are a worked case from a real scheme. -->
+    <div class="h2lab" style="margin-top:30px">Year-round waste heat can be
+      stored in the summer to meet winter demand</div>
     <div id="storecase"></div>
     <p class="costnote" id="storecasenote"></p>
 
@@ -1870,7 +1892,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.13.0';
+const SITE_VERSION = '9.14.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -4031,18 +4053,19 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
         '<span><i style="background:' + css('--line') + '"></i>summer surplus — charges the store</span>' +
       '</div>';
     const note = document.getElementById('storecasenote');
+    // ABBREVIATED 21 Nov 2026 - Simon. Every figure the long form carried is
+    // still here; what went was the narration between them, which the chart
+    // above already shows - that the two miss each other by a season is the
+    // picture, not a sentence.
     if(note) note.innerHTML =
-      'A real UK scheme, anonymised: a town-centre heat network of <b>' +
-      fmt(C.demand_MWh) + ' MWh a year</b> at full buildout, with waste heat ' +
-      'from a data centre on it — <b>' + C.src_MW.toFixed(1) + ' MW</b> ' +
-      'of recoverable heat that arrives at the same rate every month of the ' +
-      'year. Matched annually, the two still miss each other by a season: ' +
-      'without a store the source covers <b>' + C.no_store_pct + '%</b> of ' +
-      'demand and <b>' + fmt(C.charge_MWh) + ' MWh</b> of summer heat has ' +
-      'nowhere to go. Bank that in the ground and <b>' + fmt(C.stored_MWh) +
-      ' MWh</b> comes back for winter at a ' + Math.round(C.round_trip * 100) +
-      '% round trip, taking cover to <b>100%</b>. ' +
-      '<b>The store is what makes a constant source a seasonal one</b>†.';
+      'A real UK scheme, anonymised: <b>' + fmt(C.demand_MWh) + ' MWh</b> a ' +
+      'year of heat-network demand at full buildout against <b>' +
+      C.src_MW.toFixed(1) + ' MW</b> of data-centre waste heat arriving at ' +
+      'the same rate all year. Without a store it covers <b>' +
+      C.no_store_pct + '%</b> and <b>' + fmt(C.charge_MWh) + ' MWh</b> of ' +
+      'summer heat is wasted; with one, <b>' + fmt(C.stored_MWh) +
+      ' MWh</b> returns for winter at a ' + Math.round(C.round_trip * 100) +
+      '% round trip and cover reaches <b>100%</b>†.';
   })();
 
 
@@ -4216,7 +4239,35 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       }
       return elec > 0 ? heat / elec : null;
     };
+    // AIR SOURCE, on exactly the same machinery, 21 Nov 2026 - Simon, so the
+    // heading can compare against air and have the bar beside it to show for
+    // it. Same eta, same carnot, same flow curve, same heat weighting: the
+    // only differences are the ones that make a machine an air-source one -
+    // the source is the ambient less the published approach, and the
+    // published defrost penalty applies. Both constants come from the same
+    // calibration block, so this cannot drift from the COP-vs-temperature
+    // chart further down the page, which is built from the same two.
+    const AIR_APPROACH = Math.abs(src.air_approach != null
+                                  ? src.air_approach : 3);
+    const DEFROST_MAX = cal.defrost_max != null ? cal.defrost_max : 0.12;
+    const dfr = t => 1 - DEFROST_MAX * Math.exp(-(((t - 2) / 3) ** 2));
+    const scopAir = () => {
+      let elec = 0, heat = 0;
+      for(let i = 0; i < hp.temp_C.length; i++){
+        const t = hp.temp_C[i];
+        if(t == null) continue;
+        const s = (hp.space_GWh || [])[i] || 0;
+        const w = (hp.dhw_GWh || [])[i] || 0;
+        const a = t - AIR_APPROACH;
+        if(s){ elec += s / Math.max(1, eta.ashp * carnot(flowTemp(t), a)
+                                        * dfr(t)); heat += s; }
+        if(w){ elec += w / Math.max(1, eta.ashp * carnot(DHW_FLOW_C, a)
+                                        * dfr(t)); heat += w; }
+      }
+      return elec > 0 ? heat / elec : null;
+    };
     const sUtes = scop(src.network_c), sVirgin = scop(src.ground_c);
+    const sAir = eta.ashp ? scopAir() : null;
     if(!sUtes || !sVirgin) return;
     // Winter side: electricity per unit of heat delivered, both cases.
     // Summer side: electricity per unit of cooling delivered, chiller against
@@ -4229,19 +4280,29 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       '<div class="ct"><div class="cb" style="width:' +
       Math.max(1.2, 100 * v / top).toFixed(1) + '%;background:' + col +
       '"></div></div><div class="cv">' + fig + '</div></div>';
-    const wTop = 1 / sVirgin, sTop = 1 / eer;
+    // Air leads each season now, because the heading compares against air
+    // and a heading whose number has no bar under it is the defect this
+    // page keeps finding. Winter keeps the virgin-ground bar in the middle:
+    // it is the store's OWN contribution, which is the part that would
+    // otherwise be double counted, and dropping it to make room for air
+    // would have lost the decomposition the block exists for.
+    const wTop = sAir ? 1 / sAir : 1 / sVirgin, sTop = 1 / eer;
     box.innerHTML =
+      '<div class="useasons">' +
       '<div class="useason"><div class="ush">Winter · per unit of heat ' +
       'delivered</div>' +
+      (sAir ? bar('Air source', 'ambient source, SCOP ' + sAir.toFixed(2),
+          1 / sAir, wTop, css('--ember'),
+          (1 / sAir).toFixed(3) + '<small>kWh elec</small>') : '') +
       bar('Virgin ground', src.ground_c.toFixed(1) + ' °C source, SCOP ' +
           sVirgin.toFixed(2), 1 / sVirgin, wTop, css('--elec'),
           (1 / sVirgin).toFixed(3) + '<small>kWh elec</small>') +
       bar('Warmed by the store', src.network_c.toFixed(1) +
           ' °C source, SCOP ' + sUtes.toFixed(2), 1 / sUtes, wTop,
           css('--geo'), (1 / sUtes).toFixed(3) + '<small>kWh elec</small>') +
-      '<div class="usave">the store removes <b>' +
-      (100 * (1 - sVirgin / sUtes)).toFixed(0) + '%</b> of the electricity, ' +
-      'for the same heat</div></div>' +
+      '<div class="usave">the store alone removes <b>' +
+      (100 * (1 - sVirgin / sUtes)).toFixed(0) + '%</b> of the ' +
+      'electricity, for the same heat</div></div>' +
       '<div class="useason"><div class="ush">Summer · per unit of ' +
       'cooling delivered</div>' +
       bar('Air-cooled chiller', 'EER ' + eer.toFixed(1), 1 / eer, sTop,
@@ -4249,7 +4310,26 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       bar('Into the same store', 'circulation only, COP ~' + pcop, 1 / pcop,
           sTop, css('--cool'), (1 / pcop).toFixed(3) + '<small>kWh elec</small>') +
       '<div class="usave">and <b>' + (100 * (1 - eer / pcop)).toFixed(0) +
-      '%</b> of the electricity, for the same cooling</div></div>';
+      '%</b> of the electricity, for the same cooling</div></div>' +
+      '</div>';
+
+    // THE HEADING CARRIES THE COMPARISON, so it is written here from the
+    // same two SCOPs the bars are drawn from rather than typed into the
+    // markup. "More efficient" is the efficiency RATIO, not the electricity
+    // saved - 5.03 against 2.82 is 78% more efficient and 44% less
+    // electricity, and the two are not interchangeable. The summer ratio is
+    // far larger, so leading on the winter one understates the pair.
+    // Computed from the ROUNDED SCOPs the bars print, not the raw ones. At
+    // full precision this reads 79% while 5.03/2.82 off the screen gives
+    // 78, and a heading a reader cannot reproduce from the chart under it
+    // is worse than a heading one decimal less exact.
+    const r2 = x => Math.round(x * 100) / 100;
+    const hd = document.getElementById('uteshead');
+    if(hd && sAir) hd.innerHTML =
+      'Geothermal heating and cooling is <b>' +
+      Math.round(100 * (r2(sUtes) / r2(sAir) - 1)) + '% more efficient ' +
+      'than air</b> <span class="qual">— and far more than that in ' +
+      'summer</span>';
     const note = document.getElementById('utesdecompnote');
     if(note) note.innerHTML =
       'Not a better heat pump — <b>the same machine across a smaller ' +
