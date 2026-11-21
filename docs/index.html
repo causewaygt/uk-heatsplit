@@ -300,7 +300,14 @@
   .costtable th{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.06em;color:var(--muted);font-weight:400}
   .costtable .num{font-family:"IBM Plex Mono";text-align:right;white-space:nowrap}
   .costtable tr.geo-row td{color:var(--geo);font-weight:500}
-  .costnote{font-size:14.5px;color:var(--muted);line-height:1.6}
+  /* Successive .costnote paragraphs ran together into one grey slab in the
+     cost fold once that fold became six explanatory paragraphs rather than
+     one note. The margin is on the element, not a :not(:first-child) rule,
+     because several of these sit alone under a chart where the gap reads
+     the same. */
+  .costnote{font-size:14.5px;color:var(--muted);line-height:1.6;
+            margin:0 0 11px}
+  .foldbody .costnote + .costnote{margin-top:0}
   .billline{font-family:"IBM Plex Mono";font-size:14px;margin:14px 0 4px}
   .billline b{color:var(--paper)}
   .geofig{font-family:"IBM Plex Mono";font-size:clamp(24px,4.5vw,34px);color:var(--geo);margin:4px 0 2px}
@@ -624,8 +631,9 @@
 
   <button class="cnext" id="ask_next">
     <span class="arrow">&darr;</span>
-    <span>That saving is energy Britain stops buying.
-      <b>See where it comes from</b> — the energy balance, week by week.</span>
+    <span>That saving is the gap between what Britain pays for heat today
+      and what geothermal would cost. <b>See what each route costs</b> —
+      in pence per kWh, at the meter.</span>
   </button>
 
   <p class="cardfoot" style="max-width:96ch;margin-top:16px">Every week is priced
@@ -834,8 +842,10 @@
     </div></details>
 
   <section id="costsection">
-    <h1 class="sect">2. What Britain’s heat costs and emits</h1>
-    <h2>What it costs</h2>
+    <h1 class="sect" id="costhead" tabindex="-1">1. What heat costs now — and what geothermal would change</h1>
+    <!-- The "What it costs" sub-heading went on 21 Nov 2026. It sat directly
+         under a section heading that already says what heat costs, and the
+         reader met two headings before a single figure. -->
     <div class="billline" id="billline"></div>
     <div class="h2lab" id="hplab" hidden>What heat costs to make <span class="qual" id="hpbasislbl">— by route, wholesale commodity</span></div>
     <div class="trendbar" id="hpsvc" style="margin:8px 0 2px">
@@ -843,9 +853,19 @@
       <button data-hs="dhw">HOT WATER</button>
       <button data-hs="blend">AS DELIVERED</button>
     </div>
+    <!-- AT THE METER leads. A reader arriving from the top card has just
+         been shown a bill, and this is the basis that answers it; wholesale
+         isolates fuel and efficiency from tariff and is the second click. -->
     <div class="trendbar" id="hpbasis" style="margin:6px 0 2px">
-      <button data-hb="wholesale" aria-pressed="true">WHOLESALE</button>
-      <button data-hb="retail">AT THE METER</button>
+      <button data-hb="retail" aria-pressed="true">AT THE METER</button>
+      <button data-hb="wholesale">WHOLESALE</button>
+    </div>
+    <!-- Resistive electric is a CEILING nobody chooses, not a route. Drawn
+         by default it sits four times above the next line and squashes the
+         comparison the panel exists to make into the bottom quarter of the
+         plot. Off by default, one click away. -->
+    <div class="trendbar" id="hpceil" style="margin:6px 0 2px">
+      <button data-hc="on">SHOW RESISTIVE ELECTRIC CEILING</button>
     </div>
     <p class="costnote" style="margin:4px 0 0;color:var(--ash)">Figures at the
       right are the <b>heat-weighted mean</b> over the window shown —
@@ -860,17 +880,79 @@
     </div>
     <div id="hpchart" style="height:300px;margin:8px 0 0"></div>
     <div id="hpvol" style="height:142px;margin:0 0 4px"></div>
-    <button class="pngbtn" onclick="exportChart('hpchart','What heat costs to make','by route, per MWh of delivered heat \u2014 with the heat actually delivered beneath','hpvol')">⬇ PNG FOR SLIDES</button>
-    <details class="fold" id="fold_cost"><summary>METHOD —
-      <b>every route priced per useful kWh, with its basis and explanation</b></summary>
+    <button class="pngbtn" onclick="exportChart('hpchart','What heat costs to make','by route, in pence per kWh of delivered heat \u2014 with the heat actually delivered beneath','hpvol')">⬇ PNG FOR SLIDES</button>
+    <!-- RECONCILIATION, written by draw() rather than typed. This panel states
+         two 'what gas costs' figures in the same unit: a snapshot on today's
+         cap at the top of the panel, and a heat-weighted window mean at the
+         right edge of the chart. On the twelve-month default they disagree; on
+         short windows they agree to a twentieth of a penny. So the sentence
+         has to follow the window on screen, and it is built from the SAME
+         wmean() that draws the labels. A sentence typed here would be right
+         for one button and wrong for the other five. -->
+    <p class="costnote" id="costrecon" style="margin:6px 0 0"></p>
+    <details class="fold" id="fold_cost"><summary>WHY THESE NUMBERS —
+      <b>what sets the price of each route, in plain terms</b></summary>
     <div class="foldbody">
+    <!-- LAYMAN'S EXPLANATION, not method. The method statement carries the
+         derivation; what belongs here is why the lines sit where they do,
+         because the ordering surprises people - on the meter basis over a
+         year an air-source heat pump is DEARER than gas, which reads as an
+         argument against heat pumps until you know what sets it. Every
+         figure quoted below is read from the payload by the paragraph that
+         follows, or stated as a direction rather than a number. -->
+    <p class="costnote"><b>Why the heat pumps are not all in one place.</b>
+      A heat pump does not make heat, it moves it, and the cost is set by how
+      far it has to move it. An <b>air-source</b> unit lifts from whatever the
+      outside air is doing, which on the coldest mornings is the moment the
+      house wants most - the efficiency falls exactly when the demand peaks.
+      <b>Ground source</b> lifts from ground that sits near 10 °C all winter,
+      so the gap it works across barely changes between October and February.
+      A <b>geothermal network</b> starts warmer still and shares one set of
+      boreholes and one loop across many buildings, so each building is
+      lifting a short distance from a source somebody else has already paid
+      to drill.</p>
+    <p class="costnote"><b>Why hot water is the expensive half.</b> Space
+      heating can run at a low flow temperature on a mild day, and the heat
+      pump rewards that. A hot-water cylinder wants its 52 °C whatever the
+      weather, so none of that benefit is available - the lift is fixed and
+      the efficiency with it. A gas boiler is indifferent: it burns the same
+      gas for the cylinder as for the radiators. That is most of why the
+      AS DELIVERED view is dearer than the SPACE HEATING one for every heat
+      pump on the chart, and barely moves gas at all.</p>
+    <p class="costnote"><b>Why electricity carries more than its fuel.</b>
+      On the AT THE METER basis each route is priced at what a household
+      actually pays, and the policy and network costs loaded onto a unit of
+      electricity are several times those on a unit of gas. Switch to
+      WHOLESALE and that loading comes off both: the heat pumps move down the
+      chart, gas moves far less, and the distance between the two views is the
+      part of the price that is a policy choice rather than a physical one.</p>
+    <p class="costnote"><b>Why gas looks dear today and cheap over the year.</b>
+      The gas routes are flat lines that step: they are the price cap, and it
+      is reset quarterly. A mean taken over a long window still carries the
+      months when the cap was lower, so the twelve-month figure sits below
+      today's. The heat pumps have no such steps - their lines wander daily
+      with the weather, because the weather is what sets the lift.</p>
+    <p class="costnote"><b>Why the means are weighted by heat.</b> A plain
+      average over days would count a mild September day, when almost no heat
+      is delivered and every heat pump looks excellent, the same as a January
+      day carrying twenty times the load. Weighting by the heat actually
+      delivered puts the figure where the energy is - and it is what moves
+      air-source above gas on the year rather than below it.</p>
+    <p class="costnote"><b>Why resistive electric is hidden.</b> Direct
+      electric heat is a unit of electricity for a unit of heat, with no
+      lift and no multiplier, so it runs near 26p and the axis has to stretch
+      to about three times its height to reach it. Everything the panel is
+      about then happens in the bottom third. It is on the toggle because it
+      is the ceiling every other route is measured against, not because it is
+      a route anybody is choosing.</p>
     <p class="costnote" id="hpnote"></p>
     <table class="costtable">
       <thead><tr><th>Route</th><th class="num">p per useful kWh</th><th>Basis</th></tr></thead>
       <tbody id="costrows"></tbody>
     </table>
     <p class="costnote" id="costnote"></p>
-    <p class="costnote">† = Causeway estimate – see Method &amp; caveats.</p>
+    <p class="costnote">† = Causeway estimate – see Method &amp; caveats.
+      The derivation of every figure above is in the methodology statement.</p>
     </div></details>
     <h2 style="margin-top:30px">What it emits</h2>
     <div class="billline" id="carbline"></div>
@@ -1551,7 +1633,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.5.0';
+const SITE_VERSION = '9.5.1';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -3188,7 +3270,11 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     }
 
     const nx = document.getElementById('ask_next');
-    const tgt = document.getElementById('startline');
+    // Points at the cost panel since 21 Nov 2026. It pointed at the energy
+    // balance, which is moving down the page; a scroll invitation that lands
+    // somewhere other than the thing it promises is worse than none.
+    const tgt = document.getElementById('costhead') ||
+                document.getElementById('startline');
     if(nx && tgt){
       const reduce = window.matchMedia &&
         window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -3453,7 +3539,7 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
           'm · cooling ~£' + fmt(cost.national_week_cool_Mgbp) + 'm)'
         : '') +
       (cost.gshp_vs_gas_boiler && cost.gshp_vs_gas_boiler.gshp_cheaper
-        ? ' · At current capped prices, ground-source heat (' +
+        ? ' · On the cap in force today, ground-source heat (' +
           cost.gshp_vs_gas_boiler.gshp + 'p/useful kWh) is <b style="color:' +
           css('--geo') + '">cheaper than a gas boiler</b> (' +
           cost.gshp_vs_gas_boiler.gas_boiler + 'p).'
@@ -4088,9 +4174,15 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     });
     // Gas first in the legend and heaviest on the page: it is the line the
     // other three are measured against, and the one that crosses them.
-    const KEYS = (hp.routes.gas ? ['gas'] : [])
-                 .concat(['ashp','shallow','network'])
-                 .concat(hp.routes.resistive ? ['resistive'] : []);
+    const BASEKEYS = (hp.routes.gas ? ['gas'] : [])
+                 .concat(['ashp','shallow','network']);
+    // A GETTER, not a fixed list. KEYS is read by the trace builder, by the
+    // annotation builder and by the legend, and all three must agree about
+    // whether the ceiling is showing - a stale copy leaves resistive's mean
+    // at the right edge with no line attached to it, and the axis stretched
+    // to reach a number that is not drawn.
+    const keys = () => BASEKEYS.concat(
+      (CEIL && hp.routes.resistive) ? ['resistive'] : []);
     // Resistive is drawn as a CEILING, not as a candidate route. Its
     // coefficient of performance is 1.0 on every service and at every
     // temperature - it does not care what flow temperature it is asked for -
@@ -4120,7 +4212,10 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     // moves with the load. Gas differs by service too, since a cylinder
     // boiler loses its latent recovery.
     let SVC = 'space';
-    let BASIS = 'wholesale';
+    // AT THE METER by default since 21 Nov 2026 - see the markup note.
+    let BASIS = 'retail';
+    // The resistive ceiling is OFF until asked for.
+    let CEIL = false;
     const bbar = document.getElementById('hpbasis');
     if(!hp.retail) bbar.style.display = 'none';
     const svcbar = document.getElementById('hpsvc');
@@ -4134,10 +4229,19 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       wholesale: {space: 'routes', dhw: 'dhw',        blend: 'blend'},
       retail:    {space: 'retail', dhw: 'retail_dhw', blend: 'retail_blend'},
     };
+    // PENCE PER KILOWATT-HOUR, not pounds per megawatt-hour. The payload is
+    // built in GBP/MWh and stays that way; the conversion happens HERE, at
+    // the single point that supplies every y value, so the traces, the
+    // heat-weighted means and the right-edge annotations are all in the same
+    // unit without three separate divisions to keep in step. A reader has a
+    // p/kWh figure on their own bill; asking them to divide by ten first is
+    // a piece of arithmetic the page can do for them.
+    const P_PER_KWH = 10;   // GBP/MWh -> p/kWh
     const src = k => {
       const want = (SERIES[BASIS] || SERIES.wholesale)[SVC];
       const set = hp[want] || hp[SERIES[BASIS].space] || hp.routes || {};
-      return set[k] || [];
+      const a = set[k] || [];
+      return a.length ? a.map(v => v == null ? null : v / P_PER_KWH) : a;
     };
     function draw(w){
       const n = Math.min(w, HAVE);
@@ -4145,7 +4249,7 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       // The window's own left-hand date, so a clause can ask whether this
       // view actually reaches the stretch it describes.
       const winFrom = x.length ? x[0] : null;
-      const tr = KEYS.filter(k => src(k).length).map(k => ({
+      const tr = keys().filter(k => src(k).length).map(k => ({
         x: x, y: src(k).slice(-n), name: NAME[k], mode:'lines',
         connectgaps: false,
         // Future Geothermal is DASHED and resistive DOTTED: neither is a
@@ -4154,7 +4258,7 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
         line:{color:COL[k], width: k === 'gas' ? 2.8 : 2.2,
               dash: k === 'resistive' ? 'dot'
                     : k === 'network' ? 'dash' : 'solid'},
-        hovertemplate:'%{x}<br>\u00a3%{y:.1f}/MWh<extra>' + NAME[k] + '</extra>'
+        hovertemplate:'%{x}<br>%{y:.2f}p/kWh<extra>' + NAME[k] + '</extra>'
       }));
       // HEAT-WEIGHTED MEAN per route, at the right edge, recomputed for the
       // window on screen. Weighted by the heat actually delivered that day,
@@ -4193,7 +4297,7 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       // traces, so a legend click can hide a route's mean along with its
       // line. Without that, switching off resistive leaves its number at
       // the right edge and the axis stays stretched to reach it.
-      const DRAWN = KEYS.filter(k => src(k).length);
+      const DRAWN = keys().filter(k => src(k).length);
       const anns = DRAWN.map(k => {
         const m = wmean(k);
         if(m == null) return null;
@@ -4201,18 +4305,38 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
         // is tied to its line rather than floating near it. arrowhead 0 is a
         // plain rule; ax is the pixel offset of the text from the anchor.
         return {x: 1, xref: 'paper', y: m, yref: 'y',
-                text: Math.round(m), showarrow: true, arrowhead: 0,
+                text: m.toFixed(1), showarrow: true, arrowhead: 0,
                 arrowcolor: COL[k], arrowwidth: 1.4, arrowsize: 1,
                 ax: 20, ay: 0, xanchor: 'left', yanchor: 'middle',
                 font: {color: COL[k], size: 12, family: 'JetBrains Mono'},
                 _key: k};
       }).filter(Boolean);
+      // PUSH APART LABELS THAT LAND ON TOP OF EACH OTHER. In pence the
+      // routes sit within a few points of one another, so two means can
+      // round to the same figure and print over each other - gas and ground
+      // source both read 7.8 on the meter basis at twelve months, one
+      // illegible on top of the other. ay is a PIXEL offset from the
+      // anchor, so the line still points at the true value while the text
+      // steps clear of its neighbour.
+      // In PIXELS, not in a fraction of the span: the text is 12px whatever
+      // the axis happens to cover, so a percentage threshold is right at one
+      // window and wrong at the next. The plot box is 300px tall (set in the
+      // markup) and the axis runs from zero, so the top of the drawn range
+      // is a good enough stand-in for its height.
+      const top = Math.max(...anns.map(a => a.y)) || 1;
+      const pxPerUnit = 300 / top;
+      anns.sort((a, b) => a.y - b.y).forEach((a, i, arr) => {
+        if(!i) return;
+        const prev = arr[i - 1];
+        if((a.y - prev.y) * pxPerUnit < 15)
+          a.ay = (prev.ay || 0) - 15;
+      });
       Plotly.newPlot('hpchart', tr, {
         paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
         font:{family:'Lato', color:css('--muted'), size:12},
         margin:{l:62,r:58,t:46,b:42},
         xaxis:{gridcolor:css('--line'), tickformat: n > 120 ? '%b %y' : '%-d %b'},
-        yaxis:{title:'\u00a3 per MWh of delivered heat',
+        yaxis:{title:'pence per kWh of delivered heat',
                gridcolor:css('--line'), rangemode:'tozero'},
         legend:{orientation:'h', y:1.02, yanchor:'bottom'},
         annotations: anns
@@ -4247,6 +4371,45 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
           + 'so the figures at the right are a plain mean of the days'
         : 'weighted by the heat delivered each day, not by day, because an '
           + 'unweighted mean flatters whichever route does best in mild weather';
+      // TIE THE TWO 'WHAT GAS COSTS' FIGURES TOGETHER. The line at the top of
+      // the panel prices a single day on today's cap at an annual SPF; the
+      // chart prices every day on its own tariff at that day's weather and
+      // then takes a heat-weighted mean of the window. Both are correct and
+      // they are now in the SAME UNIT, which is what makes the disagreement
+      // visible for the first time - at twelve months gas reads 7.5p against
+      // the headline's 9.5p, and the ordering against ground source inverts.
+      // Leaving a reader to work out which 9.5 and which 7.5 they are looking
+      // at is the piece of arithmetic this panel exists to remove. Only drawn
+      // on the basis and service the snapshot is actually quoted on; the
+      // snapshot has no hot-water or wholesale equivalent, so on those views
+      // the sentence is cleared rather than restated wrongly.
+      (() => {
+        const rc = document.getElementById('costrecon');
+        if(!rc) return;
+        const snap = ((d.cost || {}).gshp_vs_gas_boiler) || null;
+        const g = wmean('gas'), s = wmean('shallow');
+        if(!snap || snap.gshp == null || BASIS !== 'retail' || SVC !== 'space'
+           || g == null || s == null){ rc.textContent = ''; return; }
+        const flips = (snap.gshp < snap.gas_boiler) !== (s < g);
+        rc.innerHTML = 'Reading this against the line at the top of the panel: '
+          + 'that one prices a single day on the cap in force today, at an '
+          + 'annual average efficiency — ground source <b>' + snap.gshp
+          + 'p</b>, gas <b>' + snap.gas_boiler + 'p</b>. The figures at the '
+          + 'right of the chart price every day on its own tariff and its own '
+          + 'weather, then take the heat-weighted mean of the '
+          + (fmtW[w] || 'window shown') + ' — gas <b>' + g.toFixed(1)
+          + 'p</b>, ground source <b>' + s.toFixed(1) + 'p</b>. '
+          + (flips
+             ? 'The order is the other way round over this window because the '
+               + 'gas cap has stepped up inside it and the mean still carries '
+               + 'the cheaper months. Shorten the window and the two lines '
+               + 'converge on the same figure.'
+             : 'The two put the routes in the same order over this window. '
+               + 'They are not the same number, and should not be: the '
+               + 'headline fixes an annual average efficiency, while the '
+               + 'chart uses the efficiency the weather actually allowed on '
+               + 'each day in it.');
+      })();
       // SERVICE VOLUMES, on the same window and the same x axis. A price is
       // only as interesting as the service it prices: in July the whole load
       // is hot water, so the space-heating line is describing something
@@ -4285,19 +4448,23 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
         vbox.style.display = 'none';
       }
 
-      const last = i => { const a = src(i).filter(v => v != null);
-                          return a.length ? a[a.length - 1] : 0; };
       const mean = a => a.slice(-n).reduce((s_,v)=>s_+v,0) / n;
       const prem = 100 * (mean(hp.elec_heat_wtd_gbp_mwh) /
                           mean(hp.elec_flat_gbp_mwh) - 1);
+      // THE OPENING FIGURE RESTATEMENT WENT ON 21 Nov 2026. It read "Over
+      // <window>: air-source 8.5p, ground source 7.5p ... latest day", which
+      // was wrong twice over. It named the window and then quoted last(),
+      // a SINGLE DAY - and it put a third set of figures into a panel that
+      // already states a snapshot on today's cap at the top and a
+      // heat-weighted window mean at the right edge of the chart. In pence
+      // all three are directly comparable and all three disagree, which is
+      // precisely the arithmetic this panel was rewritten to remove. The
+      // chart's own labels are the figures; this note explains them. The
+      // last() helper went with it - nothing else on this line reads a
+      // single day.
       document.getElementById('hpnote').innerHTML =
-        'Over ' + (fmtW[w] || 'the window') + ': air-source \u00a3' +
-        last('ashp').toFixed(0) + ', ground source \u00a3' +
-        last('shallow').toFixed(0) + ', geothermal network \u00a3' +
-        last('network').toFixed(0) + ' per MWh of delivered heat, latest day. ' +
-        (hp.routes.gas ? ' Gas boiler heat \u00a3' +
-          (hp.routes.gas.filter(v=>v!=null).slice(-1)[0] || 0).toFixed(0) +
-          '.' : '') +
+        'The figures at the right of the chart are the means for the window ' +
+        'selected above; the line under the chart ties them to the headline. ' +
         (hp.space_GWh && hp.space_GWh.length
           ? ' The band beneath shows what is actually being delivered on the ' +
             'same days, so the price above can be weighed against the volume ' +
@@ -4408,6 +4575,25 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       relabel();
       draw(WIN);
     });
+    // The ceiling toggle. A single latching button rather than an on/off
+    // pair: there is one thing to say and aria-pressed says it.
+    const cbar = document.getElementById('hpceil');
+    if(cbar){
+      if(!hp.routes.resistive) cbar.style.display = 'none';
+      cbar.addEventListener('click', ev => {
+        const b = ev.target.closest('button'); if(!b) return;
+        CEIL = !CEIL;
+        b.setAttribute('aria-pressed', String(CEIL));
+        b.textContent = CEIL ? 'HIDE RESISTIVE ELECTRIC CEILING'
+                             : 'SHOW RESISTIVE ELECTRIC CEILING';
+        draw(WIN);
+      });
+    }
+    // relabel() BEFORE the first draw. The sub-label is written by the
+    // toggle handlers, so on load it kept whatever the markup said - and
+    // once the default basis moved to AT THE METER it read "wholesale
+    // commodity" above a chart of meter prices until a button was touched.
+    relabel();
     draw(365);
   })();
 
