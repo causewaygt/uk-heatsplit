@@ -1273,6 +1273,28 @@
     <div id="fespeak" style="height:300px;margin:8px 0 4px"></div>
     <p class="costnote" id="fespeaknote"></p>
 
+    <!-- CHART A. Drawn on the heat component alone, not on total demand:
+         against 705 TWh a year the whole heat-route lever is about 5% and
+         would be invisible as a band inside it. The question the chart
+         answers is not how much electricity Britain needs - FES answers
+         that - but how much of it the choice of heat route decides.
+
+         THE EFFICIENCY CHAIN, because this is the part that will be
+         challenged. FES publishes no absolute SPF. It publishes an SCOP
+         IMPROVEMENT (F.05, as a TWh saving), which backs out to a ratio
+         between today and 2050. Today's level comes from this site's own
+         anchor - 2.82 heat-weighted, which is also what DESNZ's published
+         ECUK identity implies. Their product is FES's implied 2050
+         efficiency, and multiplying FES's own electricity series by it
+         gives the heat delivered. Every step is sourced and every step is
+         on the face. Years between are interpolated, because FES publishes
+         the endpoint improvement and not a trajectory - said in the note
+         rather than smoothed over. -->
+    <div class="h2lab" id="feshplab" style="margin-top:26px">The same heat, and
+      what the route costs in electricity</div>
+    <div id="feshp" style="height:280px;margin:8px 0 4px"></div>
+    <p class="costnote" id="feshpnote"></p>
+
     <div class="h2lab">View</div>
     <div class="trendctl" style="margin-top:2px">
       <span>VIEW</span>
@@ -1925,7 +1947,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.15.0';
+const SITE_VERSION = '9.16.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -4319,6 +4341,14 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     // it is the store's OWN contribution, which is the part that would
     // otherwise be double counted, and dropping it to make room for air
     // would have lost the decomposition the block exists for.
+    // PUBLISHED FOR THE PROJECTION CHART, which lives outside the data.json
+    // chain and must not recompute these. Both services, same weighting,
+    // same flow curve: one calculation, one set of numbers, so the 2050
+    // chart and the bars here cannot quote different SCOPs for the same
+    // machine. The projection block waits for this and skips if it never
+    // arrives rather than falling back to a literal.
+    window.__SITE_SCOP = {utes: sUtes, virgin: sVirgin, air: sAir};
+
     const wTop = sAir ? 1 / sAir : 1 / sVirgin, sTop = 1 / eer;
     box.innerHTML =
       '<div class="useasons">' +
@@ -6794,6 +6824,144 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       }
       whenVisible(draw);
     }).catch(() => hide());
+  })();
+
+  // ---- Chart A: the same heat, three efficiencies -------------------------
+  // THE EFFICIENCY CHAIN IS THE WHOLE CHART, so it is worth restating where
+  // the code is. FES gives electricity for residential heat pumps. It does
+  // NOT give the efficiency behind it; it gives an improvement between today
+  // and 2050 (F.05). Today's level comes from this page's own machinery -
+  // the heat-weighted SCOP the store panel computes, on both services. The
+  // product is FES's implied 2050 efficiency; FES's electricity times that
+  // is the HEAT DELIVERED, which is the quantity the three routes then
+  // compete to supply. Draw the heat, divide by each route, read the gap.
+  //
+  // WHY THE PESSIMISTIC LINE IS NOT AN ATTACK ON FES. The improvement FES
+  // assumes may well arrive. But DESNZ's own published identity implies the
+  // fleet is at 2.78-2.88 today, and the site's independent figure is 2.82,
+  // so "the improvement does not arrive" is a reasonable thing to draw -
+  // and when it is drawn, the geothermal line and the flat-efficiency line
+  // bracket FES's own. The reader can see which way the risk runs.
+  (() => {
+    const box = document.getElementById('feshp');
+    const note = document.getElementById('feshpnote');
+    const lab = document.getElementById('feshplab');
+    if(!box) return;
+    const hide = () => [box, note, lab].forEach(e => { if(e) e.hidden = true; });
+
+    // The store panel computes these; it runs inside the data.json chain and
+    // this block does not, so wait rather than recompute or hardcode.
+    const scops = cb => {
+      let waited = 0;
+      const tick = () => {
+        const S = window.__SITE_SCOP;
+        if(S && S.utes && S.air){ cb(S); return; }
+        if(waited > 6000){ hide(); return; }
+        waited += 150; setTimeout(tick, 150);
+      };
+      tick();
+    };
+
+    fetch('fes_projection.json').then(r => {
+      if(!r.ok) throw new Error('no fes_projection.json');
+      return r.json();
+    }).then(d => scops(S => {
+      const imp = d.scop_improvement_TWh || {};
+      const DY = d.demand_years;
+      const pw = ['Holistic Transition', 'Electric Engagement',
+                  'Hydrogen Evolution'].find(p => d.demand[p] && imp[p]);
+      if(!pw){ hide(); return; }
+      const D = d.demand[pw];
+      const hp = D.annual_heat_pumps || [], dh = D.annual_district || [];
+      const i50 = DY.indexOf(2050);
+      if(i50 < 0 || !hp[i50]){ hide(); return; }
+
+      // The improvement is published against heat-pump AND district-heat
+      // electricity, so the ratio has to be taken against the same base it
+      // was defined on - not against heat pumps alone, which would overstate
+      // it by a third.
+      const base = ((hp[i50] || 0) + (dh[i50] || 0)) / 1000;
+      const ratio = 1 / (1 - imp[pw] / base);
+      const TODAY = S.air;                 // 2.82, the site's own air figure
+      const SPF50 = TODAY * ratio;
+      const NET = S.utes;                  // 5.03, network with the store
+
+      const years = DY.filter(y => y >= 2025);
+      const span = 2050 - years[0];
+      // FES publishes the endpoint improvement, not a path to it. Straight
+      // line between, and the note says so rather than implying FES
+      // published a trajectory.
+      const spfAt = y => TODAY + (SPF50 - TODAY) * (y - years[0]) / span;
+      const heat = y => {
+        const e = hp[DY.indexOf(y)];
+        return e == null ? null : (e / 1000) * spfAt(y);
+      };
+      const line = (div, nm, col, dash) => ({
+        x: years, y: years.map(y => { const h = heat(y);
+          return h == null ? null : h / div(y); }),
+        name: nm, type: 'scatter', mode: 'lines',
+        line: {color: css(col), width: dash ? 1.8 : 2.4,
+               dash: dash || 'solid'},
+        hovertemplate: nm + ' %{y:.0f} TWh<extra></extra>'
+      });
+
+      // ORDER MATTERS: 'tonexty' fills to the PREVIOUS trace, so the green
+      // line has to sit directly after the air-source one for the shaded
+      // area to span the full spread. Drawn in the first build with FES's
+      // dotted line in between, the fill covered only half the gap while
+      // the note quoted all of it - a chart disagreeing with its own
+      // caption. FES's line goes on top, where it belongs anyway.
+      const air = line(() => TODAY, 'Air source at today’s efficiency (' +
+                       TODAY.toFixed(2) + ')', '--ember');
+      const geo = line(() => NET, 'Geothermal network (' +
+                       NET.toFixed(2) + ')', '--geo');
+      geo.fill = 'tonexty';
+      geo.fillcolor = 'rgba(58,170,53,0.10)';
+      const traces = [air, geo,
+        line(spfAt, 'As FES assumes, improving to ' + SPF50.toFixed(2),
+             '--paper', 'dot')];
+
+      const drawIt = () => {
+        Plotly.newPlot('feshp', traces, {
+          paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+          font: {family: 'Lato', color: css('--muted'), size: 11},
+          height: 280, margin: {l: 48, r: 10, t: 8, b: 26},
+          yaxis: {gridcolor: css('--line'), rangemode: 'tozero',
+                  title: {text: 'TWh of electricity a year'}},
+          xaxis: {gridcolor: css('--line'), dtick: 5},
+          hovermode: 'x unified',
+          legend: {orientation: 'h', y: -0.15, x: 0,
+                   font: {size: 10, color: css('--muted')}}
+        }, {displayModeBar: false, responsive: true});
+
+        const h50 = heat(2050);
+        const flat = h50 / TODAY, fes = h50 / SPF50, net = h50 / NET;
+        if(note) note.innerHTML =
+          'NESO ' + pw + ' pathway. By 2050 it has residential heat pumps ' +
+          'delivering about <b>' + fmt(h50) + ' TWh of heat</b> a year. What ' +
+          'that costs in electricity depends entirely on the route: <b>' +
+          fmt(fes) + ' TWh</b> at the efficiency FES assumes, <b>' +
+          fmt(flat) + ' TWh</b> if the fleet stays at today’s <b>' +
+          TODAY.toFixed(2) + '</b>, and <b>' + fmt(net) + ' TWh</b> on a ' +
+          'geothermal network at <b>' + NET.toFixed(2) + '</b>. The spread ' +
+          'is <b>' + fmt(flat - net) + ' TWh a year</b> — generation that ' +
+          'either has to be built or does not. ' +
+          '<b>FES publishes no absolute efficiency</b>: it publishes the ' +
+          'improvement between today and 2050, and today’s level here is ' +
+          'this site’s own figure, which is also what DESNZ’s published ' +
+          'ECUK identity implies. Years between the two ends are ' +
+          'interpolated, because the improvement is published as an ' +
+          'endpoint and not a trajectory†.';
+      };
+      let waited = 0;
+      const tick = () => {
+        if(box.getBoundingClientRect().width > 0 || waited > 4000){
+          drawIt(); return;
+        }
+        waited += 120; setTimeout(tick, 120);
+      };
+      tick();
+    })).catch(() => hide());
   })();
 
 // ===== measured SPF evidence (sub-block of the COP method fold) ==========
