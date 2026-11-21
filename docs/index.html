@@ -319,6 +319,47 @@
      one note. The margin is on the element, not a :not(:first-child) rule,
      because several of these sit alone under a chart where the gap reads
      the same. */
+  /* ---- cooling panel, 21 Nov 2026 ---------------------------------- */
+  /* Four context facts, promoted out of the fold. A grid rather than a list
+     because they are peers - none is the headline - and because at this
+     width four short cards read faster than four bullets. */
+  .coolctx{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;
+           background:var(--line);border:1px solid var(--line);
+           border-radius:6px;overflow:hidden;margin:18px 0 0}
+  @media (max-width:720px){.coolctx{grid-template-columns:1fr 1fr}}
+  .coolctx .cx{background:var(--ink);padding:13px 14px 14px}
+  .coolctx .cxf{font-family:"JetBrains Mono",monospace;font-size:19px;
+                color:var(--cool);line-height:1.1}
+  .coolctx .cxt{font-size:12.5px;line-height:1.4;color:var(--paper);
+                margin-top:6px}
+  .coolctx .cxs{font-size:11px;color:var(--muted);margin-top:5px}
+  /* Cost-of-cooling rows and the UTES season bars share one bar grammar:
+     label, track, figure. The track is a common scale within its own block
+     so the shorter bar is shorter by exactly what it saves. */
+  .crow{display:grid;grid-template-columns:186px 1fr 104px;gap:12px;
+        align-items:center;margin-bottom:9px}
+  @media (max-width:720px){.crow{grid-template-columns:120px 1fr 86px}}
+  .crow .cl{font-size:13px;color:var(--paper);text-align:right;line-height:1.25}
+  .crow .cl small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+  .crow .ct{position:relative;height:26px}
+  .crow .cb{height:26px;border-radius:3px}
+  .crow .cv{font-family:"JetBrains Mono",monospace;font-size:13.5px;
+            color:var(--paper)}
+  .crow .cv small{display:block;font-size:10px;color:var(--muted)}
+  .useason{margin-bottom:16px}
+  .useason .ush{font-family:"JetBrains Mono",monospace;font-size:11px;
+                letter-spacing:.12em;text-transform:uppercase;
+                color:var(--muted);margin-bottom:7px}
+  .coolnext{display:flex;align-items:center;gap:11px;margin-top:30px;
+            padding-top:15px;border-top:1px solid var(--line);
+            color:var(--paper);font-size:14px;line-height:1.5}
+  .coolnext .arrow{width:22px;height:22px;border-radius:50%;flex:0 0 22px;
+                   border:1px solid var(--line);display:flex;
+                   align-items:center;justify-content:center;color:var(--geo);
+                   font-size:12px}
+  .usave{font-size:12.5px;color:var(--muted);text-align:right;
+         margin:-3px 0 0;padding-right:2px}
+  .usave b{color:var(--paper)}
   .costnote{font-size:14.5px;color:var(--paper);line-height:1.6;
             margin:0 0 11px}
   .foldbody .costnote + .costnote{margin-top:0}
@@ -1052,7 +1093,23 @@
   <section id="coolsection">
     <h1 class="sect">4. The rising demand for cooling, and geothermal’s role</h1>
 
-    <div class="h2lab" style="margin-top:8px">Cooling day by day <span class="qual">— what is delivered, and what is not</span></div>
+    <!-- LEAD ON THE YEAR, NOT ON THIS WEEK. Every weekly figure in this panel
+         reads zero from about October to April, and at position 2 that is the
+         second thing a new reader meets. The annual quantities do not have
+         that problem, and the four context facts below were sitting in the
+         fold where nobody found them. Both are written from the payload. -->
+    <p class="lede" id="coollede">—</p>
+    <div class="coolctx" id="coolctx"></div>
+
+    <!-- WHAT THE HEADING PROMISES. The panel is called "and geothermal's
+         role" and before 21 Nov 2026 it never priced it once. Read from the
+         same cost table panel 1 draws, so the two panels cannot diverge. -->
+    <div class="h2lab" style="margin-top:26px">What cooling costs to deliver
+      <span class="qual">— the same loop, run backwards</span></div>
+    <div id="coolprice"></div>
+    <p class="costnote" id="coolpricenote"></p>
+
+    <div class="h2lab" style="margin-top:26px">Cooling day by day <span class="qual">— what is delivered, and what is not</span></div>
     <div class="trendbar" id="tierwin" style="margin:8px 0 2px">
       <button data-tw="28">4W</button>
       <button data-tw="84">12W</button>
@@ -1071,9 +1128,63 @@
     <p class="geosub" id="deficitcontext"></p>
     <p class="costnote" id="deficitnote"></p>
 
-    <details class="fold" id="fold_cool"><summary>METHOD —
-      <b>what is anchored, what is measured, and what was tested and rejected</b></summary>
+    <!-- UTES, AS A DECOMPOSITION - NOT AN ADDITION. The store's benefit is
+         already inside the network route: retro.py sets its source to 19.6 C
+         and says why ("UTES and intermediate-doublet blend, NOT virgin
+         ground"), and build.py puts store charging and recovery losses inside
+         the SCOP boundary. So panel 1's network line ALREADY contains it, and
+         presenting a UTES benefit here on top of that would count it twice.
+         What this block does instead is take the existing figure apart: the
+         same machine on virgin ground, which is what the store is worth.
+         BOTH BARS ARE ELECTRICITY, one per season, which is what makes the
+         absence of double counting visible rather than merely asserted. The
+         thermal energy recovered from the store is NOT shown as a benefit -
+         a ground loop would have drawn that heat anyway; the benefit is that
+         it draws it across a smaller lift. -->
+    <div class="h2lab" style="margin-top:28px">What the store is worth
+      <span class="qual">— one loop, two seasons, counted once</span></div>
+    <div id="utesdecomp"></div>
+    <p class="costnote" id="utesdecompnote"></p>
+
+    <details class="fold" id="fold_cool"><summary>WHY THESE NUMBERS —
+      <b>what cooling data can and cannot tell you, in plain terms</b></summary>
     <div class="foldbody">
+
+    <!-- LAYMAN'S EXPLANATION FIRST, method below. Same rule as panel 1: the
+         derivations belong in the methodology statement, and what belongs
+         here is why the figures behave the way they do. The method sections
+         that follow were already good and are kept intact underneath. -->
+    <p class="costnote"><b>Why nobody can just measure national cooling.</b>
+      Cooling is electricity, and electricity all looks the same on a meter.
+      A chiller running in an office is indistinguishable from a kettle
+      except in one respect: it responds to temperature. So the grid can show
+      how cooling <b>changes</b> as the weather changes, and it can never show
+      how much there is in total, because a load that runs flat all summer
+      hides inside every other constant in the system. That is why the levels
+      on this panel come from building surveys and national statistics, and
+      the grid is used to test them rather than to produce them.</p>
+    <p class="costnote"><b>Why there are two estimates that disagree.</b> One
+      method compares each day with others in the same month, which removes
+      holidays and the seasonal baseline but removes most of the cooling with
+      them, so it recovers about a third and is a floor by construction. The
+      other models the baseline explicitly instead of subtracting it, and
+      recovers about three quarters. Neither is wrong; they answer different
+      questions, and the gap between them is the part of cooling that runs
+      steadily rather than spiking.</p>
+    <p class="costnote"><b>Why summer nights are the clean test.</b> After
+      dark there is no solar gain, no solar generation on the grid to
+      confuse the signal, and most buildings are empty. What is left moving
+      with temperature is close to pure cooling, which is why the night curve
+      is used to check the daytime one.</p>
+    <p class="costnote"><b>Why one tier sits inside the national figure and
+      the other does not.</b> Tier 1 is cooling that was actually delivered,
+      so it is part of what the statistics already count. Tier 2 is buildings
+      with no cooling equipment at all — a building that consumes nothing
+      cannot appear in a survey of consumption, so it is genuinely additional.
+      Adding the two together is only valid because of that distinction.</p>
+    <p class="costnote"><b>Why the figures are zero all winter.</b> They are
+      weekly, and in November Britain is not cooling anything. The annual
+      figures at the top of the panel are the ones to read outside summer.</p>
 
     <p class="costnote" style="margin-top:2px"><b>One principle.</b> National
       demand data shows <b>slopes</b>, not levels. A load that does not vary
@@ -1225,6 +1336,16 @@
     <div class="h2lab" style="margin-top:26px">And the heat it rejects <span class="qual">— banked in summer, recovered in winter</span></div>
     <div id="utesbars" style="margin:10px 0 4px"></div>
     <p class="costnote" id="utesnote"></p>
+
+    <!-- HAND-OFF into the grid panel. The argument that carries across is
+         the seasonal one: heating and cooling peak at opposite ends of the
+         year, which is what the grid panel then has to reckon with. -->
+    <div class="coolnext">
+      <div class="arrow">&darr;</div>
+      <div>Heating peaks in January, cooling in July. One electricity system
+        has to carry both &mdash; <b>and the coldest hour is the one that
+        sizes it</b>.</div>
+    </div>
   </section>
 
   <section id="geosection">
@@ -1652,7 +1773,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.5.4';
+const SITE_VERSION = '9.6.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -3646,6 +3767,238 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     document.getElementById('coolcurve').style.display = 'none';
   }
 
+  // ---- cooling panel lead, on the YEAR ------------------------------------
+  // Every weekly figure in this panel is zero from about October to April.
+  // That was survivable at position 4 and is not at position 2, so the panel
+  // opens on annual quantities. Both are read from the payload: the ECUK
+  // anchor the tiers are measured against, and what the weather regression
+  // can actually see of it.
+  // LOCAL ESCAPER. The page's own cesc() is declared with const further down,
+  // so a reference from here lands in its temporal dead zone and throws
+  // before anything renders. Shadowing it locally is the fix; do not
+  // "simplify" this away.
+  const cesc = s => String(s == null ? '' : s)
+    .replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+  (() => {
+    const cd = d.comfort_deficit || {};
+    const cr = d.cooling_reconciliation || {};
+    const cal = (d.whatif_routes || {}).calibration || {};
+    const anchor = (cal.cooling || {}).annual_gwh
+                   || cr.ecuk_annual_cooling_vent_GWh;
+    const seen = cr.annual_weather_cooling_elec_GWh;
+    // NAME THE SPLIT. The ECUK line is cooling AND VENTILATION merged, and
+    // the legend under the chart quotes the cooling-only part of it. Stating
+    // 10,275 here and 4,700 there without saying they differ is two figures
+    // for one quantity on one panel - the defect panel 1 was rewritten to
+    // remove. The share is read from the payload, never typed.
+    const fac = (d.weekly_useful || {}).factors || {};
+    const coolShare = fac.cool_share;
+    const lede = document.getElementById('coollede');
+    if(lede && anchor){
+      lede.innerHTML =
+        'Britain buys about <b>' + fmt(anchor) + ' GWh of electricity a year</b> '
+        + 'for cooling and ventilation in its services buildings'
+        + (coolShare ? ' — of which a little under half, <b>'
+                       + fmt(anchor * coolShare) + ' GWh</b>, is cooling '
+                       + 'rather than fans'
+                     : '')
+        + '. '
+        + (seen ? 'The weather can account for only <b>' + fmt(seen)
+                  + ' GWh</b> of it; the rest runs whatever the temperature '
+                  + 'does. '
+                : '')
+        + 'That is the cooling Britain <b>has</b>. The number that matters '
+        + 'for what comes next is the cooling it does <b>not</b> have.';
+    }
+    // THE FOUR FACTS WERE ALREADY IN THE PAYLOAD, inside the method fold,
+    // where a reader who scrolled past the chart never met them. They are
+    // the reason the deficit below is a deficit and not a preference.
+    const cx = (cd.context || {});
+    const box = document.getElementById('coolctx');
+    // Each entry pulls its own sentence from the payload and shows a figure
+    // lifted OUT of that sentence - never typed beside it, so the two cannot
+    // drift apart. A fact whose payload line is missing is dropped, not
+    // faked: the grid simply has fewer cards.
+    const facts = [
+      ['ac_penetration_note',  /<\s*5%|~?3%/,          'under 5%',
+       'of UK homes have air conditioning'],
+      ['hospitals_note',       /~?90%/,                '~90%',
+       'of England’s hospital buildings are vulnerable to overheating'],
+      ['health_note',          /[\d,]{3,}/,            null,
+       'excess deaths in the England & Wales 2022 heat-periods'],
+      ['productivity_note',    /GBP\s?[\d.]+bn/,       null,
+       'a year of GB output lost to hot days']
+    ];
+    if(box){
+      const cards = facts.map(([key, re, fallback, label]) => {
+        const src = cx[key];
+        if(!src) return '';
+        const m = String(src).match(re);
+        let fig = fallback || (m ? m[0] : null);
+        if(!fig) return '';
+        fig = fig.replace(/GBP\s?/, '£');
+        // The source sentence carries its attribution in brackets; keep it,
+        // because an unsourced number on this site is a number nobody checks.
+        // FIRST bracket, not a trailing one: the hospitals line continues
+        // past its "(UKHACC)" with a second clause, so anchoring to the end
+        // of the string dropped the only attribution it had.
+        const cite = (String(src).match(/\(([^)]*)\)/) || [, ''])[1];
+        return '<div class="cx"><div class="cxf">' + cesc(fig) + '</div>' +
+               '<div class="cxt">' + cesc(label) + '</div>' +
+               (cite ? '<div class="cxs">' + cesc(cite) + '</div>' : '') +
+               '</div>';
+      }).filter(Boolean);
+      if(cards.length) box.innerHTML = cards.join('');
+      else box.style.display = 'none';
+    }
+  })();
+
+  // ---- what cooling costs to deliver --------------------------------------
+  // The panel's heading promises geothermal's role and the panel never priced
+  // it. These come from the SAME cost table panel 1 draws, so the two panels
+  // cannot diverge; the chiller row is derived from the resistive row, which
+  // IS the cap electricity rate at COP 1, divided by the fleet EER the rest
+  // of the site converts cooling at. Nothing here is typed.
+  (() => {
+    const rows = (d.cost || {}).household_p_per_useful_kwh || [];
+    const cal = (d.whatif_routes || {}).calibration || {};
+    const cool = cal.cooling || {};
+    const find = re => rows.find(r => re.test(r.route));
+    const resistive = find(/resistive/i);
+    const net = find(/network/i);
+    const passive = find(/passive/i);
+    const box = document.getElementById('coolprice');
+    if(!box || !resistive || !cool.eer) return;
+    const capElec = resistive.p_per_useful_kwh;   // COP 1, so this is the rate
+    const items = [
+      ['Air-cooled chiller', 'today’s installed fleet, EER ' +
+        cool.eer.toFixed(1), capElec / cool.eer, css('--ember')],
+      net ? ['Geothermal network', 'ambient loop, SCOP ' +
+        ((cal.anchors || {}).network || 5).toFixed(1),
+        net.p_per_useful_kwh, css('--geo')] : null,
+      passive ? ['Passive ground cooling', 'circulation only, COP ~' +
+        (cool.passive_cop || 20), passive.p_per_useful_kwh, css('--cool')] : null
+    ].filter(Boolean);
+    const top = Math.max(...items.map(i => i[2]));
+    box.innerHTML = items.map(([name, sub, p, col]) =>
+      '<div class="crow"><div class="cl">' + cesc(name) +
+      '<small>' + cesc(sub) + '</small></div>' +
+      '<div class="ct"><div class="cb" style="width:' +
+      (100 * p / top).toFixed(1) + '%;background:' + col + '"></div></div>' +
+      '<div class="cv">' + p.toFixed(1) + 'p<small>per kWh cooling</small></div>' +
+      '</div>').join('');
+    const note = document.getElementById('coolpricenote');
+    if(note) note.innerHTML =
+      'Running cost only, at the same cap electricity rate panel 1 uses. The ' +
+      'network figure is the <b>same loop and the same boreholes</b> that ' +
+      'serve heat in winter — cooling is not a second asset, it is the ' +
+      'first one run backwards. Passive ground cooling moves heat into the ' +
+      'ground with circulation pumps and no refrigeration cycle at all, which ' +
+      'is why it is roughly a tenth of a chiller†.';
+  })();
+
+  // ---- what the store is worth, decomposed --------------------------------
+  // NOT A NEW BENEFIT. The network route's advantage is already in the site's
+  // numbers, because retro.py gives it a 19.6 C source instead of the 8 C
+  // virgin ground the shallow route gets, and says in terms that the warmth
+  // comes from summer cooling rejection into the store. So this block does
+  // not ADD a saving - it takes the existing one apart and shows what the
+  // store is responsible for.
+  //
+  // EVERY INPUT IS READ FROM THE PAYLOAD. The Carnot fraction, both source
+  // temperatures, the flow curve and the SCOP anchor all come from
+  // calibration, and the heat weights come from the same daily spine panel 1
+  // prices. Nothing is typed, so this cannot drift from the model it is
+  // describing - which matters more here than anywhere else on the page,
+  // because the claim is about the model rather than about the world.
+  (() => {
+    const cal = (d.whatif_routes || {}).calibration || {};
+    const hp = (d.whatif_routes || {}).heat_price || {};
+    const src = cal.sources || {}, eta = cal.eta || {}, cool = cal.cooling || {};
+    const box = document.getElementById('utesdecomp');
+    const flow = cal.flow || [30, 50], flowAt = cal.flow_at || [15, -5];
+    if(!box || !src.network_c || !src.ground_c || !eta.network
+       || !hp.temp_C || !hp.space_GWh) return;
+    const MIN_LIFT_K = 8.0, DHW_FLOW_C = 52.0;
+    const carnot = (tf, ts) => (tf + 273.15) / Math.max(MIN_LIFT_K, tf - ts);
+    const flowTemp = t => {
+      if(t >= flowAt[0]) return flow[0];
+      if(t <= flowAt[1]) return flow[1];
+      const f = (flowAt[0] - t) / (flowAt[0] - flowAt[1]);
+      return flow[0] + f * (flow[1] - flow[0]);
+    };
+    // Heat-weighted SCOP over the whole record, service by service - space
+    // heat on the weather-compensated flow, hot water on its cylinder flow -
+    // which is the same weighting the cost panel uses.
+    const scop = ts => {
+      let elec = 0, heat = 0;
+      for(let i = 0; i < hp.temp_C.length; i++){
+        const t = hp.temp_C[i];
+        if(t == null) continue;
+        const s = (hp.space_GWh || [])[i] || 0;
+        const w = (hp.dhw_GWh || [])[i] || 0;
+        if(s){ elec += s / Math.max(1, eta.network * carnot(flowTemp(t), ts));
+               heat += s; }
+        if(w){ elec += w / Math.max(1, eta.network * carnot(DHW_FLOW_C, ts));
+               heat += w; }
+      }
+      return elec > 0 ? heat / elec : null;
+    };
+    const sUtes = scop(src.network_c), sVirgin = scop(src.ground_c);
+    if(!sUtes || !sVirgin) return;
+    // Winter side: electricity per unit of heat delivered, both cases.
+    // Summer side: electricity per unit of cooling delivered, chiller against
+    // the ground. Both axes are ELECTRICITY, which is what keeps the two
+    // seasons addable without counting the thermal energy twice.
+    const eer = cool.eer || 3.0, pcop = cool.passive_cop || 20.0;
+    const bar = (label, sub, v, top, col, fig) =>
+      '<div class="crow"><div class="cl">' + cesc(label) +
+      '<small>' + cesc(sub) + '</small></div>' +
+      '<div class="ct"><div class="cb" style="width:' +
+      Math.max(1.2, 100 * v / top).toFixed(1) + '%;background:' + col +
+      '"></div></div><div class="cv">' + fig + '</div></div>';
+    const wTop = 1 / sVirgin, sTop = 1 / eer;
+    box.innerHTML =
+      '<div class="useason"><div class="ush">Winter · per unit of heat ' +
+      'delivered</div>' +
+      bar('Virgin ground', src.ground_c.toFixed(1) + ' °C source, SCOP ' +
+          sVirgin.toFixed(2), 1 / sVirgin, wTop, css('--elec'),
+          (1 / sVirgin).toFixed(3) + '<small>kWh elec</small>') +
+      bar('Warmed by the store', src.network_c.toFixed(1) +
+          ' °C source, SCOP ' + sUtes.toFixed(2), 1 / sUtes, wTop,
+          css('--geo'), (1 / sUtes).toFixed(3) + '<small>kWh elec</small>') +
+      '<div class="usave">the store removes <b>' +
+      (100 * (1 - sVirgin / sUtes)).toFixed(0) + '%</b> of the electricity, ' +
+      'for the same heat</div></div>' +
+      '<div class="useason"><div class="ush">Summer · per unit of ' +
+      'cooling delivered</div>' +
+      bar('Air-cooled chiller', 'EER ' + eer.toFixed(1), 1 / eer, sTop,
+          css('--ember'), (1 / eer).toFixed(3) + '<small>kWh elec</small>') +
+      bar('Into the same store', 'circulation only, COP ~' + pcop, 1 / pcop,
+          sTop, css('--cool'), (1 / pcop).toFixed(3) + '<small>kWh elec</small>') +
+      '<div class="usave">and <b>' + (100 * (1 - eer / pcop)).toFixed(0) +
+      '%</b> of the electricity, for the same cooling</div></div>';
+    const note = document.getElementById('utesdecompnote');
+    if(note) note.innerHTML =
+      '<b>One loop, two seasons, counted once.</b> Winter extraction cools ' +
+      'the ground; summer rejection warms it again. The network route on the ' +
+      'cost panel is <b>not a better heat pump</b> — at a Carnot ' +
+      'fraction of ' + eta.network.toFixed(3) + ' it is the same quality of ' +
+      'machine as the air-source and ground-source routes (' +
+      (eta.ashp || 0).toFixed(3) + ' and ' + (eta.shallow || 0).toFixed(3) +
+      ') — it is the same machine working across a smaller gap, because ' +
+      'last summer’s cooling warmed the ground. Both bars above are ' +
+      '<b>electricity</b>, one per season, which is why nothing is counted ' +
+      'twice: the heat recovered from the store is not free heat, since a ' +
+      'ground loop would have drawn heat anyway. The benefit is that it ' +
+      'draws it across a shorter lift. <b>The ' + src.network_c.toFixed(1) +
+      ' °C source is derived, not measured</b>, and the SCOP of ' +
+      ((cal.anchors || {}).network || 5).toFixed(1) + ' that rests on it is ' +
+      'the single assumption most of this site’s strongest conclusions ' +
+      'depend on†.';
+  })();
+
   // ---- all three cooling tiers, daily, trailing twelve months -------------
   // The tier bars above are one week. This is the shape of the year: tier 1
   // is what the equipped stock actually drew, tier 2 what it wanted and could
@@ -3680,6 +4033,15 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     // typed here: a date the page states about a fit it does not read is a
     // date that will drift.
     const inFrom = (d.comfort_deficit || {}).t1_in_sample_from || null;
+    // The anchor the legend quotes, derived rather than typed. cooling.
+    // annual_gwh is cooling AND ventilation merged; cool_share splits it.
+    // Both fall back to the figures the legend used to carry as literals, so
+    // an older payload still renders the sentence it always did.
+    const _calC = ((d.whatif_routes || {}).calibration || {}).cooling || {};
+    const _facC = (d.weekly_useful || {}).factors || {};
+    const COOL_EER_PAGE = _facC.cool_eer || _calC.eer || 3.0;
+    const ECUK_COOL_GWH = (_calC.annual_gwh && _facC.cool_share)
+      ? _calC.annual_gwh * _facC.cool_share : 4800;
     const has = a => a && a.some(v => v !== null && v > 0);
     const fmtWin = {28:'the last 4 weeks', 84:'the last 12 weeks',
                     365:'the last twelve months', 730:'the last twenty-four months',
@@ -3868,9 +4230,18 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       document.getElementById('tierlegend').innerHTML =
         '<div style="font-size:13px;line-height:1.5;margin-top:12px">' +
         '<div style="color:var(--muted);margin-bottom:10px">' +
+        // COMPUTED, NOT TYPED, since 21 Nov 2026. These read "4,800" and
+        // "14,400" as literals while the constants behind them lived in
+        // build.py - and they had already drifted: the ECUK annual is
+        // 10,275 GWh of cooling AND ventilation, of which cool_share (0.46)
+        // is cooling, giving 4,727 rather than 4,800. The lede at the top of
+        // the panel now states the same quantity, so a typed figure here
+        // would contradict a computed one a screen above it.
         '<b>The anchor these tiers are measured against</b> is the national ' +
-        'statistic: ECUK reports about <b>4,800 GWh a year</b> of electricity ' +
-        'for cooling in services buildings, which is roughly <b>14,400 GWh of ' +
+        'statistic: ECUK reports about <b>' + fmt(ECUK_COOL_GWH) +
+        ' GWh a year</b> of electricity ' +
+        'for cooling in services buildings, which is roughly <b>' +
+        fmt(ECUK_COOL_GWH * COOL_EER_PAGE) + ' GWh of ' +
         'delivered cooling</b> once the refrigeration cycle is applied. It ' +
         'counts what metered buildings actually consumed. Each tier below ' +
         'states whether it sits inside that figure or outside it \u2014 they ' +
@@ -4914,10 +5285,18 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       'Serving the central load would draw ~' + cd.elec_if_ground_GWh +
       ' GWh of electricity via passive ground cooling vs ~' +
       cd.elec_if_air_GWh + ' GWh via air-source compressors. ' +
-      'Context: ' + cd.context.ac_penetration_note +
-      ' \u00b7 ' + cd.context.hospitals_note +
-      ' \u00b7 ' + cd.context.health_note +
-      ' \u00b7 ' + cd.context.productivity_note + '. ' +
+      // THE FOUR CONTEXT SENTENCES MOVED TO THE TOP OF THE PANEL on
+      // 21 Nov 2026, as the card strip under the lede. They were doing no
+      // work buried in the middle of a paragraph here, and leaving them in
+      // both places printed each of them twice on one screen. The payload
+      // fields are unchanged; only where they are read has moved. The one
+      // detail the cards drop is the NHS incident count inside the
+      // hospitals sentence, which is kept here so nothing is lost.
+      (cd.context && cd.context.hospitals_note
+        ? 'NHS' + (String(cd.context.hospitals_note)
+                    .split(/;\s*/).slice(1).join('; ')
+                    .replace(/^NHS/, '')) + '. '
+        : '') +
       'Cooling service throughout is electricity times a fleet efficiency of ' +
       (fx.cool_eer || 3.0).toFixed(1) + ', which is a range of ' + eerLo +
       '\u2013' + eerHi + ' across the plausible stock \u2014 the largest ' +
