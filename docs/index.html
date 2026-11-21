@@ -1408,23 +1408,56 @@
     <p class="lede">The same swap that lowers the bill lowers the carbon, and
       moves the energy onshore. Ground heat is not imported, not burnt, and
       not exposed to a commodity price.</p>
-    <div class="h2lab" style="margin-top:22px">What it emits
-      <span class="qual">— by route, at live grid intensity</span></div>
     <div class="billline" id="carbline"></div>
-    <div id="carbchart" style="height:230px;margin:16px 0 6px"></div>
+
+    <!-- THE PANEL'S TITLE PROMISES ENERGY SECURITY and until 21 Nov 2026 it
+         carried only carbon; the indigenous figures were on the top card
+         alone. The second chart is the same bar chart, same routes, same
+         order, measured on where the energy comes from instead of what it
+         emits - so the two read as one argument rather than two subjects.
+         It is computed from the emissions chart's own numbers (every
+         route's efficiency falls out of its gCO2e against the published
+         grid intensity) and the origin shares the build publishes. If
+         those shares are absent - a payload built before 21 Nov 2026 - the
+         chart hides rather than guessing them. -->
+    <div class="gridsplit">
+      <div>
+        <div class="h2lab">What it emits <span class="qual">— gCO₂e per
+          useful kWh</span></div>
+        <div id="carbchart" style="height:215px;margin:8px 0 0"></div>
+      </div>
+      <div>
+        <div class="h2lab" id="indiglab">Where the energy comes from
+          <span class="qual">— % from UK sources</span></div>
+        <div id="indigchart" style="height:215px;margin:8px 0 0"></div>
+      </div>
+    </div>
+    <p class="costnote" id="indigline"></p>
+
     <details class="fold" id="fold_carb"><summary>METHOD —
-      <b>every route’s carbon per useful kWh, live grid intensity</b></summary>
+      <b>carbon per useful kWh, and the UK-origin share behind it</b></summary>
     <div class="foldbody">
+    <p class="costnote" id="indignote2">—</p>
     <table class="costtable">
       <thead><tr><th>Route</th><th class="num">gCO2e per useful kWh</th></tr></thead>
       <tbody id="carbrows"></tbody>
     </table>
     <p class="costnote" id="carbnote"></p>
     </div></details>
+
+    <button type="button" class="panelnext" data-to="startinghead">
+      <span class="arrow">&darr;</span>
+      <span>Cheaper to run, lower carbon, less peak and more of it from
+        under Britain. <b>So what should the target be, and where does the
+        country start from?</b></span>
+    </button>
   </section>
 
   <section id="geosection">
-    <h1 class="sect">6. UK geothermal: now, next and benchmarks</h1>
+    <!-- id and tabindex added 21 Nov 2026 so panel 5's hand-off has a
+         target; the delegated handler needs both to scroll and focus. -->
+    <h1 class="sect" id="startinghead" tabindex="-1">6. UK geothermal: now,
+      next and benchmarks</h1>
       <div class="geofig" id="geofig">—<small> GWh of heat from geothermal this week (estimate)</small></div>
       <p class="geosub" id="geoshare"></p>
       <div class="geobars" id="geobars"></div>
@@ -1993,7 +2026,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.19.0';
+const SITE_VERSION = '9.20.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -4037,6 +4070,83 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     routeBars('carbchart', cb.routes_g_per_useful_kwh || [],
               'g_per_useful_kwh', 'gCO2e per useful kWh');
     document.getElementById('carbnote').textContent = cb.note;
+
+    // ---- the same routes, measured on where the energy comes from --------
+    // EVERY ROUTE'S EFFICIENCY IS ALREADY ON THE EMISSIONS CHART, which is
+    // why this needs no new series. An electric route's gCO2e per useful
+    // kWh is the grid intensity divided by its COP, so the COP falls back
+    // out by division - and resistive, at COP 1, reproduces the published
+    // grid intensity exactly, which is the check that the inversion is
+    // sound. A combustion route carries its fuel's origin share directly.
+    //
+    // The ambient share is where the argument lives: a heat pump at SCOP 5
+    // takes one unit of electricity and four of ground heat, and the
+    // ground heat is harvested where it is used. So four fifths of what it
+    // delivers is indigenous before anyone asks about the grid.
+    (() => {
+      const O = cb.indig_origin_share;
+      const ci = cb.grid_ci_g_per_kwh;
+      const box = document.getElementById('indigchart');
+      const lab = document.getElementById('indiglab');
+      const line = document.getElementById('indigline');
+      const rows = cb.routes_g_per_useful_kwh || [];
+      const drop = () => [box, lab, line].forEach(e => { if(e) e.hidden = true; });
+      if(!O || !O.elec || !ci || !rows.length){ drop(); return; }
+
+      // Which origin share a route's purchased energy carries. Matched on
+      // the published route names; anything unrecognised is skipped rather
+      // than defaulted, because a wrong origin is worse than a short chart.
+      const fuelOf = r => {
+        const n = r.toLowerCase();
+        if(/gas/.test(n) && !/geothermal|ground/.test(n)) return O.gas;
+        if(/oil|kerosene/.test(n)) return O.oil;
+        if(/resistive|electric|heat pump|ground|geothermal/.test(n))
+          return O.elec;
+        return null;
+      };
+      const isElec = r => /resistive|electric|heat pump|ground|geothermal/i
+        .test(r);
+      const out = [];
+      rows.forEach(r => {
+        const share = fuelOf(r.route);
+        if(share == null || !r.g_per_useful_kwh) return;
+        let pct;
+        if(isElec(r.route)){
+          const cop = ci / r.g_per_useful_kwh;
+          const purchased = 1 / Math.max(1, cop);     // kWh elec per useful
+          pct = 100 * ((1 - purchased) * (O.ambient != null ? O.ambient : 1)
+                       + purchased * share);
+        } else {
+          pct = 100 * share;        // combustion harvests nothing
+        }
+        out.push({route: r.route, indig_pct: Math.round(pct)});
+      });
+      if(out.length < 2){ drop(); return; }
+      routeBars('indigchart', out, 'indig_pct', '% from UK sources');
+
+      const lo = out.reduce((a, b) => b.indig_pct < a.indig_pct ? b : a);
+      const hi = out.reduce((a, b) => b.indig_pct > a.indig_pct ? b : a);
+      if(line) line.innerHTML =
+        'Same routes, same order. <b>' + lo.route + ' ' + lo.indig_pct +
+        '%</b> against <b>' + hi.route.toLowerCase() + ' ' + hi.indig_pct +
+        '%</b> — most of the difference is simply electrification, and the ' +
+        'rest is that a warmer source needs less of the bought energy and ' +
+        'more of the heat already in the ground†.';
+      const n2 = document.getElementById('indignote2');
+      const hl = (d.headlines || {});
+      if(n2) n2.innerHTML =
+        '<b>Where the UK-origin shares come from.</b> Gas at <b>' +
+        Math.round(100 * O.gas) + '%</b> and electricity at <b>' +
+        Math.round(100 * O.elec) + '%</b> are the same shares behind the ' +
+        'indigenous figure on the card at the top of this page; harvested ' +
+        'ambient and ground heat count as <b>100%</b>, consistent with the ' +
+        'Eurostat and DUKES renewable-supply convention. Each route’s ' +
+        'split between bought energy and harvested heat is taken from its ' +
+        'own bar on the emissions chart beside this one — grid intensity ' +
+        'divided by gCO₂e per useful kWh gives the COP — so the two ' +
+        'charts cannot disagree about the same machine. ' +
+        (hl.indig_note ? String(hl.indig_note) : '');
+    })();
   }
 
   const co = d.cooling_observed;
