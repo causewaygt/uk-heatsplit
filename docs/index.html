@@ -553,8 +553,12 @@
   <div class="hero">
     <div class="h2lab">The energy balance</div>
     <div class="trendbar" id="balwin" style="margin:2px 0 10px">
-      <button data-bw="now" aria-pressed="true">AS BOUGHT</button>
-      <button data-bw="wf">WITH A FIFTH GEOTHERMAL</button>
+      <!-- Item 15. "AS BOUGHT" reads as a procurement term and gave no hint
+           that the pair is a comparison; the reviewer could not tell which
+           state was the real world. "Today" against "With a geothermal fifth"
+           names both sides in the reader's own terms. -->
+      <button data-bw="now" aria-pressed="true">TODAY</button>
+      <button data-bw="wf">WITH A GEOTHERMAL FIFTH</button>
     </div>
     <div class="barlabel" id="balancesection">ENERGY IN — fuel &amp; electricity purchased<span id="barwin"></span></div>
     <div class="barrow">
@@ -1392,7 +1396,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.3.4';
+const SITE_VERSION = '9.3.5';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -2049,12 +2053,36 @@ fetch('data.json').then(r=>r.json()).then(d=>{
       ["electricity","Electricity \u2014 including the geothermal fifth","--elec"],
     ];
 
-    function drawWhatIfBars(){
-      const sc = Math.max(wfb.mix_total_GWh, wfb.useful_total_GWh) || 1;
+    function drawWhatIfBars(agg, scShared){
+      // THE SCALE IS HANDED IN, not computed here. It is the as-bought
+      // maximum for the same window, so this bar is shorter than that one by
+      // exactly the energy the what-if saves - which is the whole point of
+      // drawing two bars. Falling back to its own maximum only if no scale
+      // arrives, so a stray call cannot divide by zero.
+      // THE WINDOW IS NOT HONOURED, and the label must not pretend it is.
+      // There are no windowed what-if components in the payload: history
+      // entries carry `fuels` but no what-if twin, and `whatif` holds totals
+      // only. So this is always the live week. Until 21 Nov 2026 a windowed
+      // call silently drew weekly figures under the window's own heading.
+      // Until build.py emits a per-week what-if fuel block, say so.
+      const windowed = !!(agg && agg.fuels);
+      // THE SCALE MUST MATCH THE BASIS OF THE BARS, which is why this sits
+      // after `windowed` rather than at the top of the function. Handed the
+      // window's as-bought total while drawing a WEEKLY what-if, the bar
+      // collapses to nothing - measured at 0% of the panel when first tried
+      // on 21 Nov 2026, which is a worse fault than the one being fixed. So:
+      // same window, use the shared as-bought scale and the fall is visible;
+      // windowed, fall back to the live week's own as-bought maximum, so the
+      // pair is still like-for-like and the clause below says which week.
+      const sc = (windowed
+                    ? Math.max(totalIn, totalOut)
+                    : scShared ||
+                      Math.max(wfb.mix_total_GWh, wfb.useful_total_GWh)) || 1;
       window.LAST_BARS = {inDef: WF_IN_DEF, inC: wfb.mix, outDef: OUT_DEF,
                           outC: (u ? u.components_GWh : null),
                           tIn: wfb.mix_total_GWh, tOut: wfb.useful_total_GWh,
-                          lost: 0, when: 'this week', sc: sc, wf: true};
+                          lost: 0, when: 'this week', sc: sc, wf: true,
+                          windowed: windowed};
       document.getElementById('mixlegend').innerHTML = '';
       document.getElementById('uselegend').innerHTML = '';
       Object.keys(seen).forEach(k => { delete seen[k]; });
@@ -2079,20 +2107,40 @@ fetch('data.json').then(r=>r.json()).then(d=>{
         'move, by construction: that is what makes it a comparison rather ' +
         'than a scenario. <b style="color:' + css('--geo') + '">' +
         fmt(wfb.geothermal_ambient_GWh) + ' GWh</b> of it arrives as heat ' +
-        'lifted from the ground rather than bought\u2020.';
+        'lifted from the ground rather than bought\u2020.' +
+        // Stated, not hidden. The window buttons stay live so the reader can
+        // go back without hunting, but the figures above are the live week
+        // whatever is selected, and a caption that let them read as annual
+        // would be the defect rather than a limitation.
+        (windowed
+          ? ' <b>This comparison is the live week only</b>, whichever window ' +
+            'is selected above: the record carries per-fuel energy for every ' +
+            'week but no what-if twin, so a longer view cannot be built from ' +
+            'it yet. Switch back to TODAY for the window.'
+          : '');
     }
 
     window.drawEnergyBars = function(agg){
       LAST = agg;
-      if(BAL === 'wf' && wfb) return drawWhatIfBars();
+      // ONE SCALE FOR BOTH STATES, and it is the AS-BOUGHT one. Until
+      // 21 Nov 2026 each state scaled to its own maximum, so the what-if bar
+      // filled the panel almost exactly as the as-bought bar did and the fall
+      // stated in the caption directly beneath it was invisible. A bar whose
+      // length carries a quantity has to share a scale with the bar it is
+      // being compared against, or it is decoration.
+      //
+      // Computed BEFORE the what-if branch below, which is why W, tIn and
+      // tOut are hoisted above it: the what-if cannot know the as-bought
+      // total for the window it is drawn against unless it is handed it.
       const W    = !!(agg && agg.fuels);
-      const inC  = W ? agg.in_components  : m.components_GWh;
-      const outC = W ? agg.out_components : (u ? u.components_GWh : null);
       const tIn  = W ? agg.total_in  : totalIn;
       const tOut = W ? agg.total_out : totalOut;
+      const sc   = Math.max(tIn, tOut) || 1;
+      if(BAL === 'wf' && wfb) return drawWhatIfBars(agg, sc);
+      const inC  = W ? agg.in_components  : m.components_GWh;
+      const outC = W ? agg.out_components : (u ? u.components_GWh : null);
       const lost = W ? agg.wasted : (u ? u.wasted_GWh : 0);
       const when = W ? agg.when : 'this week';
-      const sc   = Math.max(tIn, tOut) || 1;
       // The bars are HTML segments, so Plotly.toImage cannot see them. Record
       // what they were built from and let the exporter redraw on canvas.
       window.LAST_BARS = {inDef: IN_DEF, inC: inC, outDef: OUT_DEF, outC: outC,
