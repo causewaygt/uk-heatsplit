@@ -30,6 +30,16 @@ jobs:
       # continue-on-error because this is an experiment sitting inside a
       # production build: if the estimator throws, the site must still publish
       # and the failure marker below must not fire.
+      # Twenty-five years of GB cooling degree days. Past years never
+      # change, so --if-stale 30 means this actually fetches about once a
+      # month and is a no-op on every other run. It is deliberately NOT a
+      # hard failure: a missing cdd_history.json costs one chart, where a
+      # failed step would cost the whole nightly data update.
+      - name: Cooling degree-day history (refreshes ~monthly)
+        continue-on-error: true
+        run: python3 scripts/cdd_history.py --years 25
+             --out docs/cdd_history.json --if-stale 30
+
       - name: Balance-point spread (offline)
         continue-on-error: true
         run: |
@@ -53,6 +63,10 @@ jobs:
           # an uncommitted archive is rebuilt from the rolling retro window
           # every time and never grows past it.
           [ -f docs/daily.json ] && git add docs/daily.json || true
+          # Written about monthly by the degree-day history step above; it
+          # must be staged or the runner's fresh checkout discards it and the
+          # step rebuilds it from scratch every month for nothing.
+          [ -f docs/cdd_history.json ] && git add docs/cdd_history.json || true
           git commit -m "data update $(date -u +%F)" || echo "no change"
           git pull --rebase origin ${GITHUB_REF_NAME}
           git push
