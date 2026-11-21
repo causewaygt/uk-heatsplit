@@ -19,7 +19,11 @@
        font:16px/1.55 "Lato",system-ui,sans-serif}
   .wrap{max-width:880px;margin:0 auto;padding:0 20px}
   header{border-bottom:1px solid var(--line);padding:18px 0}
-  header .wrap{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+  /* BLOCK since 21 Nov 2026. It was a space-between flex row for the old
+     brand-left / ticker-right header; the top card's rows became flex items
+     under it and collapsed to their content width - bars about 80px wide
+     where 300 was intended. The thin line does its own flex locally. */
+  header .wrap{display:block}
   .brandbox{display:flex;flex-direction:column;align-items:flex-start;
             justify-content:center;gap:12px;flex:1;min-width:220px}
   .logo img{height:66px;display:block}
@@ -457,6 +461,84 @@
   @media(max-width:700px){#capitalpanel .levers{grid-template-columns:1fr 1fr}
                           #capitalpanel .scales{grid-template-columns:1fr}}
   @media(max-width:440px){#capitalpanel .levers{grid-template-columns:1fr}}
+
+  /* ---- the top card (21 Nov 2026) --------------------------------------
+     Replaces the brand block, the standfirst and the six-figure
+     frontispiece. The frontispiece carried six numbers of equal visual
+     weight, which is a list rather than a case - the reader picks their own
+     headline or none (David, review item 12). This asks one question and
+     answers it with one number, and the side-by-side exists so the answer
+     has a size as well as a value. The hatched gap is the same idiom as the
+     energy-balance blocks below, deliberately: both say "energy, or money,
+     that is never spent". */
+  .topline{display:flex;align-items:center;gap:13px;padding:10px 0 9px;
+           border-bottom:1px solid var(--line)}
+  .topline .logo img{height:24px;display:block}
+  .topline .brand{font-weight:900;letter-spacing:.13em;font-size:14px;
+                  text-transform:uppercase;color:var(--paper)}
+  .topline .sp{flex:1}
+  .topline .stamp{font-family:"IBM Plex Mono",monospace;font-size:11px;
+                  color:var(--muted);letter-spacing:.03em;text-align:right}
+  .ask{font-size:29px;line-height:1.26;font-weight:700;margin:22px 0 0;
+       max-width:44ch}
+  .ask em{font-style:normal;color:var(--geo)}
+  /* Styled on .trendctl, the site's real control class. `.trendbar` carries
+     NO rules at all - it is used on six window bars across the page and
+     every one of them renders as a default browser button. Not fixed here,
+     because that is six panels' worth of appearance change and belongs in
+     its own pass, but it is why this bar does not say trendbar. */
+  .askwin{display:flex;gap:6px;margin:18px 0 0;flex-wrap:wrap;
+          justify-content:flex-start}
+  .askwin button[aria-pressed="true"]{color:var(--ink);
+    background:var(--paper);border-color:var(--paper)}
+  .cardgrid{display:grid;grid-template-columns:330px 1fr;gap:40px;
+            align-items:center;margin-top:20px}
+  .cardhero{font-size:72px;line-height:.95;font-weight:900;
+            letter-spacing:-.02em;color:var(--geo)}
+  .cardsub{color:var(--paper);font-size:15px;margin-top:10px;line-height:1.4}
+  .cardfoot{color:var(--muted);font-size:12.5px;margin-top:7px;line-height:1.45}
+  .crow{display:grid;grid-template-columns:168px 1fr 96px;gap:12px;
+        align-items:center;margin-bottom:11px}
+  .crow .lab{font-size:13px;color:var(--muted);text-align:right;
+             line-height:1.25}
+  .crow .lab b{display:block;color:var(--paper);font-weight:700;
+               font-size:13.5px}
+  .ctrack{position:relative;height:38px}
+  .cbar{height:38px;border-radius:3px;transition:width 1.1s
+        cubic-bezier(.2,.7,.2,1)}
+  .cnow{background:var(--ember)}
+  .cwf{background:var(--elec)}
+  /* separated from the paid bar by 1% of the track for the same reason the
+     energy-balance blocks are: #3aaa35 butted against #d9a441 is dE 3.5 for
+     a protan reader, so the gap and the hatch carry the distinction, not
+     the hue */
+  .cgap{position:absolute;top:0;height:38px;border-radius:3px;
+        border:1px dashed rgba(138,149,160,.6);
+        background:repeating-linear-gradient(135deg,var(--geo) 0 6px,
+                   rgba(58,170,53,.28) 6px 12px);
+        transition:left 1.1s cubic-bezier(.2,.7,.2,1),
+                   width 1.1s cubic-bezier(.2,.7,.2,1)}
+  .cval{font-family:"IBM Plex Mono",monospace;font-size:14px}
+  .cval small{display:block;font-size:10px;color:var(--muted)}
+  .gaptip{font-size:11.5px;color:var(--muted);text-align:right;
+          margin:-4px 0 0}
+  .cnext{display:flex;align-items:center;gap:10px;margin-top:24px;
+         padding-top:14px;border-top:1px solid var(--line);
+         color:var(--muted);font-size:13.5px;background:none;border-left:0;
+         border-right:0;border-bottom:0;width:100%;text-align:left;
+         font-family:inherit;cursor:pointer}
+  .cnext b{color:var(--paper);font-weight:700}
+  .cnext .arrow{width:22px;height:22px;border-radius:50%;
+                border:1px solid var(--line);display:flex;
+                align-items:center;justify-content:center;color:var(--geo);
+                font-size:12px;flex:0 0 22px}
+  .cnext:hover .arrow{border-color:var(--geo)}
+  @media(max-width:820px){
+    .cardgrid{grid-template-columns:1fr;gap:22px}
+    .cardhero{font-size:56px}
+    .ask{font-size:24px}
+    .crow{grid-template-columns:120px 1fr 78px}
+  }
 </style>
 </head>
 <body>
@@ -484,39 +566,86 @@
   </p>
 </div>
 <header><div class="wrap">
-  <div class="brandbox">
+  <!-- ONE THIN LINE: mark, title, and the currency of the record. The
+       spark-gap ticker that sat at the right has gone with the
+       frontispiece - a snapshot of one day is less engaging than the
+       aggregate (David, review item 16), and it was competing with the
+       question below for the first thing a reader looks at. -->
+  <div class="topline">
     <a class="logo" href="https://causewaygt.com" target="_blank" rel="noopener"
        aria-label="Causeway Energies">
       <img src="causeway-logo.png" alt="Causeway Energies"
            onerror="this.style.display='none';this.nextElementSibling.style.display='inline'">
       <span class="wordmark" style="display:none">CAUSEWAY<em>ENERGIES</em></span>
     </a>
-    <div class="brand">UK Heat <i>Split</i></div>
-  </div>
-  <div class="tickbox">
-    <div class="ticker" id="ticker"></div>
+    <div class="brand">UK Heat Split</div>
+    <div class="sp"></div>
     <div class="stamp" id="stamp">loading…</div>
   </div>
+
+  <h1 class="ask">How much would Britain have saved if a fifth of its
+    heating and cooling were served by <em>geothermal</em>?</h1>
+
+  <div class="trendctl askwin" id="askwin">
+    <button data-aw="1">1W</button>
+    <button data-aw="4">4W</button>
+    <button data-aw="12">12W</button>
+    <button data-aw="52" aria-pressed="true">12M</button>
+    <button data-aw="104">24M</button>
+  </div>
+
+  <div class="cardgrid">
+    <div>
+      <div class="cardhero" id="ask_hero">—</div>
+      <div class="cardsub" id="ask_sub"></div>
+      <div class="cardfoot" id="ask_foot"></div>
+    </div>
+    <div>
+      <div class="crow">
+        <div class="lab"><b>What Britain paid</b>gas, oil, electricity
+          and heat networks</div>
+        <div class="ctrack">
+          <div class="cbar cnow" id="ask_bar_now" style="width:0%"></div>
+        </div>
+        <div class="cval" id="ask_val_now">—</div>
+      </div>
+      <div class="crow">
+        <div class="lab"><b>With a geothermal fifth</b>same heat, same
+          cooling, same weeks</div>
+        <div class="ctrack">
+          <div class="cbar cwf" id="ask_bar_wf" style="width:0%"></div>
+          <div class="cgap" id="ask_gap" style="left:100%;width:0%"></div>
+        </div>
+        <div class="cval" id="ask_val_wf">—</div>
+      </div>
+      <p class="gaptip" id="ask_tip"></p>
+    </div>
+  </div>
+
+  <button class="cnext" id="ask_next">
+    <span class="arrow">&darr;</span>
+    <span>That saving is energy Britain stops buying.
+      <b>See where it comes from</b> — the energy balance, week by week.</span>
+  </button>
+
+  <p class="cardfoot" style="max-width:96ch;margin-top:16px">Every week is priced
+  at its own week’s tariff, cap and carbon. The what-if moves a fifth of
+  purchased energy onto geothermal networks and holds delivered heat and
+  cooling constant, so it is a comparison rather than a forecast. Estimates,
+  not measurements. <a href="uk-heatsplit-methodology.pdf"
+  style="color:var(--geo)">Methodology</a>.</p>
 </div>
-<div class="wrap"><p class="standfirst">A live estimate of the energy behind
-  Britain’s building heat and cooling, by source — and how much can be
-  saved when geothermal is adopted.</p>
-  <p class="sub" style="max-width:74ch">Live from grid and gas data where it can
-  be measured; official annual figures shaped by the weather where it cannot.
-  Estimates, not measurements. <a href="uk-heatsplit-methodology.pdf"
-  style="color:var(--geo)">Methodology</a>.</p></div>
 </header>
 
 <div class="wrap">
-  <section class="front" id="front" tabindex="-1" hidden>
-    <div class="frontlead">The case for geothermal in six figures</div>
-    <p class="frontsub">Every number here is computed from the live estimate
-      below and restates with it. Daggers mark figures resting on Causeway
-      judgement rather than a published source.</p>
-    <div class="points" id="points"></div>
-    <p class="frontfoot" id="frontfoot"></p>
-
-  </section>
+  <!-- THE SIX-FIGURE FRONTISPIECE WAS HERE, removed 21 Nov 2026 and
+       replaced by the top card in the header. Six numbers of equal visual
+       weight is a list, not a case: nothing was foregrounded, so a reader
+       picked their own headline or none (David, review item 12). Its
+       builder below is left in place and guarded on #front, so it is inert
+       rather than deleted - point 05's derivation reads the capital
+       panel's published default and is worth keeping recoverable until
+       that claim has a new home. -->
 
   <div class="hero">
     <h1 id="startline" tabindex="-1">1. The starting point — how Britain
@@ -1422,7 +1551,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.4.0';
+const SITE_VERSION = '9.5.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -2976,6 +3105,101 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     tick();
   })();
 
+  // ---- the top card: one question, one number ---------------------------
+  // Sums the priced weeks over the selected window and shows the two bills
+  // side by side on a common scale, so the saving has a size as well as a
+  // value. Every figure is read from the record - nothing here is typed.
+  (function(){
+    const hero = document.getElementById('ask_hero');
+    const bar  = document.getElementById('askwin');
+    if(!hero || !bar || !Array.isArray(d.history)) return;
+
+    // ONLY PRICED WEEKS. bill_Mgbp is null where the cap table could not
+    // resolve a week, and summing nulls as zero would quietly understate
+    // both sides - the fault the price work spent a day removing.
+    const H = d.history
+      .filter(e => e && e.week_ending && e.bill_Mgbp != null &&
+                   e.whatif && e.whatif.bill_Mgbp != null)
+      .sort((a, b) => a.week_ending < b.week_ending ? -1 : 1);
+    if(!H.length){ hero.textContent = '—'; return; }
+
+    const gbp = m => m >= 1000
+      ? '£' + (m / 1000).toFixed(2) + 'bn'
+      : '£' + Math.round(m).toLocaleString('en-GB') + 'm';
+    const WORDS = {1: 'in the last week', 4: 'in the last four weeks',
+                   12: 'in the last twelve weeks',
+                   52: 'in the last twelve months',
+                   104: 'in the last twenty-four months'};
+
+    function draw(win){
+      const rows = H.slice(-win);
+      const now = rows.reduce((a, e) => a + e.bill_Mgbp, 0);
+      const wf  = rows.reduce((a, e) => a + e.whatif.bill_Mgbp, 0);
+      const saved = now - wf;
+      const sc = Math.max(now, wf) || 1;
+      hero.textContent = gbp(saved);
+      document.getElementById('ask_sub').innerHTML =
+        'not spent on heating and cooling <b>' +
+        (WORDS[win] || 'over the window') + '</b>';
+      document.getElementById('ask_foot').textContent =
+        (100 * saved / (now || 1)).toFixed(1) +
+        '% of the national bill — on the same delivered heat, in the ' +
+        'weather that actually happened†' +
+        (rows.length < win
+          ? ' · ' + rows.length + ' priced weeks on record, not ' + win
+          : '');
+      document.getElementById('ask_val_now').innerHTML =
+        gbp(now).replace(/bn$/, '<small>bn</small>')
+                .replace(/m$/, '<small>m</small>');
+      document.getElementById('ask_val_wf').innerHTML =
+        gbp(wf).replace(/bn$/, '<small>bn</small>')
+               .replace(/m$/, '<small>m</small>');
+      document.getElementById('ask_bar_now').style.width =
+        (100 * now / sc) + '%';
+      document.getElementById('ask_bar_wf').style.width =
+        (100 * wf / sc) + '%';
+      // the gap starts one point clear of the paid bar - see .cgap
+      const g = document.getElementById('ask_gap');
+      g.style.left  = (100 * wf / sc + 1) + '%';
+      g.style.width = Math.max(0, 100 * saved / sc - 1) + '%';
+      document.getElementById('ask_tip').innerHTML =
+        'the hatched gap is the ' + gbp(saved) +
+        ' — energy that is never bought';
+    }
+
+    bar.addEventListener('click', ev => {
+      const b = ev.target.closest('button');
+      if(!b) return;
+      bar.querySelectorAll('button').forEach(x =>
+        x.setAttribute('aria-pressed', String(x === b)));
+      draw(+b.dataset.aw);
+    });
+    // Hide windows the record cannot fill rather than drawing a short one
+    // under a long label - the rule the other window bars already use.
+    bar.querySelectorAll('button').forEach(b => {
+      if(+b.dataset.aw > H.length && +b.dataset.aw > 1)
+        b.style.display = H.length >= +b.dataset.aw ? '' : 'none';
+    });
+    const first = bar.querySelector('button[aria-pressed="true"]') ||
+                  bar.querySelector('button');
+    if(first){
+      first.setAttribute('aria-pressed', 'true');
+      draw(+first.dataset.aw);
+    }
+
+    const nx = document.getElementById('ask_next');
+    const tgt = document.getElementById('startline');
+    if(nx && tgt){
+      const reduce = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      nx.addEventListener('click', () => {
+        tgt.scrollIntoView({behavior: reduce ? 'auto' : 'smooth',
+                            block: 'start'});
+        setTimeout(() => tgt.focus({preventScroll: true}), reduce ? 0 : 420);
+      });
+    }
+  })();
+
   // ---- frontispiece: the case in six figures ----------------------------
   // Runs after the capital panel so point 05 reads that panel's published
   // default through capitalModel rather than carrying its own copy of the
@@ -4502,7 +4726,10 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
   }
 
   const sp = d.spark;
-  if(sp && sp.gap_gbp_mwh != null){
+  // THE HEADER TICKER IS GONE (21 Nov 2026), so this block has nowhere to
+  // write. Guarded rather than deleted: the spark gap still belongs on the
+  // cost panel, and this is the computation that would feed it.
+  if(sp && sp.gap_gbp_mwh != null && document.getElementById('ticker')){
     const cheaper = sp.gap_gbp_mwh > 0;
     // BOTH BASES. Wholesale prominent, because it isolates the fuel and the
     // efficiency from the tariff; retail beneath, because that is what a
