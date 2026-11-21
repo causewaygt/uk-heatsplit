@@ -599,6 +599,20 @@
   .cval small{display:block;font-size:10px;color:var(--muted)}
   .gaptip{font-size:11.5px;color:var(--muted);text-align:right;
           margin:-4px 0 0}
+  /* THE TWO SECONDARY WINS, 21 Nov 2026. The card had width to spare on a
+     desktop and only one number on it. These are deliberately a third of the
+     hero's size: the money is the argument, and carbon and energy security
+     are what come with it - showing them at the same weight would make the
+     card three headlines and no point. Numbers only, no charts; the panels
+     below carry the series. */
+  .cardwins{display:grid;grid-template-columns:1fr 1fr;gap:28px;
+            margin-top:22px;padding-top:18px;
+            border-top:1px solid var(--line)}
+  @media (max-width:720px){.cardwins{grid-template-columns:1fr;gap:16px}}
+  .cwfig{font-family:"JetBrains Mono",monospace;font-size:25px;
+         line-height:1.05;color:var(--geo);font-weight:500}
+  .cwlab{color:var(--paper);font-size:13.5px;line-height:1.4;margin-top:5px}
+  .cwsub{color:var(--muted);font-size:11.5px;line-height:1.4;margin-top:3px}
   .cnext{display:flex;align-items:center;gap:10px;margin-top:24px;
          padding-top:14px;border-top:1px solid var(--line);
          color:var(--muted);font-size:13.5px;background:none;border-left:0;
@@ -696,6 +710,22 @@
         <div class="cval" id="ask_val_wf">—</div>
       </div>
       <p class="gaptip" id="ask_tip"></p>
+    </div>
+  </div>
+
+  <!-- Emissions and indigenous share, side by side. Written by draw() so
+       they follow the window with the headline; no charts - the panels
+       below carry those. -->
+  <div class="cardwins">
+    <div>
+      <div class="cwfig" id="ask_co2">—</div>
+      <div class="cwlab" id="ask_co2_lab"></div>
+      <div class="cwsub" id="ask_co2_sub"></div>
+    </div>
+    <div>
+      <div class="cwfig" id="ask_indig">—</div>
+      <div class="cwlab" id="ask_indig_lab"></div>
+      <div class="cwsub" id="ask_indig_sub"></div>
     </div>
   </div>
 
@@ -1683,7 +1713,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.7.4';
+const SITE_VERSION = '9.8.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -3306,6 +3336,51 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       document.getElementById('ask_tip').innerHTML =
         'the hatched gap is the ' + gbp(saved) +
         ' — energy that is never bought';
+      // THE TWO SECONDARY WINS, on the same window as the headline.
+      // emissions_kt, NOT carbon_kt: the history rows carry the former and
+      // summing the latter returns zero on every row, which would have put
+      // a confident "0 Mt" on the card.
+      // Indigenous share is PURCHASE-WEIGHTED, not a mean of weekly
+      // percentages - a week that buys little must not count as much as a
+      // January week that buys a lot - and it is quoted in percentage
+      // POINTS, because a rise from 47% to 56% is 9 points and not 9%.
+      (() => {
+        const em  = rows.reduce((a, e) => a + (e.emissions_kt || 0), 0);
+        const emw = rows.reduce((a, e) =>
+                      a + ((e.whatif || {}).emissions_kt || 0), 0);
+        const wIndig = wf => {
+          let num = 0, den = 0;
+          rows.forEach(e => {
+            const o = wf ? (e.whatif || {}) : e;
+            if(o.indig_pct != null && o.purchased_GWh){
+              num += o.indig_pct * o.purchased_GWh; den += o.purchased_GWh;
+            }
+          });
+          return den ? num / den : null;
+        };
+        const set = (id, v) => { const el = document.getElementById(id);
+                                 if(el) el.innerHTML = v; };
+        const cut = em - emw;
+        if(em > 0 && cut > 0){
+          set('ask_co2', cut >= 1000 ? (cut / 1000).toFixed(1) + ' Mt'
+                                     : fmt(cut) + ' kt');
+          set('ask_co2_lab', 'of CO<sub>2</sub>e never emitted');
+          set('ask_co2_sub', (100 * cut / em).toFixed(0) +
+              '% of heating and cooling emissions over the same weeks');
+        } else {
+          set('ask_co2', '—'); set('ask_co2_lab', ''); set('ask_co2_sub', '');
+        }
+        const i0 = wIndig(false), i1 = wIndig(true);
+        if(i0 != null && i1 != null && i1 > i0){
+          set('ask_indig', '+' + (i1 - i0).toFixed(1) + ' pts');
+          set('ask_indig_lab', 'more of the energy from UK sources');
+          set('ask_indig_sub', i0.toFixed(0) + '% → ' + i1.toFixed(0) +
+              '% — ground heat is produced where it is used');
+        } else {
+          set('ask_indig', '—'); set('ask_indig_lab', '');
+          set('ask_indig_sub', '');
+        }
+      })();
       // THE HAND-OFF OPENS ON THE HEADLINE, and follows the window with it.
       // Typed, it would have said one figure while the hero said another the
       // moment a reader pressed 24M. It also names what the saving IS - a
