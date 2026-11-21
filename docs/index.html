@@ -1947,7 +1947,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.16.0';
+const SITE_VERSION = '9.17.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -4349,6 +4349,25 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     // arrives rather than falling back to a literal.
     window.__SITE_SCOP = {utes: sUtes, virgin: sVirgin, air: sAir};
 
+    // PEAK-HOUR COPs TOO, because a seasonal ratio is the wrong instrument
+    // for a peak chart and would understate the case. An air-source COP
+    // collapses as the air gets cold; a 19.6 °C store does not move. On this
+    // model the network advantage is 1.94x at the coldest binding hour
+    // against 1.78x across the season - the gap is WIDER exactly where the
+    // grid is tightest. Evaluated at the site's own ASHP binding
+    // temperature, read from the payload rather than typed, so the design
+    // condition the projection uses is the one the observed panel found.
+    const tDes = ((((d.whatif_routes || {}).system || {}).routes || {})
+                  .ashp || {}).binding_temp_C;
+    if(tDes != null){
+      const fD = flowTemp(tDes);
+      window.__SITE_SCOP.peak = {
+        t: tDes,
+        air: Math.max(1, eta.ashp * carnot(fD, tDes - AIR_APPROACH) * dfr(tDes)),
+        network: Math.max(1, eta.network * carnot(fD, src.network_c))
+      };
+    }
+
     const wTop = sAir ? 1 / sAir : 1 / sVirgin, sTop = 1 / eer;
     box.innerHTML =
       '<div class="useasons">' +
@@ -6718,6 +6737,16 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       };
       const peak = (pw, y) => (d.demand[pw] || {}).peak_total
         ? d.demand[pw].peak_total[DY.indexOf(y)] : null;
+      // Heat pumps' own contribution to the peak, residential plus
+      // commercial. District heat at peak is NOT added: on a network it is
+      // already the thing being argued for, so moving it would be counting
+      // the same switch twice.
+      const hpPeak = (pw, y) => {
+        const D = d.demand[pw] || {}, i = DY.indexOf(y);
+        if(i < 0) return null;
+        const a = (D.peak_hp_res || [])[i], b = (D.peak_hp_com || [])[i];
+        return (a == null && b == null) ? null : (a || 0) + (b || 0);
+      };
 
       let PW = paths.indexOf('Holistic Transition') >= 0
         ? 'Holistic Transition' : paths[0];
@@ -6754,6 +6783,28 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
           line: {color: css('--ember'), width: 2.5},
           hovertemplate: 'Peak %{y:.1f} GW<extra></extra>'
         });
+        // THE SAME HEAT, ON A NETWORK. Not an SPF scenario: a seasonal
+        // ratio is the wrong instrument here and would understate it. This
+        // uses the PEAK-HOUR COPs the store panel publishes, at the site's
+        // own binding temperature. It needs no assumption about what FES
+        // assumed, only that FES's peak heat-pump block is air source -
+        // which ED7 confirms it overwhelmingly is. If the store panel has
+        // not reported its COPs the line is simply absent, never guessed.
+        const PKC = (window.__SITE_SCOP || {}).peak;
+        if(PKC && PKC.air && PKC.network){
+          const cut = 1 - PKC.air / PKC.network;
+          traces.push({
+            x: years,
+            y: years.map(y => {
+              const p = peak(PW, y), h = hpPeak(PW, y);
+              return (p == null || h == null) ? null : p - h * cut;
+            }),
+            name: 'Peak if that heat were on a network',
+            type: 'scatter', mode: 'lines',
+            line: {color: css('--geo'), width: 2.2, dash: 'dash'},
+            hovertemplate: 'Peak %{y:.1f} GW<extra></extra>'
+          });
+        }
         // Its own layout: the panel's shared P is scoped inside the routes
         // builder, and reaching across for it would tie this chart to a
         // block it has nothing else to do with.
@@ -6772,6 +6823,7 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
         // The headline is the share of the peak that is NOT firm, in the
         // last year, computed rather than typed.
         const yN = years[years.length - 1];
+        const S0 = window.__SITE_SCOP;
         const firm = sum(PW, 'Base Load', yN) + sum(PW, 'Dispatchable', yN);
         const pk = peak(PW, yN);
         const pk0 = peak(PW, years[0]);
@@ -6786,7 +6838,25 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
           'by its duration, imports by everyone needing them at once, wind ' +
           'by definition. Capacity is as published; the only de-rating ' +
           'applied here is wind at ' + Math.round(100 * WIND_DR) + '%, the ' +
-          'same Winter Outlook figure the observed chart below uses†.';
+          'same Winter Outlook figure the observed chart below uses. ' +
+          (PKC && PKC.air && PKC.network && hpPeak(PW, yN) != null
+            ? 'The dashed line puts the same heat on a geothermal network: ' +
+              'at <b>' + PKC.t.toFixed(1) + ' °C</b> an air-source machine ' +
+              'runs at COP <b>' + PKC.air.toFixed(2) + '</b> and a network ' +
+              'at <b>' + PKC.network.toFixed(2) + '</b>, so the <b>' +
+              hpPeak(PW, yN).toFixed(1) + ' GW</b> of heat pumps in that ' +
+              'peak becomes <b>' +
+              (hpPeak(PW, yN) * PKC.air / PKC.network).toFixed(1) +
+              ' GW</b> — <b>' +
+              (hpPeak(PW, yN) * (1 - PKC.air / PKC.network)).toFixed(1) +
+              ' GW</b> off the peak, and off what the network has to be ' +
+              'built to carry. Peak-hour COPs, not seasonal ones: the ' +
+              'advantage is <b>' +
+              (PKC.network / PKC.air).toFixed(2) + '×</b> here against ' +
+              (S0 ? (S0.utes / S0.air).toFixed(2) + '×' : 'less') +
+              ' across the season, because cold air is a worse source and ' +
+              'a warmed store is not. '
+            : '') + '†';
       }
 
       // THE SECTION IS HIDDEN UNTIL data.json ARRIVES, and this block does
