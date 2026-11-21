@@ -777,7 +777,7 @@
          under a section heading that already says what heat costs, and the
          reader met two headings before a single figure. -->
     <div class="billline" id="billline"></div>
-    <div class="h2lab" id="hplab" hidden>What heat costs to make <span class="qual" id="hpbasislbl">— by route, wholesale commodity</span></div>
+    <div class="h2lab" id="hplab" style="margin-top:14px" hidden>What heat costs to make <span class="qual" id="hpbasislbl">— by route, wholesale commodity</span></div>
     <!-- THE VIEW CONTROLS MOVED BELOW THE CHART on 21 Nov 2026 - Simon.
          Three button rows and the heat-weighted-mean note sat between the
          heading and the plot and pushed it 371px down, so on a laptop the
@@ -795,8 +795,13 @@
       <button data-hw="1461">48M</button>
       <button data-hw="1826">60M</button>
     </div>
-    <div id="hpchart" style="height:300px;margin:8px 0 0"></div>
-    <div id="hpvol" style="height:142px;margin:0 0 4px"></div>
+    <!-- HEIGHTS TRIMMED 21 Nov 2026 so the panel clears a laptop viewport:
+         heading to fold ran 978px against about 860px of usable height.
+         The price chart loses 32px and the volume strip 44 - the strip is
+         context for the chart above it rather than a surface anyone reads
+         values off, so it can give up proportionally more. -->
+    <div id="hpchart" style="height:268px;margin:8px 0 0"></div>
+    <div id="hpvol" style="height:98px;margin:0 0 4px"></div>
     <!-- ONE ROW. Three groups separated by a hairline rather than by line
          breaks; at 880px the six buttons come to about 680px, so it fits
          without wrapping and degrades to two lines on a phone. The ceiling
@@ -1740,7 +1745,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.9.1';
+const SITE_VERSION = '9.9.2';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -4793,11 +4798,17 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       // steps clear of its neighbour.
       // In PIXELS, not in a fraction of the span: the text is 12px whatever
       // the axis happens to cover, so a percentage threshold is right at one
-      // window and wrong at the next. The plot box is 300px tall (set in the
-      // markup) and the axis runs from zero, so the top of the drawn range
-      // is a good enough stand-in for its height.
+      // window and wrong at the next. The axis runs from zero, so the top of
+      // the drawn range stands in for the plot's height.
+      // MEASURED, NOT TYPED. This read a hardcoded 300 to match the markup's
+      // height, and when the chart was shortened to 268 on 21 Nov 2026 the
+      // separation silently started overestimating the spacing by 12% - the
+      // kind of drift that shows up as two labels touching on one window and
+      // nowhere else.
+      const plotH = (document.getElementById('hpchart') || {}).clientHeight
+                    || 268;
       const top = Math.max(...anns.map(a => a.y)) || 1;
-      const pxPerUnit = 300 / top;
+      const pxPerUnit = plotH / top;
       anns.sort((a, b) => a.y - b.y).forEach((a, i, arr) => {
         if(!i) return;
         const prev = arr[i - 1];
@@ -4874,26 +4885,24 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
            || (SVC !== 'space' && SVC !== 'blend')
            || g == null || s == null){ rc.textContent = ''; return; }
         const flips = (snap.gshp < snap.gas_boiler) !== (s < g);
-        rc.innerHTML = 'Reading this against the line at the top of the panel: '
-          + 'that one prices a single day on the cap in force today, at an '
-          + 'annual average efficiency — ground source <b>' + snap.gshp
-          + 'p</b>, gas <b>' + snap.gas_boiler + 'p</b>. The figures at the '
-          + 'right of the chart price every day on its own tariff and its own '
-          + 'weather, then take the heat-weighted mean of the '
-          + (fmtW[w] || 'window shown')
+        // COMPRESSED 21 Nov 2026, to get the panel inside a laptop
+        // viewport. The long form restated four figures that are already on
+        // the screen - two in the headline above, two at the right edge of
+        // the chart - so it cost five lines to repeat what the reader could
+        // see. What it has to say is WHY they differ, and that is two
+        // clauses. The flip case still names its cause, because that is the
+        // part nobody can work out by looking.
+        rc.innerHTML = 'The line at the top prices one day on today\u2019s cap '
+          + 'at an annual average efficiency; the figures at the right price '
+          + 'every day on its own tariff and its own weather, then take the '
+          + 'heat-weighted mean of the ' + (fmtW[w] || 'window shown')
           + (SVC === 'blend' ? ' across both services' : ' on space heating')
-          + ' — gas <b>' + g.toFixed(1)
-          + 'p</b>, ground source <b>' + s.toFixed(1) + 'p</b>. '
+          + '. '
           + (flips
-             ? 'The order is the other way round over this window because the '
-               + 'gas cap has stepped up inside it and the mean still carries '
-               + 'the cheaper months. Shorten the window and the two lines '
-               + 'converge on the same figure.'
-             : 'The two put the routes in the same order over this window. '
-               + 'They are not the same number, and should not be: the '
-               + 'headline fixes an annual average efficiency, while the '
-               + 'chart uses the efficiency the weather actually allowed on '
-               + 'each day in it.');
+             ? '<b>Over this window the order inverts</b> \u2014 the gas cap '
+               + 'has stepped up inside it and the mean still carries the '
+               + 'cheaper months.'
+             : 'Same order, different numbers, and both are right.');
       })();
       // SERVICE VOLUMES, on the same window and the same x axis. A price is
       // only as interesting as the service it prices: in July the whole load
