@@ -319,6 +319,16 @@
      one note. The margin is on the element, not a :not(:first-child) rule,
      because several of these sit alone under a chart where the gap reads
      the same. */
+  /* The cost panel's view controls, one row under the chart. The groups keep
+     their own .trendbar so their existing click handlers and aria-pressed
+     logic are untouched; this only changes how they sit. align-items:center
+     so the hairlines line up with the button text, and wrap so a phone gets
+     two tidy lines rather than a scrollbar. */
+  .viewrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;
+           margin:10px 0 0}
+  .viewrow .trendbar{margin:0}
+  .vsep{width:1px;height:17px;background:var(--line);flex:none}
+  @media (max-width:720px){.vsep{display:none}}
   /* ---- cooling panel, 21 Nov 2026 ---------------------------------- */
   /* Four context facts, promoted out of the fold. A grid rather than a list
      because they are peers - none is the headline - and because at this
@@ -689,19 +699,25 @@
     </div>
   </div>
 
-  <button class="cnext" id="ask_next">
-    <span class="arrow">&darr;</span>
-    <span>That saving is the gap between what Britain pays for heat today
-      and what geothermal would cost. <b>See what each route costs</b> —
-      in pence per kWh, at the meter.</span>
-  </button>
-
   <p class="cardfoot" style="max-width:96ch;margin-top:16px">Every week is priced
   at its own week’s tariff, cap and carbon. The what-if moves a fifth of
   purchased energy onto geothermal networks and holds delivered heat and
   cooling constant, so it is a comparison rather than a forecast. Estimates,
   not measurements. <a href="uk-heatsplit-methodology.pdf"
   style="color:var(--geo)">Methodology</a>.</p>
+
+  <!-- THE HAND-OFF SITS LAST, 21 Nov 2026 - Simon. It was between the bars
+       and the caveat line, which put an invitation to scroll on in the
+       middle of the card and left the caveat as the last thing read. A
+       scroll invitation is the last thing on a card by definition. Its text
+       is written by the builder below so it can open on the headline figure
+       for the window the reader has selected. -->
+  <button class="cnext" id="ask_next">
+    <span class="arrow">&darr;</span>
+    <span id="ask_next_text">See what each route costs — in pence per kWh,
+      at the meter.</span>
+  </button>
+
 </div>
 </header>
 
@@ -732,28 +748,15 @@
          reader met two headings before a single figure. -->
     <div class="billline" id="billline"></div>
     <div class="h2lab" id="hplab" hidden>What heat costs to make <span class="qual" id="hpbasislbl">— by route, wholesale commodity</span></div>
-    <div class="trendbar" id="hpsvc" style="margin:8px 0 2px">
-      <button data-hs="space">SPACE HEATING</button>
-      <button data-hs="dhw">HOT WATER</button>
-      <button data-hs="blend" aria-pressed="true">AS DELIVERED</button>
-    </div>
-    <!-- AT THE METER leads. A reader arriving from the top card has just
-         been shown a bill, and this is the basis that answers it; wholesale
-         isolates fuel and efficiency from tariff and is the second click. -->
-    <div class="trendbar" id="hpbasis" style="margin:6px 0 2px">
-      <button data-hb="retail" aria-pressed="true">AT THE METER</button>
-      <button data-hb="wholesale">WHOLESALE</button>
-    </div>
-    <!-- Resistive electric is a CEILING nobody chooses, not a route. Drawn
-         by default it sits four times above the next line and squashes the
-         comparison the panel exists to make into the bottom quarter of the
-         plot. Off by default, one click away. -->
-    <div class="trendbar" id="hpceil" style="margin:6px 0 2px">
-      <button data-hc="on">SHOW RESISTIVE ELECTRIC CEILING</button>
-    </div>
-    <p class="costnote" style="margin:4px 0 0;color:var(--muted)">Figures at the
-      right are the <b>heat-weighted mean</b> over the window shown —
-      <span id="hpwmeanlbl"></span>.</p>
+    <!-- THE VIEW CONTROLS MOVED BELOW THE CHART on 21 Nov 2026 - Simon.
+         Three button rows and the heat-weighted-mean note sat between the
+         heading and the plot and pushed it 371px down, so on a laptop the
+         reader met controls before they met the thing being controlled.
+         Only the time windows stay above; service, basis and the ceiling
+         are a single row under the plot, where they read as "other ways to
+         look at this" rather than as a form to fill in first. The h2lab's
+         sub-label still states the current view, so the reader always knows
+         what they are looking at without looking down. -->
     <div class="trendbar" id="hpwin" style="margin:6px 0 2px">
       <button data-hw="28">4W</button>
       <button data-hw="84">12W</button>
@@ -764,6 +767,34 @@
     </div>
     <div id="hpchart" style="height:300px;margin:8px 0 0"></div>
     <div id="hpvol" style="height:142px;margin:0 0 4px"></div>
+    <!-- ONE ROW. Three groups separated by a hairline rather than by line
+         breaks; at 880px the six buttons come to about 680px, so it fits
+         without wrapping and degrades to two lines on a phone. The ceiling
+         button's label was "SHOW RESISTIVE ELECTRIC CEILING", which alone
+         was most of a row. -->
+    <div class="viewrow">
+      <div class="trendbar" id="hpsvc">
+        <button data-hs="space">SPACE HEATING</button>
+        <button data-hs="dhw">HOT WATER</button>
+        <button data-hs="blend" aria-pressed="true">AS DELIVERED</button>
+      </div>
+      <span class="vsep"></span>
+      <!-- AT THE METER leads. A reader arriving from the top card has just
+           been shown a bill, and this is the basis that answers it. -->
+      <div class="trendbar" id="hpbasis">
+        <button data-hb="retail" aria-pressed="true">AT THE METER</button>
+        <button data-hb="wholesale">WHOLESALE</button>
+      </div>
+      <span class="vsep"></span>
+      <!-- Resistive electric is a CEILING nobody chooses, not a route. Drawn
+           by default it squashes the comparison into the bottom quarter. -->
+      <div class="trendbar" id="hpceil">
+        <button data-hc="on">RESISTIVE CEILING</button>
+      </div>
+    </div>
+    <p class="costnote" style="margin:7px 0 0">Figures at the right of the
+      chart are the <b>heat-weighted mean</b> over the window shown —
+      <span id="hpwmeanlbl"></span>.</p>
     <button class="pngbtn" onclick="exportChart('hpchart','What heat costs to make','by route, in pence per kWh of delivered heat \u2014 with the heat actually delivered beneath','hpvol')">⬇ PNG FOR SLIDES</button>
     <!-- RECONCILIATION, written by draw() rather than typed. This panel states
          two 'what gas costs' figures in the same unit: a snapshot on today's
@@ -1006,8 +1037,10 @@
     <p class="costnote"><b>Why summer nights are the clean test.</b> After
       dark there is no solar gain, no solar generation on the grid to
       confuse the signal, and most buildings are empty. What is left moving
-      with temperature is close to pure cooling, which is why the night curve
-      is used to check the daytime one.</p>
+      with temperature is close to pure cooling, which is why the night hours
+      are used to check the daytime curve. That replication is in the
+      methodology statement — it tests the method rather than adding to the
+      figures here.</p>
     <p class="costnote"><b>Why one tier sits inside the national figure and
       the other does not.</b> Tier 1 is cooling that was actually delivered,
       so it is part of what the statistics already count. Tier 2 is buildings
@@ -1038,14 +1071,15 @@
     <div class="billline" id="coolobsline"></div>
     <div id="coolcurve" style="width:100%;height:300px"></div>
     <p class="costnote" id="coolobsnote"></p>
-    <div class="h2lab" id="elbowlab" style="margin-top:26px" hidden>The same shape from the other direction <span class="qual">— summer nights, both years, binned by temperature</span></div>
-    <div id="elbow" style="width:100%;height:290px"></div>
-    <p class="costnote" id="elbownote"></p>
-    <div id="reconblock" style="display:none">
-      <div class="h2lab" style="margin-top:26px">Reconciliation diagnostic <span class="qual">— year-round fit, not yet in the bill</span></div>
-      <div class="billline" id="reconline"></div>
-      <p class="costnote" id="reconnote"></p>
-    </div>
+    <!-- THE NIGHT ELBOW and the RECONCILIATION DIAGNOSTIC came out on
+         21 Nov 2026 - Simon. The elbow replicated the response curve's shape
+         from summer night hours, which is a cross-check on the method rather
+         than evidence for anything this panel states. The reconciliation
+         block was labelled in the payload as "diagnostic - not in
+         bill/carbon" and fed no published figure at all. Both are in the
+         methodology statement with their full working; both builders are
+         left intact and simply find no element, so restoring either is a
+         matter of putting its markup back. -->
     <!-- TIER 0 and TESTED-AND-REJECTED came out on 21 Nov 2026, about 970
          words between them. The tier 0 bottom-up build (food cold chain,
          data centres, the service-vs-electricity distinction) and the
@@ -1649,7 +1683,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.7.0';
+const SITE_VERSION = '9.7.4';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -3272,6 +3306,18 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       document.getElementById('ask_tip').innerHTML =
         'the hatched gap is the ' + gbp(saved) +
         ' — energy that is never bought';
+      // THE HAND-OFF OPENS ON THE HEADLINE, and follows the window with it.
+      // Typed, it would have said one figure while the hero said another the
+      // moment a reader pressed 24M. It also names what the saving IS - a
+      // running-cost gap, not a capital case - because that is the question
+      // the cost panel below answers and the one this card is most likely to
+      // be misread as answering.
+      const nt = document.getElementById('ask_next_text');
+      if(nt) nt.innerHTML =
+        'The headline saving of <b>' + gbp(saved) + '</b> is the gap between ' +
+        'what Britain pays for heat today and what geothermal would cost to ' +
+        'run. <b>See what each route costs</b> — in pence per kWh, at the ' +
+        'meter.';
     }
 
     bar.addEventListener('click', ev => {
@@ -4243,13 +4289,20 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
   // Two variables, two aggregations, one shape. Published per year so the
   // replication is visible rather than claimed.
   (() => {
+    // THE NIGHT ELBOW MOVED TO THE METHODOLOGY STATEMENT on 21 Nov 2026 -
+    // Simon. It is a cross-check on the response curve rather than evidence
+    // for anything the panel states: the curve is what tier 1 is fitted
+    // from, and this replicates its shape from summer night hours. Worth
+    // keeping, not worth a reader's attention on the way past. The builder
+    // below is left intact and simply finds no element, so restoring it is
+    // putting the markup back.
     const eb = (d.whatif_routes || {}).night_elbow;
     const box = document.getElementById('elbow');
-    if(!eb || !eb.years || eb.years.length < 1){
+    if(!box || !eb || !eb.years || eb.years.length < 1){
       if(box) box.style.display = 'none';
       return;
     }
-    document.getElementById('elbowlab').hidden = false;
+    gone('elbowlab').hidden = false;
     const cols = [css('--cool'), css('--ember'), css('--elec')];
     const traces = eb.years.map((y, i) => ({
       x: y.bins.map(b=>b.t_C), y: y.bins.map(b=>b.demand_GW),
@@ -4700,7 +4753,17 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
         if(!rc) return;
         const snap = ((d.cost || {}).gshp_vs_gas_boiler) || null;
         const g = wmean('gas'), s = wmean('shallow');
-        if(!snap || snap.gshp == null || BASIS !== 'retail' || SVC !== 'space'
+        // BOTH SPACE HEATING AND AS DELIVERED. This was gated on 'space'
+        // alone, and when AS DELIVERED became the default on 21 Nov 2026 the
+        // sentence stopped appearing at all - the reconciliation this panel
+        // was rewritten to carry was cleared by its own default. AS DELIVERED
+        // is in fact the snapshot's better match: the headline divides the
+        // cap rate by an ANNUAL SPF, which spans both services, where the
+        // space-heating view is one of the two it averages over. Hot water
+        // alone and the wholesale basis still clear it, because the snapshot
+        // has no counterpart on either.
+        if(!snap || snap.gshp == null || BASIS !== 'retail'
+           || (SVC !== 'space' && SVC !== 'blend')
            || g == null || s == null){ rc.textContent = ''; return; }
         const flips = (snap.gshp < snap.gas_boiler) !== (s < g);
         rc.innerHTML = 'Reading this against the line at the top of the panel: '
@@ -4709,7 +4772,9 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
           + 'p</b>, gas <b>' + snap.gas_boiler + 'p</b>. The figures at the '
           + 'right of the chart price every day on its own tariff and its own '
           + 'weather, then take the heat-weighted mean of the '
-          + (fmtW[w] || 'window shown') + ' — gas <b>' + g.toFixed(1)
+          + (fmtW[w] || 'window shown')
+          + (SVC === 'blend' ? ' across both services' : ' on space heating')
+          + ' — gas <b>' + g.toFixed(1)
           + 'p</b>, ground source <b>' + s.toFixed(1) + 'p</b>. '
           + (flips
              ? 'The order is the other way round over this window because the '
@@ -5093,8 +5158,14 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
             sh.boiler_flow_note : '');
   }
 
+  // THE RECONCILIATION DIAGNOSTIC MOVED TO THE METHODOLOGY STATEMENT on
+  // 21 Nov 2026 - Simon. The payload labels it "diagnostic - not in
+  // bill/carbon", and it fed no published figure: a year-round fit kept
+  // beside the panel so the two could be compared, which is a methodology
+  // question rather than a reader's one. The builder is intact and finds no
+  // element; putting the markup back restores it.
   const cr = d.cooling_reconciliation;
-  if(cr && cr.beta_cool_GWh_per_CDD != null){
+  if(cr && cr.beta_cool_GWh_per_CDD != null && document.getElementById('reconblock')){
     document.getElementById('reconblock').style.display = '';
     const flat = cr.implied_weather_flat_share != null
       ? Math.round(100 * cr.implied_weather_flat_share) : null;
@@ -5356,7 +5427,15 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       : [];
     if(hist.length < 2) return;
     const els = [...document.querySelectorAll('.trend')];
-    const ctl = gone('trendctl');
+    // A DETACHED ELEMENT, not gone(). gone() returns a plain object, which
+    // accepts an assignment and then throws the moment anything calls a DOM
+    // method on it - ctl.querySelectorAll('button') did exactly that, and
+    // the render's .catch() swallowed it into "data.json not found". A real
+    // element answers querySelectorAll with an empty list, so every button
+    // loop below becomes a no-op and the rest of this block - which still
+    // drives the energy balance in Appendix A - runs untouched.
+    const ctl = document.getElementById('trendctl')
+                || document.createElement('div');
     ctl.hidden = false;
 
     // Money stops at the price-cap table. Before it households were on the
@@ -5396,11 +5475,27 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     };
 
     // hero windowing: snapshot the live this-week figures, re-total on demand
+    // FILTERED TO WHAT EXISTS, 21 Nov 2026. These are the old panel 1's stat
+    // tiles, deleted with it. This loop read fig.nextElementSibling without
+    // testing fig, so it threw on the first id - and the whole render is
+    // wrapped in a .catch() that replaces the header stamp with "data.json
+    // not found", so the page reported a missing payload while displaying
+    // the payload perfectly. Everything below the throw simply never ran.
+    //
+    // The gone() rewiring did not catch this one because the id here is a
+    // LOOP VARIABLE, not a literal - a reminder that find-and-replace on
+    // getElementById('literal') is not a proof of anything.
+    //
+    // setHero() is NOT dead with the tiles: it also drives the energy
+    // balance's window, which is live in Appendix A. So the tile half is
+    // allowed to become a no-op and the rest is left alone.
     const HERO_IDS = ['st_energy','st_indig','st_bill','st_carbon',
-                      'wf_energy','wf_indig','wf_bill','wf_carbon'];
+                      'wf_energy','wf_indig','wf_bill','wf_carbon']
+                     .filter(id => document.getElementById(id));
     const snap = {};
     HERO_IDS.forEach(id => {
       const fig = document.getElementById(id), cap = fig.nextElementSibling;
+      if(!cap) return;
       snap[id] = {fig: fig, cap: cap,
                   figHTML: fig.innerHTML, capHTML: cap.innerHTML};
     });
@@ -5416,6 +5511,7 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     function setHero(win){
       if(win === 2){
         HERO_IDS.forEach(id => {
+          if(!snap[id]) return;
           snap[id].fig.innerHTML = snap[id].figHTML;
           snap[id].cap.innerHTML = snap[id].capHTML;
         });
@@ -5455,7 +5551,9 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
         });
         return den ? Math.round(num/den) : null;
       };
+      // Tolerates a tile that no longer exists - see HERO_IDS above.
       const set = (id, figHTML, capText) => {
+        if(!snap[id]) return;
         snap[id].fig.innerHTML = figHTML;
         snap[id].cap.textContent = capText;
       };
