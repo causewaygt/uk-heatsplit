@@ -1126,7 +1126,10 @@
     <div class="h2lab">The comfort deficit <span class="qual">— buildings with no cooling at all</span></div>
     <div class="billline" id="deficitline"></div>
     <p class="geosub" id="deficitcontext"></p>
-    <p class="costnote" id="deficitnote"></p>
+    <!-- deficitnote moved into the fold on 21 Nov 2026. Its payload text is
+         a base-temperature derivation - which base, why not CIBSE's 26 C,
+         what the urban heat island would add - and that is method, not a
+         caption. The element keeps its id so its writer is untouched. -->
 
     <!-- UTES, AS A DECOMPOSITION - NOT AN ADDITION. The store's benefit is
          already inside the network route: retro.py sets its source to 19.6 C
@@ -1186,33 +1189,21 @@
       weekly, and in November Britain is not cooling anything. The annual
       figures at the top of the panel are the ones to read outside summer.</p>
 
-    <p class="costnote" style="margin-top:2px"><b>One principle.</b> National
-      demand data shows <b>slopes</b>, not levels. A load that does not vary
-      with the weather is indistinguishable from every other constant in the
-      system, so no amount of grid data can size it. Every level on this panel
-      therefore comes from elsewhere — official statistics for comfort
-      cooling, bottom-up counting for process — and the grid’s job is
-      to test whether those levels behave as they should, not to produce
-      them.</p>
+    <p class="costnote" id="deficitfold"></p>
+    <p class="costnote" id="deficitnote"></p>
 
-    <div class="h2lab" style="margin-top:24px">The anchor <span class="qual">— and why it is split</span></div>
-    <p class="costnote" id="methanchor"></p>
-
-    <div class="h2lab" style="margin-top:24px">Two estimators, and why they disagree <span class="qual">— a factor of five, for a reason</span></div>
-    <p class="costnote">The response curve below centres each day within its
-      own month and day type before fitting. That removes the holiday and
-      seasonal confound — August demand is depressed exactly when it is
-      hottest — but it removes the <b>level</b> along with it, because the
-      monthly mean contains most of the cooling. So the published curve
-      recovers about a <b>third</b> of the anchored figure and is a lower
-      bound by construction, not a contradiction of it. That share has moved
-      as the estimator improved — it was a seventh before the binned
-      ceiling was replaced by a continuous fit — so it is recomputed from
-      the payload rather than quoted from memory†.</p>
-    <p class="costnote" id="methundemeaned" style="margin-top:12px">—</p>
-
-    <div class="h2lab" style="margin-top:26px">The second estimate’s interval <span class="qual">— refitted on five summers, 20 Nov 2026</span></div>
-    <p class="costnote" id="coolcorrection">—</p>
+    <!-- THE METHOD SECTIONS CAME OUT ON 21 Nov 2026 - Simon, on the panel
+         moving to position 2. The anchor derivation, the two estimators and
+         their disagreement, the balance-point interval, the tier 0 bottom-up
+         build, the reconciliation diagnostic and the tested-and-rejected
+         history were about 2,100 words of method sitting behind a fold that
+         is meant to answer "why is this number what it is" for a lay reader.
+         They are not deleted - they move to the methodology statement, which
+         is where derivations belong and where they can carry their full
+         working. The elements whose writers are guarded (methanchor,
+         methundemeaned, coolcorrection) were removed outright; the ones
+         whose writers are not guarded were kept and their writers shortened,
+         because a missing element there throws before the panel renders. -->
 
     <div class="h2lab" style="margin-top:26px">The observed response curve <span class="qual">— what the equipped fleet draws as it warms</span></div>
     <div class="billline" id="coolobsline"></div>
@@ -1226,102 +1217,13 @@
       <div class="billline" id="reconline"></div>
       <p class="costnote" id="reconnote"></p>
     </div>
-    <div class="h2lab" style="margin-top:26px">Tier 0, and how big it really is <span class="qual">— process cooling, built bottom up</span></div>
-    <p class="costnote">Tier 0 was carried for months as a bare “of order
-      26 TWh a year” with no derivation anywhere. It now has one, and the
-      exercise moved the number’s meaning more than its magnitude.</p>
-    <p class="costnote"><b>The food cold chain</b> is anchored on Foster, Brown
-      and Evans, <i>Carbon emissions from refrigeration used in the UK food
-      industry</i> (International Journal of Refrigeration, 2023), which puts
-      the entire UK food cold chain at <b>29.1 TWh of electricity</b> on 2019
-      data. <b>10.75 TWh of that is domestic fridge-freezers</b> and belongs in
-      the household tier, not here. Stripping it out leaves 15–18 TWh:
-      retail refrigeration 6.91, food service 4.16–9.28 (the widest single
-      uncertainty), food and drink manufacturing 3.08, cold stores 1.32,
-      agriculture 0.40.</p>
-    <p class="costnote"><b>Data centres are much smaller than their billing
-      suggests.</b> DESNZ’s June 2026 Energy Trends feature puts GB data
-      centres at <b>4.5 TWh</b> of grid electricity in 2024, 2% of the 249.2
-      TWh consumed. Cooling is only the overhead above the IT load: at a UK
-      power usage effectiveness of 1.5–1.8 that is roughly
-      <b>1–1.5 TWh</b>. Trade press reporting 5.8% of national electricity
-      is a capacity-based figure on a different scope, not the metered
-      number†. Adding non-food industrial refrigeration — chemicals
-      and pharmaceuticals at 0.88 TWh, from the DESNZ-funded TICR project
-      — gives <b>17–22 TWh of electricity</b>, or <b>25–45 TWh of
-      delivered cooling</b> once each component is converted at its own
-      efficiency: supermarket display about 2 to 2.5, cold stores and
-      manufacturing 2.5 to 3, data centre cooling service roughly the IT load
-      it removes.</p>
-    <p class="costnote"><b>So 26 TWh is defensible as a service figure and
-      wrong as an electricity one</b> — and the site had never said which
-      it was. It sits at the low end of the service range. Two cautions carried
-      forward: the cold-chain data is 2019 and the retail figures trace to
-      studies from 2007–2016, making this the stalest evidence on the page;
-      and roughly 1 to 1.5 TWh of data centre cooling may already sit inside
-      the ECUK services cooling line above, since data centres are
-      services-sector buildings — a fifth of the anchor, potentially
-      counted twice†.</p>
-    <p class="costnote"><b>The scale is the point.</b> At 17–22 TWh of
-      electricity, process cooling is <b>three and a half to four and a half
-      times the entire comfort-cooling anchor</b> of 4.8 TWh. Britain spends
-      far more electricity keeping product cold than keeping people cool, and
-      none of it is in ECUK’s services cooling line.</p>
-
-    <div class="h2lab" style="margin-top:26px">Tested and rejected <span class="qual">— four things that did not survive, and one that did</span></div>
-    <p class="costnote"><b>The diurnal separation.</b> Until 17 August 2026
-      this fold opened with a chart separating comfort from process cooling
-      by hour: an overnight floor of 0.261 GW/°C rising to 0.676 at noon,
-      offered as evidence that a continuously running refrigeration load is
-      separable from daytime comfort cooling. <b>It was an artefact.</b> The
-      demand series already contains embedded solar and the analysis added it
-      a second time, which manufactures a correlation with temperature in
-      exactly the daylight hours where a cooling signal would appear.
-      Corrected, the profile is flat — 0.26 at 04:00 against 0.24 at noon,
-      a ratio of 0.93 rather than 2.6. There is no daytime separation in this
-      data. Tier 0 above is now supported by the bottom-up count alone, not by
-      any grid measurement. Found in peer review.</p>
-    <p class="costnote"><b>Slope to level.</b> Refrigeration power is
-      proportional to the lift, so a measured slope of demand against ambient
-      should integrate to a level without needing the intercept. It does not
-      work: below about 15 °C the night response goes flat, so the line
-      that would be extrapolated back does not exist. The method was withdrawn
-      rather than published.<br><br>
-      <b>An equipped-but-saturated tier.</b> Latent demand minus delivered,
-      where latent extrapolated the low-CDD slope linearly. Its premise was
-      that the fleet flattens at high load. The measured response
-      <b>steepens</b> — about +3 GWh per CDD across the cool bins against
-      +17 across the warm ones — so the tier was structurally zero.
-      Saturation would show as a concave curve; this one is convex. Removed
-      11 Aug 2026, with the computation kept as a diagnostic: a non-zero value
-      would mean the curve had turned concave, which is the evidence that would
-      bring it back.<br><br>
-      <b>Humidity, on a test that could have failed.</b> Latent load rises with absolute moisture, so moist-air
-      enthalpy days were a plausible explanation for the convexity. On the full
-      800-day record with embedded solar carried as a control, <b>dewpoint adds
-      0.0006 to R² and enthalpy days add 0.0000</b> — against 0.031 for
-      bank holidays — and both return the same balance point as the base,
-      because there is nothing left for them to explain. The site’s stated
-      test is whether adding enthalpy absorbs part of the quadratic term: it
-      moves <b>+3%</b>. So the bend is the <b>extensive margin</b> — each
-      building a step, the fleet the integral of those steps — not latent
-      load. That test was capable of falsifying the reading: two earlier
-      mis-specified runs moved the quadratic by 25 and 27 points, in opposite
-      directions. It took three attempts to obtain a null worth having, after a
-      double-counted solar term, an omitted solar control that left moisture
-      proxying for it, and a workflow that fetched half the record†.</p>
-    
-    <p class="costnote"><b>And three routes tried offline, not published here.</b>
-      Recovering the level that within-class centring removes was attempted
-      five ways in all. Two more failed: fitting a balance point as the vertex
-      of a V, which turns out to place its kink wherever the middle of the data
-      is — the fitted vertex tracks each hour’s own mean temperature with
-      R² 0.97 — and borrowing a level from the gas side, which establishes that
-      balance points are spread across the stock but yields a shape without a
-      scale. One remains open: comparing weekday with weekend demand at the
-      same temperature, which gives 10 to 39% of the anchor and passes a night
-      placebo. None is used in any published figure. All are documented in the
-      methodology†.</p>
+    <!-- TIER 0 and TESTED-AND-REJECTED came out on 21 Nov 2026, about 970
+         words between them. The tier 0 bottom-up build (food cold chain,
+         data centres, the service-vs-electricity distinction) and the
+         history of what was tried and withdrawn are the methodology
+         statement's job. The ONE sentence a reader of this panel needs is
+         why tier 0 is named but not drawn, and that is in the chart legend
+         where the tier itself appears. -->
     </div></details>
 
     <div class="h2lab">The geocooling dividend <span class="qual">— if a fifth of today’s cooling were ground-served</span></div>
@@ -1773,7 +1675,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.6.0';
+const SITE_VERSION = '9.6.1';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -3759,8 +3661,14 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       yaxis:{title:'Cooling electricity, GWh/day', gridcolor:css('--line')},
       legend:{orientation:'h', y:1.02, yanchor:'bottom', yanchor:'bottom'}
     }, {displayModeBar:false, responsive:true});
-    document.getElementById('coolobsnote').textContent = co.note +
-      ' Sample: ' + co.summer_days_used + ' summer days.';
+    // ONE LINE, not the payload's whole note. co.note is a 270-word method
+    // passage - estimator specification, the humidity null, three failed
+    // runs - which belongs in the methodology statement. The sample size is
+    // the part a reader of the chart needs.
+    document.getElementById('coolobsnote').textContent =
+      'Fitted on ' + co.summer_days_used + ' summer days. The curve is a '
+      + 'lower bound: centring within each month removes the steady part of '
+      + 'the load along with the confound†.';
   } else {
     document.getElementById('coolobsline').textContent =
       'Observed cooling analysis pending sufficient summer data.';
@@ -3797,19 +3705,10 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     const lede = document.getElementById('coollede');
     if(lede && anchor){
       lede.innerHTML =
-        'Britain buys about <b>' + fmt(anchor) + ' GWh of electricity a year</b> '
-        + 'for cooling and ventilation in its services buildings'
-        + (coolShare ? ' — of which a little under half, <b>'
-                       + fmt(anchor * coolShare) + ' GWh</b>, is cooling '
-                       + 'rather than fans'
-                     : '')
-        + '. '
-        + (seen ? 'The weather can account for only <b>' + fmt(seen)
-                  + ' GWh</b> of it; the rest runs whatever the temperature '
-                  + 'does. '
-                : '')
-        + 'That is the cooling Britain <b>has</b>. The number that matters '
-        + 'for what comes next is the cooling it does <b>not</b> have.';
+        'Britain spends about <b>' + fmt(anchor * (coolShare || 1))
+        + ' GWh of electricity a year</b> cooling its services buildings. '
+        + 'That is the cooling it <b>has</b>. What follows is mostly about '
+        + 'the cooling it does <b>not</b>.';
     }
     // THE FOUR FACTS WERE ALREADY IN THE PAYLOAD, inside the method fold,
     // where a reader who scrolled past the chart never met them. They are
@@ -3890,12 +3789,8 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       '</div>').join('');
     const note = document.getElementById('coolpricenote');
     if(note) note.innerHTML =
-      'Running cost only, at the same cap electricity rate panel 1 uses. The ' +
-      'network figure is the <b>same loop and the same boreholes</b> that ' +
-      'serve heat in winter — cooling is not a second asset, it is the ' +
-      'first one run backwards. Passive ground cooling moves heat into the ' +
-      'ground with circulation pumps and no refrigeration cycle at all, which ' +
-      'is why it is roughly a tenth of a chiller†.';
+      'Running cost only. The <b>same loop and the same boreholes</b> that ' +
+      'serve heat in winter — cooling is not a second asset†.';
   })();
 
   // ---- what the store is worth, decomposed --------------------------------
@@ -3981,22 +3876,11 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       '%</b> of the electricity, for the same cooling</div></div>';
     const note = document.getElementById('utesdecompnote');
     if(note) note.innerHTML =
-      '<b>One loop, two seasons, counted once.</b> Winter extraction cools ' +
-      'the ground; summer rejection warms it again. The network route on the ' +
-      'cost panel is <b>not a better heat pump</b> — at a Carnot ' +
-      'fraction of ' + eta.network.toFixed(3) + ' it is the same quality of ' +
-      'machine as the air-source and ground-source routes (' +
-      (eta.ashp || 0).toFixed(3) + ' and ' + (eta.shallow || 0).toFixed(3) +
-      ') — it is the same machine working across a smaller gap, because ' +
-      'last summer’s cooling warmed the ground. Both bars above are ' +
-      '<b>electricity</b>, one per season, which is why nothing is counted ' +
-      'twice: the heat recovered from the store is not free heat, since a ' +
-      'ground loop would have drawn heat anyway. The benefit is that it ' +
-      'draws it across a shorter lift. <b>The ' + src.network_c.toFixed(1) +
-      ' °C source is derived, not measured</b>, and the SCOP of ' +
-      ((cal.anchors || {}).network || 5).toFixed(1) + ' that rests on it is ' +
-      'the single assumption most of this site’s strongest conclusions ' +
-      'depend on†.';
+      'Not a better heat pump — <b>the same machine across a smaller ' +
+      'gap</b>, because last summer’s cooling warmed the ground. Both ' +
+      'bars are electricity, so nothing is counted twice. The ' +
+      src.network_c.toFixed(1) + ' °C source is <b>derived, not ' +
+      'measured</b>†.';
   })();
 
   // ---- all three cooling tiers, daily, trailing twelve months -------------
@@ -4237,15 +4121,10 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
         // is cooling, giving 4,727 rather than 4,800. The lede at the top of
         // the panel now states the same quantity, so a typed figure here
         // would contradict a computed one a screen above it.
-        '<b>The anchor these tiers are measured against</b> is the national ' +
-        'statistic: ECUK reports about <b>' + fmt(ECUK_COOL_GWH) +
-        ' GWh a year</b> of electricity ' +
-        'for cooling in services buildings, which is roughly <b>' +
-        fmt(ECUK_COOL_GWH * COOL_EER_PAGE) + ' GWh of ' +
-        'delivered cooling</b> once the refrigeration cycle is applied. It ' +
-        'counts what metered buildings actually consumed. Each tier below ' +
-        'states whether it sits inside that figure or outside it \u2014 they ' +
-        'are not all additions to it.</div>' +
+        '<b>Measured against</b> ECUK\u2019s <b>' + fmt(ECUK_COOL_GWH) +
+        ' GWh a year</b> of services cooling electricity \u2014 about <b>' +
+        fmt(ECUK_COOL_GWH * COOL_EER_PAGE) + ' GWh</b> of delivered ' +
+        'cooling\u2020.</div>' +
         // WHAT A MULTI-YEAR WINDOW IS AND IS NOT, 21 Nov 2026. Every series on
         // this chart is a fixed coefficient times that day's weather: tier 1 is
         // k x CDD^2 with ONE k, tier 2 is degree-hours x one per-dwelling
@@ -4271,16 +4150,9 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
         // written that way and holds on every window.
         (dates.length > 365
           ? '<div style="color:var(--muted);margin-bottom:10px">' +
-            '<b>Year to year, this chart is weather \u2014 not growth.</b> ' +
-            'Every series on it is a fixed response to temperature, so the ' +
-            'cooling stock is held constant across the whole span. The ' +
-            'tallest summer here is the hottest one, not the one with the ' +
-            'most cooling installed. What a long window shows ' +
-            'is how much the SAME fleet swings on the weather it actually ' +
-            'gets \u2014 which is the case for sizing to summers like 2022 ' +
-            'rather than to an average one. Whether the fleet itself has ' +
-            'grown is a different question, and this chart does not answer ' +
-            'it\u2020.</div>'
+            '<b>Year to year this is weather, not growth.</b> The cooling ' +
+            'stock is held constant, so the tallest summer is the hottest ' +
+            'one \u2014 not the one with the most cooling installed\u2020.</div>'
           : '') +
         // ONE SENTENCE, and only when the window reaches back past the fit.
         // The shading on the chart would otherwise be unexplained, and the
@@ -4293,52 +4165,31 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
             'the days behind that fit begin ' + inFrom + '. Earlier bars are ' +
             'the same fit on weather it was not sampled on\u2020.</div>'
           : '') +
-        key(css('--cool'), 'Tier 1 measured response', t1,
-            'the weather-VARYING slice of the equipped fleet\u2019s draw, ' +
-            'measured from grid demand. <b>INSIDE the anchor, not beside ' +
-            'it</b> \u2014 about a third of it. The method centres within ' +
-            'each calendar month, so cooling that runs steadily through July ' +
-            'sits in the July average and is invisible to it. The remaining ' +
-            'two thirds are real and are not shown here\u2020.') +
+        // A LEGEND, NOT AN ESSAY. These four entries carried 380 words of
+        // explanation on the panel face until 21 Nov 2026 - what each tier
+        // is, whether it sits inside the anchor, how the centring works, what
+        // the second estimate controls for. A legend's job is to say which
+        // mark is which; why each one is what it is belongs in the fold, and
+        // the derivations belong in the methodology statement. Keep these to
+        // an identity and a figure.
+        key(css('--cool'), 'Tier 1 delivered', t1,
+            'cooling the equipped stock actually drew \u2014 inside the ' +
+            'anchor') +
         key(css('--ember'), 'Tier 2 no equipment', t2,
-            'buildings with no cooling at all, central scenario \u2014 a ' +
-            'thermal load computed from building physics, so unlike tier 1 it ' +
-            'never touches an efficiency. <b>OUTSIDE the anchor</b>, and ' +
-            'therefore genuinely additional to it: a building that consumes ' +
-            'nothing cannot be counted by a survey of consumption.') +
+            'buildings with no cooling at all \u2014 outside the anchor, and ' +
+            'additional to it') +
         key('transparent;border:1px dashed ' + css('--ash'),
             'Tier 0 process cooling', null,
-            'data centres, cold stores, retail and food refrigeration \u2014 of ' +
-            'order <b>26 TWh a year</b>\u2020 of cooling service, running flat all ' +
-            'year. <b>Not plotted:</b> at roughly 72 GWh a day it is four times ' +
-            'the other three combined and would flatten them. Bottom-up ' +
-            'estimate, not measured from the grid\u2020. The diurnal separation that ' +
-            'previously evidenced this was withdrawn on 17 Aug 2026 \u2014 see ' +
-            'METHOD below.') +
+            'cold stores, data centres, food retail \u2014 flat all year and ' +
+            'four times the rest, so not plotted\u2020') +
         (has(td.t1_alt_GWh)
           ? key(css('--paper') + ';height:2px;margin-top:5px',
-                'The whole equipped fleet, second estimate', null,
-                'the dotted line is <b>not another tier, and not the same ' +
-                'quantity as the blue bars</b>. The bars are the ' +
-                'weather-VARYING slice the centred method can see. The line ' +
-                'is an independent estimate of the equipped fleet\u2019s ' +
-                '<b>whole</b> cooling load \u2014 a year-round regression of ' +
-                'observed GB demand on temperature, fitted <b>undemeaned</b> ' +
-                'so the level survives, controlling for embedded solar, ' +
-                'holidays, the Christmas shutdown and a trend. <b>The gap ' +
-                'between the line and the blue bars is the point:</b> it is ' +
-                'roughly what centring within each month removes. ' +
-                'Over a year the limb integrates to <b>' +
-                uf.annual_TWh.toFixed(2) + ' TWh</b> of cooling electricity, ' +
-                '<b>' + uf.share_of_ecuk_anchor_pct + '% of the ECUK ' +
-                'anchor</b>, interval <b>' + uf.annual_TWh_lo.toFixed(2) +
-                '\u2013' + uf.annual_TWh_hi.toFixed(2) + ' TWh, ' +
-                uf.share_lo_pct + '\u2013' + uf.share_hi_pct + '%</b>, on ' +
-                uf.record + '. <b>That interval sits below the anchor</b>, so ' +
-                'the two estimates no longer agree. The published figures ' +
-                'remain the ECUK-anchored bars; why they differ, and what ' +
-                'the comparison can and cannot settle, is in METHOD below' +
-                '\u2020.')
+                'Second estimate', null,
+                'an independent read of the <b>whole</b> equipped load, not ' +
+                'another tier: ' + uf.annual_TWh.toFixed(2) + ' TWh a year (' +
+                uf.annual_TWh_lo.toFixed(2) + '\u2013' +
+                uf.annual_TWh_hi.toFixed(2) + '), ' +
+                uf.share_of_ecuk_anchor_pct + '% of the anchor\u2020')
           : '') +
         '</div>';
       document.getElementById('tierdailynote').textContent = '';
@@ -4443,15 +4294,11 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
           ebY.map(y=>y.hours).reduce((a,b)=>a+b,0) + ' night hours. '
         : 'No single year currently carries enough night hours either side ' +
           'of the break to be quoted on its own. ') +
-      eb.note + ' The bend in the DAILY response curve above is a different ' +
-      'thing and is mostly LOAD, not plant: dividing out the falling COP ' +
-      'leaves the convexity almost intact. It is the extensive margin \u2014 ' +
-      'each building is a step, and the fleet is the integral of those steps. ' +
-      'Moist-air enthalpy days add 0.0000 to R\u00b2 on the ' +
-      'full record with solar controlled, and the quadratic term moves 3% ' +
-      'when they are added \u2014 so the bend is the extensive margin, more ' +
-      'buildings switching on, rather than latent load. Humidity is a null, ' +
-      'and it took three attempts to obtain one that could be relied on\u2020.';
+      // The specification, the humidity null and the three attempts behind
+      // it went to the methodology statement on 21 Nov 2026. What a reader
+      // of this chart needs is the two slopes and what the bend means.
+      'The bend is more buildings switching on, not plant losing ' +
+      'efficiency\u2020.';
   })();
 
   // The method fold's anchor paragraph, written from the payload so the split
@@ -4567,28 +4414,28 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
         el2.querySelectorAll('.tfill').forEach(f => {
           f.style.width = f.dataset.w + '%'; });
       }));
+      // TIMING, NOT BENEFIT. This note used to say that 728 GWh "comes back
+      // for winter heating", which reads as free heat and is the double
+      // count the decomposition block above is built to avoid: a ground loop
+      // would have drawn that heat anyway, so the benefit is the shorter
+      // lift, not the thermal energy. These bars answer WHEN; the block
+      // above answers WHAT IT IS WORTH. Kept apart, they are complementary
+      // rather than the same claim told twice.
       document.getElementById('utesnote').innerHTML =
-        'Over ' + (fmtWin2[dw] || 'the window') + ', that same fifth rejects ' +
-        '<b>' + fmt(Math.round(banked)) + ' GWh</b> of heat \u2014 the cooling ' +
-        'delivered plus the electricity that drove it \u2014 and at a ' +
-        Math.round(rt * 100) + '% round trip <b>' + fmt(Math.round(recovered)) +
-        ' GWh</b> comes back for winter heating (UTES, literature range ' +
-        '50\u201380%\u2020). The timing is the point: comfort cooling rejects ' +
-        'heat ONLY in summer, exactly when nothing wants it, so without a ' +
-        'store every unit is lost \u2014 and an air-source network rejects the ' +
-        'same heat to the air with nowhere to put it. That is the one thing it ' +
-        'structurally cannot do.';
+        'Rejected only in summer, wanted only in winter \u2014 <b>' +
+        fmt(Math.round(banked)) + ' GWh</b> at a ' + Math.round(rt * 100) +
+        '% round trip\u2020. An air-source network rejects the same heat to ' +
+        'the air, which is the one thing it <b>structurally cannot</b> ' +
+        'store.';
+      // The per-unit comparison is made once, in the block above. This is
+      // the national total, so it states the saving and the scope and
+      // nothing else.
       document.getElementById('dividnote').innerHTML =
-        'A fifth of the cooling the equipped stock already delivers, moved to ' +
-        'ground: over ' + (fmtWin2[dw] || 'the window') + ' that is <b>' +
-        fmt(Math.round(sum(serv))) + ' GWh</b> of cooling service, which draws ' +
-        fmt(Math.round(air)) + ' GWh of electricity through air-cooled plant at ' +
-        'an EER of ' + EER.toFixed(1) + ' and <b>' + fmt(Math.round(g)) +
-        ' GWh</b> through a ground loop at a COP of ' + GEO + '\u2020 \u2014 ' +
-        'circulation only, no compressor. <b>' + fmt(Math.round(sv)) +
-        ' GWh saved, ' + Math.round(100 * sv / air) + '% less.</b> ' +
-        'Tier 1 only: the site\u2019s what-if is always a share of what is ' +
-        'happening now, and tier 2 is cooling nobody is buying yet.';
+        'A fifth of today\u2019s delivered cooling, moved to ground: <b>' +
+        fmt(Math.round(sv)) + ' GWh</b> of electricity saved over ' +
+        (fmtWin2[dw] || 'the window') + ', <b>' +
+        Math.round(100 * sv / air) + '% less</b>. Tier 1 only \u2014 tier 2 ' +
+        'is cooling nobody is buying yet\u2020.';
     }
     bar.addEventListener('click', ev => {
       const b = ev.target.closest('button'); if(!b) return;
@@ -5284,23 +5131,24 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     document.getElementById('deficitcontext').innerHTML =
       'Serving the central load would draw ~' + cd.elec_if_ground_GWh +
       ' GWh of electricity via passive ground cooling vs ~' +
-      cd.elec_if_air_GWh + ' GWh via air-source compressors. ' +
-      // THE FOUR CONTEXT SENTENCES MOVED TO THE TOP OF THE PANEL on
-      // 21 Nov 2026, as the card strip under the lede. They were doing no
-      // work buried in the middle of a paragraph here, and leaving them in
-      // both places printed each of them twice on one screen. The payload
-      // fields are unchanged; only where they are read has moved. The one
-      // detail the cards drop is the NHS incident count inside the
-      // hospitals sentence, which is kept here so nothing is lost.
+      cd.elec_if_air_GWh + ' GWh via air-source compressors\u2020.';
+    // MOVED TO THE FOLD, 21 Nov 2026. Three things used to ride on the end of
+    // that line: the four context sentences (now the card strip under the
+    // lede), the NHS incident count, and the fleet-efficiency caveat. The
+    // caveat matters - the EER is the largest unverified assumption on this
+    // panel - but it is a caveat, not a caption, so it belongs where a reader
+    // has gone looking for why the numbers are what they are.
+    const dfx = document.getElementById('deficitfold');
+    if(dfx) dfx.innerHTML =
+      '<b>The efficiency behind every cooling figure here.</b> Cooling ' +
+      'service is electricity times a fleet efficiency of ' +
+      (fx.cool_eer || 3.0).toFixed(1) + ', and the plausible stock runs ' +
+      eerLo + '\u2013' + eerHi + '. That spread is the largest single ' +
+      'unverified assumption on this panel\u2020.' +
       (cd.context && cd.context.hospitals_note
-        ? 'NHS' + (String(cd.context.hospitals_note)
-                    .split(/;\s*/).slice(1).join('; ')
-                    .replace(/^NHS/, '')) + '. '
-        : '') +
-      'Cooling service throughout is electricity times a fleet efficiency of ' +
-      (fx.cool_eer || 3.0).toFixed(1) + ', which is a range of ' + eerLo +
-      '\u2013' + eerHi + ' across the plausible stock \u2014 the largest ' +
-      'single unverified assumption on this panel.';
+        ? ' ' + String(cd.context.hospitals_note)
+                  .split(/;\s*/).slice(1).join('; ') + '.'
+        : '');
 
     document.getElementById('deficitnote').textContent = cd.note;
   }
