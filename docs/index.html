@@ -12,8 +12,22 @@
     --ink:#101418; --surface:#1a2129; --line:#2a333d;
     --ember:#e4572e; --gasdhw:#c46a3f; --oil:#9c4a2f; --bio:#7a6a3f;
     --solid:#5d4a3a; --dh:#8b7fa8; --elec:#d9a441; --cool:#4a90c2;
-    --ash:#5c6672; --geo:#3aaa35; --paper:#eae6de; --muted:#8b95a0;
+    --ash:#5c6672; --geo:#3aaa35; --paper:#eae6de; --muted:#c3cbd3;
   }
+  /* GREY AUDIT, 21 Nov 2026. --muted was #8b95a0, which is 6.08:1 on the
+     page and reads as grey mush at 13px; --ash is #5c6672, which is 3.17:1
+     and FAILS AA for body text outright, yet it was carrying whole
+     sentences (.switchline, .frontfoot, .undercon p's neighbours, the
+     heat-weighted-mean note). --muted is now #c3cbd3, 11.28:1 on the page
+     and 9.9:1 on a card.
+     --ash was NOT lifted with it, because it is not only a text colour:
+     .seg.base, the non-weather-gas key swatch, the air-quality and
+     optimism-bias bars and two dashed borders are all drawn in it, and a
+     near-white fill would read as paper. So --ash stays a FILL token and
+     every text use of it was repointed to --muted. Rule from here: --ash
+     never colours type. Prose that the reader has to read through -
+     .costnote, .sub, .lede, .method p, .geosub - is --paper; --muted is
+     for labels, captions, axis furniture and table basis columns. */
   *{box-sizing:border-box;margin:0}
   body{background:var(--ink);color:var(--paper);
        font:16px/1.55 "Lato",system-ui,sans-serif}
@@ -55,7 +69,7 @@
   }
   /* numerals earn their place: the six are an argument in order, and a
      reader dropping in halfway needs to know where they are in it */
-  .pt .n{font-family:"IBM Plex Mono";font-size:11px;color:var(--ash);letter-spacing:.12em}
+  .pt .n{font-family:"IBM Plex Mono";font-size:11px;color:var(--muted);letter-spacing:.12em}
   .pt .fig{font-family:"IBM Plex Mono";font-size:clamp(27px,4.4vw,40px);
            font-weight:500;line-height:1.05;margin-top:6px;color:var(--geo)}
   .pt .fig small{font-size:.42em;color:var(--paper);letter-spacing:.02em;margin-left:5px}
@@ -66,7 +80,7 @@
           font-size:11.5px;color:var(--muted);text-decoration:none;
           border-bottom:1px solid var(--line);padding-bottom:2px}
   .pt .ev:hover,.pt .ev:focus-visible{color:var(--geo);border-color:var(--geo)}
-  .frontfoot{font-size:12.5px;color:var(--ash);padding:18px 0 22px;max-width:78ch}
+  .frontfoot{font-size:12.5px;color:var(--muted);padding:18px 0 22px;max-width:78ch}
   #front[hidden]{display:none}
   /* ---- back-to nav: only appears once you have scrolled past the case --- */
   /* Floats centred over the foot of whatever panel the reader is on. It
@@ -110,7 +124,7 @@
   /* the retail line sits under the wholesale headline, quieter but not
      hidden - a reader who knows their own bill needs to find it */
   .tickretail{margin-top:7px;padding-top:7px;border-top:1px solid var(--line);
-              font-size:11.5px;line-height:1.5;color:var(--ash);
+              font-size:11.5px;line-height:1.5;color:var(--muted);
               font-family:"IBM Plex Mono";text-align:left}
   .ticker{font-family:"IBM Plex Mono";font-size:15px;line-height:1.55;
           border:1px solid var(--geo);border-radius:6px;padding:12px 16px;
@@ -129,7 +143,7 @@
           padding-top:26px;border-top:1px solid var(--line);letter-spacing:-.01em}
   h1.sect:first-of-type{border-top:none}
   section:first-of-type h1.sect{margin-top:34px}
-  .sub{color:var(--muted);margin-top:10px;font-size:18px;line-height:1.6}
+  .sub{color:var(--paper);margin-top:10px;font-size:18px;line-height:1.6}
   .statrow{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:28px}
   /* The electrification row is read against the bars below it, so the three
      route figures sit over their own bars and the first column carries the
@@ -208,7 +222,7 @@
   /* three views, three units - so nobody lines up numbers that do not compare */
   .viewsub{font-size:13.5px;line-height:1.45;color:var(--muted);margin-top:12px;
            max-width:70ch}
-  .switchline{font-size:13px;line-height:1.45;color:var(--ash);margin-top:14px;
+  .switchline{font-size:13px;line-height:1.45;color:var(--muted);margin-top:14px;
               max-width:74ch}
   /* view-specific levers appear only in their own view */
   .caplevers .lever[data-view]{display:none}
@@ -217,7 +231,7 @@
   .caplevers[data-view="consumer"]  .lever[data-view~="consumer"]{display:block}
   .caplevers .leverhead{grid-column:1/-1;font-family:"IBM Plex Mono";font-size:11px;
                         letter-spacing:.09em;text-transform:uppercase;
-                        color:var(--ash);border-top:1px solid var(--line);
+                        color:var(--muted);border-top:1px solid var(--line);
                         padding-top:14px;margin-top:2px}
   @media (max-width:640px){.caplevers{grid-template-columns:1fr}}
   .lever label{display:flex;justify-content:space-between;align-items:baseline;
@@ -225,7 +239,7 @@
   .lever label b{font-family:"IBM Plex Mono";font-size:14px;color:var(--paper);font-weight:500}
   .lever label b.moved{color:var(--elec)}
   .lever input[type=range]{width:100%;margin:7px 0 0;accent-color:var(--geo);height:20px}
-  .lever .hint{font-size:11.5px;color:var(--ash);margin-top:2px}
+  .lever .hint{font-size:11.5px;color:var(--muted);margin-top:2px}
   .capreset{margin-top:16px;font-family:"IBM Plex Mono";font-size:12px;
             background:none;border:1px solid var(--line);color:var(--muted);
             border-radius:4px;padding:6px 12px;cursor:pointer}
@@ -305,14 +319,19 @@
      one note. The margin is on the element, not a :not(:first-child) rule,
      because several of these sit alone under a chart where the gap reads
      the same. */
-  .costnote{font-size:14.5px;color:var(--muted);line-height:1.6;
+  .costnote{font-size:14.5px;color:var(--paper);line-height:1.6;
             margin:0 0 11px}
   .foldbody .costnote + .costnote{margin-top:0}
-  .billline{font-family:"IBM Plex Mono";font-size:14px;margin:14px 0 4px}
+  /* LATO since 21 Nov 2026. This line is the first sentence a reader meets
+     in panel 1 and it is prose, not a readout - the mono face made it read
+     as machine output and set it apart from the paragraph it introduces.
+     Mono is kept for figures that are meant to be compared column-wise. */
+  .billline{font-size:16px;line-height:1.55;color:var(--paper);
+            margin:14px 0 4px}
   .billline b{color:var(--paper)}
   .geofig{font-family:"IBM Plex Mono";font-size:clamp(24px,4.5vw,34px);color:var(--geo);margin:4px 0 2px}
   .geofig small{font-size:.45em;color:var(--muted);font-family:"Lato"}
-  .geosub{color:var(--muted);font-size:16px;line-height:1.6;margin-bottom:18px}
+  .geosub{color:var(--paper);font-size:16px;line-height:1.6;margin-bottom:18px}
   .geobars{display:flex;flex-direction:column;gap:10px}
   .geobar{display:grid;grid-template-columns:110px 1fr;gap:12px;align-items:center}
   .geobar .lab{font-family:"IBM Plex Mono";font-size:12px;color:var(--paper);text-align:right}
@@ -368,7 +387,7 @@
   .geotbl td{color:var(--paper)}
   .geotbl td.m{color:var(--muted)}
   .geotbl a{color:var(--geo)}
-  .geotbl tr.off td{color:var(--ash)}
+  .geotbl tr.off td{color:var(--muted)}
   /* The sensitivity grid is five columns and cannot wrap into a phone
      without becoming unreadable, so it scrolls sideways there - and only
      there. Caught by the viewport check at 390px: the page itself was
@@ -392,7 +411,7 @@
   .status{display:flex;gap:16px;flex-wrap:wrap;font-family:"IBM Plex Mono";font-size:12px}
   .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
   .ok{background:var(--geo)} .stale{background:var(--ember)} .lag{background:#d9a514}
-  .method p{color:var(--muted);font-size:16px;line-height:1.6;margin-bottom:12px}
+  .method p{color:var(--paper);font-size:16px;line-height:1.6;margin-bottom:12px}
   .method b{color:var(--paper);font-weight:500}
   footer{padding:26px 0 calc(120px + env(safe-area-inset-bottom,0px));
          color:var(--muted);font-size:12.5px;border-top:1px solid var(--line)}
@@ -424,7 +443,7 @@
   #capitalpanel .side small{display:block;font-size:12.5px;color:var(--muted);margin-top:5px;font-family:Lato}
   #capitalpanel .deal{margin-top:22px;background:var(--surface);border-radius:6px;padding:16px 18px}
   #capitalpanel .deallab{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.08em;
-           text-transform:uppercase;color:var(--ash)}
+           text-transform:uppercase;color:var(--muted)}
   #capitalpanel .dealnote{font-size:13.5px;line-height:1.5;color:var(--muted);margin-top:12px}
   #capitalpanel .dealnote b{color:var(--paper)}
   #capitalpanel .compbar{display:flex;height:32px;border-radius:4px;overflow:hidden;
@@ -442,7 +461,7 @@
                font-size:12.5px;color:var(--muted);gap:8px}
   #capitalpanel .lever label b{color:var(--paper);font-weight:600}
   #capitalpanel .lever input{width:100%;margin-top:8px;accent-color:var(--geo)}
-  #capitalpanel .lever .hint{font-size:11.5px;line-height:1.4;color:var(--ash);margin-top:6px}
+  #capitalpanel .lever .hint{font-size:11.5px;line-height:1.4;color:var(--muted);margin-top:6px}
   #capitalpanel .fixed{margin-top:20px;font-size:13.5px;line-height:1.6;color:var(--muted);
          border-left:2px solid var(--line);padding-left:14px}
   #capitalpanel .note{font-size:13.5px;line-height:1.6;margin-top:20px;background:var(--surface);
@@ -455,7 +474,7 @@
   #capitalpanel .pan.cost{border-color:var(--ember)}
   #capitalpanel .pan.buys{border-color:var(--geo)}
   #capitalpanel .pan .lab{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.07em;
-            text-transform:uppercase;color:var(--ash)}
+            text-transform:uppercase;color:var(--muted)}
   #capitalpanel .pan .fig{font-family:"IBM Plex Mono";font-size:30px;margin-top:8px}
   #capitalpanel .pan.cost .fig{color:var(--ember)} .pan.buys .fig{color:var(--geo)}
   #capitalpanel .pan p{font-size:12.5px;line-height:1.45;color:var(--muted);margin-top:8px}
@@ -867,7 +886,7 @@
     <div class="trendbar" id="hpceil" style="margin:6px 0 2px">
       <button data-hc="on">SHOW RESISTIVE ELECTRIC CEILING</button>
     </div>
-    <p class="costnote" style="margin:4px 0 0;color:var(--ash)">Figures at the
+    <p class="costnote" style="margin:4px 0 0;color:var(--muted)">Figures at the
       right are the <b>heat-weighted mean</b> over the window shown —
       <span id="hpwmeanlbl"></span>.</p>
     <div class="trendbar" id="hpwin" style="margin:6px 0 2px">
@@ -904,13 +923,13 @@
       A heat pump does not make heat, it moves it, and the cost is set by how
       far it has to move it. An <b>air-source</b> unit lifts from whatever the
       outside air is doing, which on the coldest mornings is the moment the
-      house wants most - the efficiency falls exactly when the demand peaks.
+      house wants most heat - the efficiency falls exactly when the demand
+      peaks.
       <b>Ground source</b> lifts from ground that sits near 10 °C all winter,
       so the gap it works across barely changes between October and February.
       A <b>geothermal network</b> starts warmer still and shares one set of
       boreholes and one loop across many buildings, so each building is
-      lifting a short distance from a source somebody else has already paid
-      to drill.</p>
+      lifting a short distance on a shared infrastructure.</p>
     <p class="costnote"><b>Why hot water is the expensive half.</b> Space
       heating can run at a low flow temperature on a mild day, and the heat
       pump rewards that. A hot-water cylinder wants its 52 °C whatever the
@@ -1340,7 +1359,7 @@
           of them. The model compares geothermal as the source and store of thermal
           energy to an air-source heat pump system.</p>
 
-        <p class="basis" style="border-color:var(--ash)"><b>What this appraisal
+        <p class="basis" style="border-color:var(--muted)"><b>What this appraisal
           is, and is not.</b> It is <b>one counterfactual</b>: geothermal
           against an air-source-led network with separate air-cooled chillers.
           That is a real and increasingly likely alternative, because zoning is
@@ -1633,7 +1652,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.5.1';
+const SITE_VERSION = '9.5.2';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -2980,7 +2999,7 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       '<span style="width:'+(100*p[1]/a.ben)+'%;background:'+p[2]+'"></span>').join('');
     el('key').innerHTML=parts.map(p=>
       '<span style="white-space:nowrap"><i style="background:'+p[2]+'"></i>'+p[0]+
-      ' '+gbp(p[1])+' <span style="color:var(--ash)">'+
+      ' '+gbp(p[1])+' <span style="color:var(--muted)">'+
       Math.round(100*p[1]/a.ben)+'%</span></span>').join('');
     // COSTS, on the same footing as the benefits above. Optimism bias is
     // drawn as its OWN band rather than folded into the others: it is the
@@ -2995,7 +3014,7 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       '<span style="width:'+(100*p[1]/a.cost)+'%;background:'+p[2]+'"></span>').join('');
     el('costkey').innerHTML=cparts.map(p=>
       '<span style="white-space:nowrap"><i style="background:'+p[2]+'"></i>'+p[0]+
-      ' '+gbp(p[1])+' <span style="color:var(--ash)">'+
+      ' '+gbp(p[1])+' <span style="color:var(--muted)">'+
       Math.round(100*p[1]/a.cost)+'%</span></span>').join('');
 
     el('invar').textContent=
@@ -6026,7 +6045,7 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     document.getElementById('spfevfind').innerHTML =
       '<b>' + esc(f.statement) + '</b> ' + esc(f.detail) +
       ' <b>What would anchor it:</b> ' + esc(f.what_would_anchor_it) +
-      ' <span style="color:var(--ash)">' + esc(f.excluded) + '</span>';
+      ' <span style="color:var(--muted)">' + esc(f.excluded) + '</span>';
   }).catch(() => {
     box.style.display = 'none';
     const bf = document.getElementById('fold_blend');
