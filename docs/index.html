@@ -1029,24 +1029,16 @@
     <div id="coolprice"></div>
     <p class="costnote" id="coolpricenote"></p>
 
-    <div class="h2lab" style="margin-top:26px">Cooling day by day <span class="qual">— what is delivered, and what is not</span></div>
-    <div class="trendbar" id="tierwin" style="margin:8px 0 2px">
-      <button data-tw="28">4W</button>
-      <button data-tw="84">12W</button>
-      <button data-tw="365" aria-pressed="true">12M</button>
-      <button data-tw="730">24M</button>
-      <button data-tw="1461">48M</button>
-      <button data-tw="1826">60M</button>
-    </div>
-    <!-- The second estimate is a disputed line, not a tier. Its own control,
-         off by default - see the note where the trace is built. -->
-    <div class="trendbar" style="margin:2px 0 2px">
-      <button id="tieralt" aria-pressed="false">SHOW THE SECOND ESTIMATE</button>
-    </div>
-    <div id="tierdaily" style="height:300px;margin:10px 0 4px"></div>
-    <button class="pngbtn" onclick="exportChart('tierdaily','Cooling day by day','what is delivered, and what is not')">⬇ PNG FOR SLIDES</button>
-    <div id="tierlegend"></div>
-    <p class="costnote" id="tierdailynote"></p>
+    <!-- THE DAY-BY-DAY TIER CHART CAME OUT ON 21 Nov 2026 - Simon. Every
+         tier on it was a fixed coefficient times one day's weather, so its
+         long windows were summers of weather wearing the costume of a time
+         series, and the degree-day record above now does that job on a
+         record that can actually carry it. Its method is not lost: it was
+         transferred to the Methodology Statement before the chart went, and
+         that document retains it. What went with the chart: the window
+         buttons, the second-estimate toggle, the 107-word legend and the
+         PNG export. The elements are gone rather than hidden, so their
+         writers find nothing and skip - see gone() and the tier builder. -->
 
     <!-- THE WEEKLY COMFORT-DEFICIT READOUT WENT ON 21 Nov 2026 - Simon. It
          read "0 °C·h ... latent need ~0–0 GWh" for roughly half the year,
@@ -1074,7 +1066,7 @@
 
     <!-- Written by the degree-day block, so the provenance and the
          cross-check cannot say one thing here and another on the face. -->
-    <p class="costnote" id="cddfold" hidden></p>
+    <div id="cddfold" hidden></div>
 
     <p class="costnote"><b>Why nobody can just measure national cooling.</b>
       Cooling is electricity, and electricity all looks the same on a meter.
@@ -1085,33 +1077,21 @@
       hides inside every other constant in the system. That is why the levels
       on this panel come from building surveys and national statistics, and
       the grid is used to test them rather than to produce them.</p>
-    <p class="costnote"><b>Why there are two estimates that disagree.</b> One
-      method compares each day with others in the same month, which removes
-      holidays and the seasonal baseline but removes most of the cooling with
-      them, so it recovers about a third and is a floor by construction. The
-      other models the baseline explicitly instead of subtracting it, and
-      recovers about three quarters. Neither is wrong; they answer different
-      questions, and the gap between them is the part of cooling that runs
-      steadily rather than spiking.</p>
-    <p class="costnote"><b>Why summer nights are the clean test.</b> After
-      dark there is no solar gain, no solar generation on the grid to
-      confuse the signal, and most buildings are empty. What is left moving
-      with temperature is close to pure cooling, which is why the night hours
-      are used to check the daytime curve. That replication is in the
-      methodology statement — it tests the method rather than adding to the
-      figures here.</p>
-    <p class="costnote"><b>Why one tier sits inside the national figure and
-      the other does not.</b> Tier 1 is cooling that was actually delivered,
-      so it is part of what the statistics already count. Tier 2 is buildings
-      with no cooling equipment at all — a building that consumes nothing
-      cannot appear in a survey of consumption, so it is genuinely additional.
-      Adding the two together is only valid because of that distinction.</p>
-    <p class="costnote"><b>Why the figures are zero all winter.</b> They are
-      weekly, and in November Britain is not cooling anything. The annual
-      figures at the top of the panel are the ones to read outside summer.</p>
+    <!-- FOUR PARAGRAPHS WENT WITH THE DAY-BY-DAY CHART on 21 Nov 2026 -
+         Simon. "Why there are two estimates that disagree", "Why summer
+         nights are the clean test", "Why one tier sits inside the national
+         figure" and "Why the figures are zero all winter" each explained a
+         chart that is no longer on the panel, and a fold answering
+         questions about something the reader cannot see is worse than a
+         short one. The two-estimator comparison and the night replication
+         are method and were transferred to the Methodology Statement
+         before the chart went; that document retains them. -->
 
     <p class="costnote" id="deficitfold"></p>
-    <p class="costnote" id="deficitnote"></p>
+    <!-- deficitnote removed with the tier chart, 21 Nov 2026. It derived the
+         comfort deficit's base temperature, and the deficit is no longer
+         drawn on this panel; its writer is guarded. -->
+
 
     <!-- THE METHOD SECTIONS CAME OUT ON 21 Nov 2026 - Simon, on the panel
          moving to position 2. The anchor derivation, the two estimators and
@@ -1873,7 +1853,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.11.0';
+const SITE_VERSION = '9.12.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -4079,10 +4059,16 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     const lede = document.getElementById('coollede');
     if(lede && anchor){
       lede.innerHTML =
+        // The old second half promised "mostly about the cooling it does
+        // not" and the day-by-day tier chart was what delivered that. With
+        // the chart gone the promise pointed at nothing, so it now points
+        // at what is actually on the panel: the degree-day record, then
+        // the four facts about what is there to answer it. No span is
+        // named here - this writer does not read the degree-day file.
         'Britain spends about <b>' + fmt(anchor * (coolShare || 1))
         + ' GWh of electricity a year</b> cooling its services buildings. '
-        + 'That is the cooling it <b>has</b>. What follows is mostly about '
-        + 'the cooling it does <b>not</b>.';
+        + 'That is the cooling it <b>has</b>. The record below is what the '
+        + 'climate has been asking for.';
     }
     // THE FOUR FACTS WERE ALREADY IN THE PAYLOAD, inside the method fold,
     // where a reader who scrolled past the chart never met them. They are
@@ -4257,375 +4243,6 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       'measured</b>†.';
   })();
 
-  // ---- all three cooling tiers, daily, trailing twelve months -------------
-  // The tier bars above are one week. This is the shape of the year: tier 1
-  // is what the equipped stock actually drew, tier 2 what it wanted and could
-  // not deliver. Stacked because they are
-  // disjoint populations of buildings, not competing estimates of one.
-  (() => {
-    const td0 = (d.comfort_deficit || {}).tier_daily;
-    // Tier renumber, 11 Aug 2026: the old tier 3 (no equipment) became tier 2
-    // and the old tier 2 (saturated) was removed. A payload built before that
-    // run still carries the comfort deficit in t3_GWh, so read it there when
-    // t2 is absent or empty - otherwise the panel shows a zero band until the
-    // next build.
-    const td = td0 ? Object.assign({}, td0, (function(){
-      const t2 = td0.t2_GWh || [], t3 = td0.t3_GWh || [];
-      const live = t2.some(v => v !== null && v > 0);
-      return live ? {} : (t3.length ? {t2_GWh: t3} : {});
-    })()) : td0;
-    const box = document.getElementById('tierdaily');
-    const bar = document.getElementById('tierwin');
-    if(!td || !td.dates || !td.dates.length){
-      box.style.display = 'none'; bar.style.display = 'none';
-      return;
-    }
-    // Same rule as the header toggle: a window button that shows less than it
-    // promises is worse than no button, so hide the ones the record cannot fill.
-    const HAVE = td.dates.length;
-    bar.querySelectorAll('button').forEach(b => {
-      if(+b.dataset.tw > 365 && HAVE < +b.dataset.tw) b.style.display = 'none';
-    });
-
-    // Where the days behind tier 1's fit begin. Read from the payload, never
-    // typed here: a date the page states about a fit it does not read is a
-    // date that will drift.
-    const inFrom = (d.comfort_deficit || {}).t1_in_sample_from || null;
-    // The anchor the legend quotes, derived rather than typed. cooling.
-    // annual_gwh is cooling AND ventilation merged; cool_share splits it.
-    // Both fall back to the figures the legend used to carry as literals, so
-    // an older payload still renders the sentence it always did.
-    const _calC = ((d.whatif_routes || {}).calibration || {}).cooling || {};
-    const _facC = (d.weekly_useful || {}).factors || {};
-    const COOL_EER_PAGE = _facC.cool_eer || _calC.eer || 3.0;
-    const ECUK_COOL_GWH = (_calC.annual_gwh && _facC.cool_share)
-      ? _calC.annual_gwh * _facC.cool_share : 4800;
-    const has = a => a && a.some(v => v !== null && v > 0);
-    const fmtWin = {28:'the last 4 weeks', 84:'the last 12 weeks',
-                    365:'the last twelve months', 730:'the last twenty-four months',
-                    1461:'the last forty-eight months',
-                    1826:'the last sixty months'};
-    const tot = a => (a || []).reduce((s_, v) => s_ + (v || 0), 0);
-
-    // CURW is remembered so the second-estimate toggle can redraw the window
-    // the reader is actually looking at rather than resetting it.
-    let ALT = false, CURW = 365;
-    function drawTiers(tw){
-      CURW = tw;
-      const n = Math.min(tw, HAVE);
-      const cut = a => (a || []).slice(-n);
-      const dates = cut(td.dates);
-      const series = [
-        ['Tier 1 · delivered by equipped stock', cut(td.t1_GWh), css('--cool')],
-        ['Tier 2 · no cooling equipment at all', cut(td.t2_GWh), css('--ember')]
-      ].filter(r => has(r[1]));
-      // THE SECOND ESTIMATE, drawn over the bars. Tier 1 is the ECUK annual
-      // shaped by degree days; this line is an independent whole-year
-      // regression on observed grid demand, undemeaned so the level survives.
-      // Two methods, same days, same axis - the reader can see whether they
-      // agree rather than being told they do.
-      const traces = series.map(r => ({
-        x: dates, y: r[1], name: r[0], type: 'bar',
-        marker: {color: r[2], line: {width: 0}},
-        hovertemplate: '%{x}<br>%{y:.1f} GWh thermal<extra>' + r[0] + '</extra>'
-      }));
-      // THE SECOND ESTIMATE IS OFF BY DEFAULT since 21 Nov 2026 - Simon, on
-      // the grounds that it remains speculative. It is an independent
-      // regression whose 95% interval, refitted on five summers on 20 Nov
-      // 2026, now runs 63-88% of the ECUK anchor and therefore EXCLUDES it:
-      // the two estimators disagree rather than corroborating each other.
-      // Drawing a disputed line over the published bars by default invites a
-      // reader to average them, which is the one thing the disagreement says
-      // they must not do. It stays available because the disagreement is a
-      // real finding and hiding it would be worse than showing it.
-      if(ALT && has(cut(td.t1_alt_GWh))){
-        traces.push({
-          x: dates, y: cut(td.t1_alt_GWh),
-          name: 'Whole equipped fleet \u00b7 second estimate',
-          type: 'scatter', mode: 'lines',
-          line: {color: css('--paper'), width: 2, dash: 'dot'},
-          hovertemplate: '%{x}<br>%{y:.1f} GWh thermal' +
-                         '<extra>independent estimate</extra>'
-        });
-      }
-      // THE EXTRAPOLATED STRETCH, shaded. Tier 1 is a fitted quadratic on
-      // every day it is drawn, but the days behind the fit are the three
-      // calendar years of grid demand the regression samples - so on the 48-
-      // and 60-month windows the older bars are that fit on weather it never
-      // saw. Shading says which is which; drawing one flat series would not.
-      const shapes = [], anns = [];
-      if(inFrom && dates.length && dates[0] < inFrom){
-        shapes.push({
-          // 0.07 was invisible on the dark theme - checked by rendering it.
-          type:'rect', xref:'x', yref:'paper',
-          x0: dates[0], x1: inFrom, y0: 0, y1: 1,
-          fillcolor: css('--muted'), opacity: 0.14,
-          line: {width: 0}, layer: 'below'
-        });
-        shapes.push({
-          type:'line', xref:'x', yref:'paper',
-          x0: inFrom, x1: inFrom, y0: 0, y1: 1,
-          line: {color: css('--muted'), width: 1, dash: 'dot'},
-          layer: 'below'
-        });
-        // Inset into the band's left shoulder. Flush left it sat on the
-        // y-axis's own top tick; centred it sat on the first summer's peak.
-        // The shoulder is winter, where the bars are near zero - checked by
-        // rendering all three.
-        const bi = dates.findIndex(x => x >= inFrom);
-        const lab = dates[Math.max(0, Math.floor(bi * 0.06))] || dates[0];
-        anns.push({
-          x: lab, xref:'x', yref:'paper', y: 0.97,
-          xanchor:'left', yanchor:'top', showarrow: false,
-          text: 'fit extrapolated',
-          font:{family:'Lato', size:11, color: css('--muted')}
-        });
-      }
-      Plotly.newPlot('tierdaily', traces, {
-        barmode: 'stack', bargap: 0.05,
-        paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
-        font:{family:'Lato', color:css('--muted'), size:12},
-        margin:{l:60,r:10,t:46,b:40},
-        // Past about a year a bare '%b' repeats January four times with
-        // nothing to say which January, so the year joins the tick.
-        xaxis:{gridcolor:css('--line'),
-               tickformat: n > 400 ? '%b %Y' : n > 120 ? '%b' : '%-d %b'},
-        yaxis:{title:'GWh thermal per day', gridcolor:css('--line')},
-        shapes: shapes, annotations: anns,
-        legend:{orientation:'h', y:1.02, yanchor:'bottom'}
-      }, {displayModeBar:false, responsive:true});
-
-      const t1 = tot(cut(td.t1_GWh)), t2 = tot(cut(td.t2_GWh));
-      // The pinned undemeaned fit, READ from the payload rather than typed in
-      // here. Fallbacks are the 20 Nov 2026 pin, so an older data.json does
-      // not blank the sentence - but a payload that carries the block is
-      // always preferred, because the pin is what build.py checks.
-      //
-      // THESE MUST TRACK UNDEMEANED_FIT. They are not decoration: the live
-      // data.json does not yet carry comfort_deficit.undemeaned, so until a
-      // build runs it is these values the page actually renders. Left at the
-      // 22 Oct pin they would have gone on publishing 4.56 TWh at 95% of the
-      // anchor after the figure was refitted to 3.52 at 74% - the superseded
-      // number, stated confidently, with nothing on the page to show it had
-      // moved. A number the page states about a fit it does not read is a
-      // number that will drift.
-      const uf = Object.assign({
-        annual_TWh: 3.52, share_of_ecuk_anchor_pct: 74,
-        annual_TWh_lo: 3.01, annual_TWh_hi: 4.19,
-        share_lo_pct: 63, share_hi_pct: 88,
-        balance_point_C: 10.75,
-        balance_point_lo_C: 9.50, balance_point_hi_C: 11.75,
-        window_start: '2021-11-18', window_end: '2026-11-18',
-        record: '1827 days, 5 complete summers, 9 regressors',
-        hot_days_ge_25C: 7
-      }, td.undemeaned || {});
-      // The correction lives in METHOD, not in the legend. It was written into
-      // the legend on 19 Nov 2026 and moved the same day: the legend entry had
-      // reached 280 words, in the panel two reviewers had just named as the
-      // densest on the site. The legend keeps the result and the caveat; the
-      // test that produced the caveat belongs with the other tested-and-
-      // rejected material. It is populated from the same pinned block, so the
-      // two cannot drift apart.
-      // ONE PIN, READ EVERYWHERE. On 19 Nov 2026 this fit was stated in three
-      // places in three vintages: the legend at 102%, this paragraph at 74%
-      // with a 14.5 C balance point, and build.py's own payload string at 74%
-      // again - against a pin that then read 95% and 9.75 C, set on 22 Oct.
-      // Prose that restates a fit it does not read will drift, so none of it
-      // restates the fit any more. Every figure below comes from uf.
-      //
-      // That the pin itself has since moved - refitted 20 Nov 2026 on five
-      // summers to 74% and 10.75 C, which happens to land near the wrong
-      // 19 Nov legend figure for entirely unrelated reasons - is exactly why
-      // this rule earns its keep: the prose followed without being touched.
-      (() => {
-        const el = document.getElementById('methundemeaned');
-        if(!el) return;
-        el.innerHTML =
-          'Modelling the baseline explicitly instead — constant, day ' +
-          'type, holidays, a heating limb and a convex cooling limb, fitted ' +
-          'on undemeaned daily data — keeps the intercept, and recovers ' +
-          '<b>' + uf.share_of_ecuk_anchor_pct + '%</b> of the anchor with a ' +
-          'balance point of <b>' + uf.balance_point_C + '&nbsp;°C</b> ' +
-          '(interval ' + uf.balance_point_lo_C + '–' +
-          uf.balance_point_hi_C + '). The two routes bracket the anchor ' +
-          'rather than confirming it. <b>Note the tension with the cooling ' +
-          'base.</b> This page counts cooling degree-days from ' +
-          '<b>15.5&nbsp;°C</b>, which is the traditional UK degree-day ' +
-          'base and what CIBSE TM46 applies. The undemeaned fit puts the ' +
-          'best-fit balance point <b>below</b> that, and its interval does ' +
-          'not reach it. The base is not moved on that account — a ' +
-          'balance point fitted to national demand and a building-physics ' +
-          'base are not the same quantity, and the fit’s threshold ' +
-          'trades off against its slope — but the regression should no ' +
-          'longer be read as corroborating 15.5†.';
-      })();
-      (() => {
-        const el = document.getElementById('coolcorrection');
-        if(!el) return;
-        el.innerHTML =
-          'The demand record barely distinguishes one balance point from ' +
-          'another. Across the whole 95% interval — ' +
-          uf.balance_point_lo_C.toFixed(2) + '–' +
-          uf.balance_point_hi_C.toFixed(2) +
-          '&nbsp;°C, which is ' + uf.annual_TWh_lo.toFixed(2) + ' to ' +
-          uf.annual_TWh_hi.toFixed(2) + '&nbsp;TWh of cooling — <b>R² ' +
-          'varies by about two parts in ten thousand</b>. The fit is flat ' +
-          'where the answer is steep, so the interval is the result and the ' +
-          'central value is not. ' +
-          'Behind that is how few hot days the record holds: <b>' +
-          uf.hot_days_ge_25C + ' days at or above 25&nbsp;°C in ' +
-          Number(uf.record.split(' ')[0]).toLocaleString('en-GB') +
-          '</b>. ' +
-          '<b>The interval now sits below the ECUK anchor</b> rather than ' +
-          'spanning it, so the grid estimate and the anchored bars disagree; ' +
-          'the grid limb may read low, the anchor may read high, and this ' +
-          'record cannot say which. Note too that both are multiplied by the ' +
-          'same assumed fleet EER, which therefore cancels: what the two ' +
-          'methods are comparing is <b>electricity</b>, not efficiency. ' +
-          'The fit is pinned to ' + uf.window_start + ' – ' +
-          uf.window_end + ' and is reproducible only on that window. ' +
-          'Two earlier explanations of this width — a sample-length limit, ' +
-          'then a structural ridge — were published and withdrawn; the ' +
-          'methodology carries that account in full†.';
-      })();
-      const dropped = ['Tier 1','Tier 2'].filter((_, i) =>
-        !has([cut(td.t1_GWh), cut(td.t2_GWh)][i]));
-      // The legend carries the explanation, so the note beneath stays short.
-      // Tier 0 is named here and deliberately NOT plotted - see its entry.
-      const key = (c, name, val, note) =>
-        '<div style="display:flex;gap:9px;align-items:flex-start;margin-bottom:7px">' +
-        '<span style="flex:none;width:10px;height:10px;border-radius:2px;' +
-        'margin-top:5px;background:' + c + '"></span><div><b>' + name +
-        (val != null ? ' \u00b7 ' + fmt(Math.round(val)) + ' GWh' : '') +
-        '</b><span style="color:var(--muted)"> \u2014 ' + note + '</span></div></div>';
-      document.getElementById('tierlegend').innerHTML =
-        '<div style="font-size:13px;line-height:1.5;margin-top:12px">' +
-        '<div style="color:var(--muted);margin-bottom:10px">' +
-        // COMPUTED, NOT TYPED, since 21 Nov 2026. These read "4,800" and
-        // "14,400" as literals while the constants behind them lived in
-        // build.py - and they had already drifted: the ECUK annual is
-        // 10,275 GWh of cooling AND ventilation, of which cool_share (0.46)
-        // is cooling, giving 4,727 rather than 4,800. The lede at the top of
-        // the panel now states the same quantity, so a typed figure here
-        // would contradict a computed one a screen above it.
-        '<b>Measured against</b> ECUK\u2019s <b>' + fmt(ECUK_COOL_GWH) +
-        ' GWh a year</b> of services cooling electricity \u2014 about <b>' +
-        fmt(ECUK_COOL_GWH * COOL_EER_PAGE) + ' GWh</b> of delivered ' +
-        'cooling\u2020.</div>' +
-        // WHAT A MULTI-YEAR WINDOW IS AND IS NOT, 21 Nov 2026. Every series on
-        // this chart is a fixed coefficient times that day's weather: tier 1 is
-        // k x CDD^2 with ONE k, tier 2 is degree-hours x one per-dwelling
-        // response, the dotted line is one regression. So the fleet is held
-        // constant by construction and the chart CANNOT show stock growth -
-        // checked on the payload, where every tier 1 value maps to exactly one
-        // tier 2 value and the two estimates never cross.
-        //
-        // Re-levelling tier 1 on ECUK each year was tried and rejected on
-        // 21 Nov 2026: ECUK's services cooling line is a fixed 13.4085% of
-        // services electricity in every year of two editions, so it would have
-        // tracked the services denominator and presented it as cooling. The
-        // derivation is in build.py beside ANNUAL_TWH.
-        //
-        // Said only on windows holding more than one summer, because that is
-        // where a reader starts reading a trend off it. On 4W or 12W there is
-        // no year-to-year comparison to misread.
-        //
-        // NOTHING HERE NAMES A YEAR. The first draft said "July 2022 towers
-        // over the others because it reached 40 C", which is true on the 60-
-        // month view and points at an empty stretch of axis on the 24-month
-        // one. The claim is about the tallest summer ON SCREEN, so it is
-        // written that way and holds on every window.
-        (dates.length > 365
-          ? '<div style="color:var(--muted);margin-bottom:10px">' +
-            '<b>Year to year this is weather, not growth.</b> The cooling ' +
-            'stock is held constant, so the tallest summer is the hottest ' +
-            'one \u2014 not the one with the most cooling installed\u2020.</div>'
-          : '') +
-        // ONE SENTENCE, and only when the window reaches back past the fit.
-        // The shading on the chart would otherwise be unexplained, and the
-        // tier 1 entry below says "measured from grid demand" - true of the
-        // sampled years and not of the ones before them.
-        (inFrom && dates.length && dates[0] < inFrom
-          ? '<div style="color:var(--muted);margin-bottom:10px">' +
-            '<b>The shaded stretch sits before the fit\u2019s own data.</b> ' +
-            'Tier 1 is a fitted response to temperature on every day drawn; ' +
-            'the days behind that fit begin ' + inFrom + '. Earlier bars are ' +
-            'the same fit on weather it was not sampled on\u2020.</div>'
-          : '') +
-        // A LEGEND, NOT AN ESSAY. These four entries carried 380 words of
-        // explanation on the panel face until 21 Nov 2026 - what each tier
-        // is, whether it sits inside the anchor, how the centring works, what
-        // the second estimate controls for. A legend's job is to say which
-        // mark is which; why each one is what it is belongs in the fold, and
-        // the derivations belong in the methodology statement. Keep these to
-        // an identity and a figure.
-        key(css('--cool'), 'Tier 1 delivered', t1,
-            'cooling the equipped stock actually drew \u2014 inside the ' +
-            'anchor') +
-        key(css('--ember'), 'Tier 2 no equipment', t2,
-            'buildings with no cooling at all \u2014 outside the anchor, and ' +
-            'additional to it') +
-        key('transparent;border:1px dashed ' + css('--ash'),
-            'Tier 0 process cooling', null,
-            'cold stores, data centres, food retail \u2014 flat all year and ' +
-            'four times the rest, so not plotted\u2020') +
-        // ONLY WHEN IT IS DRAWN, and it says that the two estimates
-        // DISAGREE. Compressing this entry on 21 Nov 2026 left it reading
-        // "74% of the anchor", which sounds like broad agreement. The 20 Nov
-        // refit puts the interval at 63-88%, which EXCLUDES 100% - the
-        // estimators contradict each other, and that is the whole reason the
-        // line is worth a toggle rather than a quiet default.
-        (ALT && has(td.t1_alt_GWh)
-          ? key(css('--paper') + ';height:2px;margin-top:5px',
-                'Second estimate', null,
-                'an independent read of the <b>whole</b> equipped load, not ' +
-                'another tier: ' + uf.annual_TWh.toFixed(2) + ' TWh a year, ' +
-                uf.share_lo_pct + '\u2013' + uf.share_hi_pct + '% of the ' +
-                'anchor. <b>That interval excludes the anchor</b>, so the two ' +
-                'estimates disagree \u2014 do not average them\u2020')
-          : '') +
-        '</div>';
-      document.getElementById('tierdailynote').textContent = '';
-    }
-
-    bar.addEventListener('click', ev => {
-      const b = ev.target.closest('button'); if(!b) return;
-      bar.querySelectorAll('button').forEach(x =>
-        x.setAttribute('aria-pressed', String(x === b)));
-      drawTiers(+b.dataset.tw);
-    });
-    // SIXTY MONTHS BY DEFAULT since 21 Nov 2026 - Simon, on the panel moving
-    // to position 2. The reason is seasonal: this panel's subject is cooling,
-    // and a reader landing on it in November sees a flat line on any window
-    // that holds one summer. Five summers makes the growth the panel is about
-    // the first thing visible, and makes the November zero read as the shape
-    // of the year rather than as an empty panel.
-    //
-    // CHOSEN FROM THE RECORD, NOT TYPED. The button bar above hides any window
-    // longer than the data reaches, so a hardcoded 1826 would press a hidden
-    // button and then caption the chart "the last sixty months" over whatever
-    // it actually drew - today's payload carries 735 days, because the build
-    // that lifted the 735-day cap has not been run yet. Falling back to the
-    // longest window the record can fill keeps the caption true on every
-    // payload, and promotes itself to 60M on its own once the archive is
-    // rebuilt. Same rule as the panel above: a number the page states about a
-    // span it does not read is a number that will drift.
-    // The second estimate's latching toggle. Off until asked for.
-    const altbtn = document.getElementById('tieralt');
-    if(altbtn){
-      if(!has(td.t1_alt_GWh)) altbtn.style.display = 'none';
-      altbtn.addEventListener('click', () => {
-        ALT = !ALT;
-        altbtn.setAttribute('aria-pressed', String(ALT));
-        drawTiers(CURW);
-      });
-    }
-    const PREF = [1826, 1461, 730, 365];
-    const start = PREF.find(w => HAVE >= w) || 365;
-    bar.querySelectorAll('button').forEach(x =>
-      x.setAttribute('aria-pressed', String(+x.dataset.tw === start)));
-    drawTiers(start);
-  })();
 
   // ---- the night elbow, both summers --------------------------------------
   // Sits beside the CDD response curve because the two agree from different
@@ -5586,7 +5203,13 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
                   .split(/;\s*/).slice(1).join('; ') + '.'
         : '');
 
-    document.getElementById('deficitnote').textContent = cd.note;
+    // GUARDED, 21 Nov 2026. cd.note is a base-temperature derivation for the
+    // comfort deficit, and with the day-by-day tier chart gone the deficit
+    // is not drawn anywhere on this panel - so the element was removed and
+    // this writer must tolerate its absence rather than throw before the
+    // panel renders. The derivation itself is in the Methodology Statement.
+    const dfn = document.getElementById('deficitnote');
+    if(dfn) dfn.textContent = cd.note;
   }
 
   const geo = d.geothermal;
@@ -6754,17 +6377,20 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
 
       // The hot tail, if the file carries that base: how much of the year
       // sits well above the comfort base rather than just past it.
-      let tail = '';
+      let tail = '', tailfold = '';
       const H = d.bases[HOT];
       if(H && H[cur] != null){
         const hr = ref.filter(y => H[y] != null);
         if(hr.length){
           const hm = hr.reduce((a, y) => a + H[y], 0) / hr.length;
           const nil = hr.filter(y => H[y] < 1).length;
-          tail = ' Above ' + degC(HOT) + ', where cooling stops being ' +
-            'optional: <b>' + fmt(H[cur]) + '</b> against a mean of ' +
+          tail = ' Above ' + degC(HOT) + ': <b>' + fmt(H[cur]) +
+            '</b> against a mean of ' + fmt(hm) + '.';
+          tailfold = ' Above ' + degC(HOT) + ' — the range where cooling ' +
+            'stops being a comfort preference — ' + cur + ' recorded <b>' +
+            fmt(H[cur]) + '</b> degree-days against a ' + span + ' mean of ' +
             fmt(hm) + ', and ' + nil + ' of those ' + hr.length +
-            ' years had none at all.';
+            ' years recorded none at all.';
         }
       }
 
@@ -6845,28 +6471,30 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       // been told to shed.
       if(note) note.innerHTML =
         '<b>This is the weather, not the demand</b> — what the climate asked ' +
-        'for, not what was installed to answer it. The tiers below are the ' +
-        'attempt at that, and the gap is this panel’s subject†.';
+        'for, not what Britain installed to answer it†.';
 
       const fold = document.getElementById('cddfold');
       if(fold){
         fold.hidden = false;
         fold.innerHTML =
-          '<b>Why the quarter-century chart is weather and not demand.</b> ' +
-          'Every tier on the chart below it is a fixed coefficient times one ' +
-          'day’s weather, so a long window of tiers shows a handful of ' +
-          'summers and cannot show the cooling fleet growing — the thing a ' +
-          'reader would most want a long chart to tell them. The weather on ' +
-          'its own has no such problem: it is a measured record that needs ' +
-          'no assumption about how much plant exists, so it is the one ' +
-          'series this panel can honestly draw over ' + yrs.length +
-          ' years. It is degree-days above ' + degC(BASE) + ' on ' +
+          '<p class="costnote"><b>Why the quarter-century chart is weather ' +
+          'and not demand.</b> A national cooling-demand series would have ' +
+          'to separate the climate warming from the fleet growing, and ' +
+          'nothing published does that: the estimates this panel used to ' +
+          'draw were each a fixed coefficient times one day’s weather, so a ' +
+          'long window of them showed a handful of summers rather than a ' +
+          'trend. The weather has no such problem — it is a measured record ' +
+          'that needs no assumption about how much plant exists, which ' +
+          'makes it the one series this panel can carry over ' + yrs.length +
+          ' years. Read the other way round, as demand, it would ' +
+          'double-count the growth of the fleet against the warming of the ' +
+          'climate.' + tailfold + '</p>' +
+          '<p class="costnote"><b>Where the record comes from, and what ' +
+          'checks it.</b> Degree-days above ' + degC(BASE) + ' on ' +
           'population-weighted GB daily mean temperature, twelve points — ' +
           'the base and the weighting every other cooling figure here uses ' +
           '— from the ERA5 reanalysis via open-meteo, ' + yrs[0] + ' to ' +
-          (thru || cur) + '.' + agree + ' Reading it the other way round, ' +
-          'as a demand series, would double-count the growth of the fleet ' +
-          'against the warming of the climate.';
+          (thru || cur) + '.' + agree + '</p>';
       }
 
       function fig(v, t, s){
