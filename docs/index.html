@@ -357,10 +357,13 @@
      to. Vertical bars at 110px rather than the panel's usual 300 - a
      quarter-century of one number a year needs height for the shape, not
      for precision, and the panel cannot spare more. */
-  .cddblk{display:grid;grid-template-columns:1fr 212px;gap:26px;
-          align-items:start;margin:14px 0 0}
-  @media (max-width:860px){.cddblk{grid-template-columns:1fr;gap:18px}}
-  .cddplot{position:relative;height:150px;display:flex;align-items:flex-end;
+  /* Demand on the left, consequence on the right. Equal halves so the two
+     h2 labels line up as a pair - they are read as one sentence. */
+  .coolsplit{display:grid;grid-template-columns:1fr 1fr;gap:28px;
+             align-items:start;margin:18px 0 0}
+  @media (max-width:860px){.coolsplit{grid-template-columns:1fr;gap:20px}}
+  .cddblk{margin:14px 0 0}
+  .cddplot{position:relative;height:120px;display:flex;align-items:flex-end;
            gap:2px;border-bottom:1px solid var(--line)}
   .cddcol{flex:1 1 0;position:relative;display:flex;flex-direction:column;
           justify-content:flex-end;height:100%;min-width:0}
@@ -387,27 +390,23 @@
   .cddpk{position:absolute;left:50%;transform:translate(-50%,-14px);
          font-family:"JetBrains Mono",monospace;font-size:10px;
          color:var(--paper);white-space:nowrap}
-  .cddfig{border-left:2px solid var(--line);padding-left:13px;
-          margin-bottom:16px}
-  .cddfig:last-child{margin-bottom:0}
-  .cddfig .fv{font-family:"JetBrains Mono",monospace;font-size:22px;
-              color:var(--paper);line-height:1.1}
-  .cddfig .ft{font-size:12px;line-height:1.4;color:var(--paper);margin-top:4px}
-  .cddfig .fs{font-size:11px;line-height:1.35;color:var(--muted);margin-top:3px}
+  /* .cddfig rules removed 21 Nov 2026 - the two stat figures that
+     used them moved into the fold. */
   /* ---- cooling panel, 21 Nov 2026 ---------------------------------- */
   /* Four context facts, promoted out of the fold. A grid rather than a list
      because they are peers - none is the headline - and because at this
      width four short cards read faster than four bullets. */
-  .coolctx{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;
+  /* Two by two since 21 Nov 2026, sharing the panel's width with the
+     degree-day chart rather than running the full width under it. */
+  .coolctx{display:grid;grid-template-columns:1fr 1fr;gap:1px;
            background:var(--line);border:1px solid var(--line);
-           border-radius:6px;overflow:hidden;margin:18px 0 0}
-  @media (max-width:720px){.coolctx{grid-template-columns:1fr 1fr}}
-  .coolctx .cx{background:var(--ink);padding:13px 14px 14px}
-  .coolctx .cxf{font-family:"JetBrains Mono",monospace;font-size:19px;
+           border-radius:6px;overflow:hidden;margin:14px 0 0}
+  .coolctx .cx{background:var(--ink);padding:9px 11px 10px}
+  .coolctx .cxf{font-family:"JetBrains Mono",monospace;font-size:17px;
                 color:var(--cool);line-height:1.1}
-  .coolctx .cxt{font-size:12.5px;line-height:1.4;color:var(--paper);
-                margin-top:6px}
-  .coolctx .cxs{font-size:11px;color:var(--muted);margin-top:5px}
+  .coolctx .cxt{font-size:11.5px;line-height:1.35;color:var(--paper);
+                margin-top:4px}
+  .coolctx .cxs{font-size:10.5px;color:var(--muted);margin-top:4px}
   /* Cost-of-cooling rows and the UTES season bars share one bar grammar:
      label, track, figure. The track is a common scale within its own block
      so the shorter bar is shorter by exactly what it saves. */
@@ -1007,24 +1006,42 @@
          that problem, and the four context facts below were sitting in the
          fold where nobody found them. Both are written from the payload. -->
     <p class="lede" id="coollede">—</p>
-    <div class="coolctx" id="coolctx"></div>
 
-    <!-- THE ONE LONG SERIES THIS PANEL CAN HONESTLY DRAW. The tiers below
-         are deterministic functions of one day's weather, so sixty months
-         of them show five summers and cannot show the fleet growing. The
-         weather itself is a real record with a real trend and needs no
-         assumption about install base - see scripts/cdd_history.py. Drawn
-         from docs/cdd_history.json, every figure computed on render. -->
-    <div class="h2lab" style="margin-top:26px" id="cddlab">What the climate is
-      asking for <span class="qual">— a quarter-century of GB cooling
-      degree-days</span></div>
-    <div id="cddblk"></div>
-    <p class="costnote" id="cddnote"></p>
+    <!-- DEMAND AND CONSEQUENCE SIDE BY SIDE, 21 Nov 2026 - Simon. The
+         degree-day record and the four overheating facts were stacked, and
+         stacked they pushed the hand-off two screens down. They are the
+         same argument read from two directions - what the climate is
+         asking for, and what it is already costing - so they belong on one
+         line. The chart takes half the width with narrower columns; the
+         facts take the other half, two by two.
+
+         THE ONE LONG SERIES THIS PANEL CAN CARRY. Each estimate the panel
+         used to draw was a fixed coefficient times one day's weather and
+         could not show the fleet growing. The weather is a real record
+         with a real trend and needs no assumption about install base - see
+         scripts/cdd_history.py. Drawn from docs/cdd_history.json, every
+         figure computed on render; the stats that sat beside the chart are
+         now in the fold. -->
+    <div class="coolsplit">
+      <div>
+        <!-- No qual on either of these two. At half the panel's width the
+             heading alone fills the line, and a trailing clause costs a
+             whole line in both columns at once. -->
+        <div class="h2lab" id="cddlab">What the climate is asking for</div>
+        <div id="cddblk"></div>
+        <p class="costnote" id="cddnote"></p>
+      </div>
+      <div>
+        <div class="h2lab">The overheating risk already with us</div>
+        <div class="coolctx" id="coolctx"></div>
+      </div>
+    </div>
 
     <!-- WHAT THE HEADING PROMISES. The panel is called "and geothermal's
          role" and before 21 Nov 2026 it never priced it once. Read from the
          same cost table panel 1 draws, so the two panels cannot diverge. -->
-    <div class="h2lab" style="margin-top:26px">What cooling costs to deliver
+    <div class="h2lab" style="margin-top:18px">Geothermal cooling, like
+      heating, is cheaper to run
       <span class="qual">— the same loop, run backwards</span></div>
     <div id="coolprice"></div>
     <p class="costnote" id="coolpricenote"></p>
@@ -1853,7 +1870,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.12.1';
+const SITE_VERSION = '9.13.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -4066,9 +4083,8 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
         // the four facts about what is there to answer it. No span is
         // named here - this writer does not read the degree-day file.
         'Britain spends about <b>' + fmt(anchor * (coolShare || 1))
-        + ' GWh of electricity a year</b> cooling its services buildings. '
-        + 'That is the cooling it <b>has</b>. The record below is what the '
-        + 'climate has been asking for.';
+        + ' GWh of electricity a year</b> cooling its services buildings — '
+        + 'the cooling it <b>has</b>.';
     }
     // THE FOUR FACTS WERE ALREADY IN THE PAYLOAD, inside the method fold,
     // where a reader who scrolled past the chart never met them. They are
@@ -6373,15 +6389,13 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
 
       // The hot tail, if the file carries that base: how much of the year
       // sits well above the comfort base rather than just past it.
-      let tail = '', tailfold = '';
+      let tailfold = '';
       const H = d.bases[HOT];
       if(H && H[cur] != null){
         const hr = ref.filter(y => H[y] != null);
         if(hr.length){
           const hm = hr.reduce((a, y) => a + H[y], 0) / hr.length;
           const nil = hr.filter(y => H[y] < 1).length;
-          tail = ' Above ' + degC(HOT) + ': <b>' + fmt(H[cur]) +
-            '</b> against a mean of ' + fmt(hm) + '.';
           tailfold = ' Above ' + degC(HOT) + ' — the range where cooling ' +
             'stops being a comfort preference — ' + cur + ' recorded <b>' +
             fmt(H[cur]) + '</b> degree-days against a ' + span + ' mean of ' +
@@ -6391,7 +6405,6 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       }
 
       box.innerHTML =
-        '<div class="cddblk"><div>' +
           '<div class="cddplot">' +
             '<div class="cddmean" style="bottom:' +
               (100 * mean / top).toFixed(2) + '%"></div>' +
@@ -6422,18 +6435,22 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
               '"></i>years above it</span>' +
             '<span><i style="background:' + css('--cool') +
               '"></i>years below</span>' +
-          '</div>' +
-        '</div><div>' +
-          fig((m2 > m1 ? '+' : '') + Math.round(100 * (m2 / m1 - 1)) + '%',
-              'mean cooling degree-days, ' + ref[h] + '–' +
-              ref[ref.length - 1] + ' against ' + ref[0] + '–' + ref[h - 1],
-              fmt(m1) + ' rising to ' + fmt(m2) + ' — two halves of the ' +
-              'record, with no trend line fitted.') +
-          fig((S[cur] / mean).toFixed(1) + '×',
-              cur + ' against that mean' + (partial ? ', part year' : ''),
-              'Also <b>' + (S[cur] / rec).toFixed(2) + '×</b> the highest ' +
-              'year before it (' + recy + ', ' + fmt(rec) + ').' + tail) +
-        '</div></div>';
+          '</div>';
+
+      // THE TWO STATS MOVED TO THE FOLD on 21 Nov 2026 - Simon, to give the
+      // overheating facts the right half of the panel. They are the same
+      // numbers, read out as a sentence rather than set as figures: the
+      // chart shows the shape and the fold quantifies it.
+      const stats =
+        ' Putting numbers on the shape: mean cooling degree-days ran <b>' +
+        fmt(m1) + '</b> over ' + ref[0] + '–' + ref[h - 1] + ' and <b>' +
+        fmt(m2) + '</b> over ' + ref[h] + '–' + ref[ref.length - 1] +
+        ', a rise of <b>' + Math.round(100 * (m2 / m1 - 1)) + '%</b> ' +
+        'between the two halves of the record with no trend line fitted. ' +
+        cur + (partial ? ', a part year so far,' : '') + ' stands at <b>' +
+        (S[cur] / mean).toFixed(1) + '×</b> the ' + span + ' mean and <b>' +
+        (S[cur] / rec).toFixed(2) + '×</b> the highest year before it (' +
+        recy + ', ' + fmt(rec) + ').' + tailfold;
 
       // Re-derive the annual totals from the site's own daily temperatures
       // and report the worst disagreement found. Only whole years both
@@ -6465,9 +6482,9 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       // provenance and the cross-check go to the fold. Four lines of small
       // print under a chart this compact is the prose the panel has twice
       // been told to shed.
+      // One line at half the panel's width, or it costs the column 23px.
       if(note) note.innerHTML =
-        '<b>This is the weather, not the demand</b> — what the climate asked ' +
-        'for, not what Britain installed to answer it†.';
+        '<b>The asking, not the answering</b> — weather, not demand†.';
 
       const fold = document.getElementById('cddfold');
       if(fold){
@@ -6484,7 +6501,9 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
           'makes it the one series this panel can carry over ' + yrs.length +
           ' years. Read the other way round, as demand, it would ' +
           'double-count the growth of the fleet against the warming of the ' +
-          'climate.' + tailfold + '</p>' +
+          'climate.</p>' +
+          '<p class="costnote"><b>What the record says, in numbers.</b>' +
+          stats + '</p>' +
           '<p class="costnote"><b>Where the record comes from, and what ' +
           'checks it.</b> Degree-days above ' + degC(BASE) + ' on ' +
           'population-weighted GB daily mean temperature, twelve points — ' +
@@ -6493,11 +6512,6 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
           (thru || cur) + '.' + agree + '</p>';
       }
 
-      function fig(v, t, s){
-        return '<div class="cddfig"><div class="fv">' + v + '</div>' +
-          '<div class="ft">' + t + '</div>' +
-          '<div class="fs">' + s + '</div></div>';
-      }
     }).catch(() => hide());
   })();
 
