@@ -360,10 +360,10 @@
   .useason .ush{font-family:"JetBrains Mono",monospace;font-size:11px;
                 letter-spacing:.12em;text-transform:uppercase;
                 color:var(--muted);margin-bottom:7px}
-  .coolnext{display:flex;align-items:center;gap:11px;margin-top:30px;
+  .panelnext{display:flex;align-items:center;gap:11px;margin-top:30px;
             padding-top:15px;border-top:1px solid var(--line);
             color:var(--paper);font-size:14px;line-height:1.5}
-  .coolnext .arrow{width:22px;height:22px;border-radius:50%;flex:0 0 22px;
+  .panelnext .arrow{width:22px;height:22px;border-radius:50%;flex:0 0 22px;
                    border:1px solid var(--line);display:flex;
                    align-items:center;justify-content:center;color:var(--geo);
                    font-size:12px}
@@ -899,84 +899,22 @@
     <p class="costnote">† = Causeway estimate – see Method &amp; caveats.
       The derivation of every figure above is in the methodology statement.</p>
     </div></details>
-    <h2 style="margin-top:30px">What it emits</h2>
-    <div class="billline" id="carbline"></div>
-    <div id="carbchart" style="height:230px;margin:16px 0 6px"></div>
-    <details class="fold" id="fold_carb"><summary>METHOD —
-      <b>every route’s carbon per useful kWh, live grid intensity</b></summary>
-    <div class="foldbody">
-    <table class="costtable">
-      <thead><tr><th>Route</th><th class="num">gCO2e per useful kWh</th></tr></thead>
-      <tbody id="carbrows"></tbody>
-    </table>
-    <p class="costnote" id="carbnote"></p>
-    </div></details>
-  </section>
-
-  <section id="routes" hidden>
-    <h1 class="sect">3. Electricity grid impacts — the 20% what-if, hour by hour</h1>
-    <p class="lede">One fifth of Britain's heat, replaced three ways —
-    air-source heat pumps, ground source, and geothermal networks —
-    hour by hour across the last twelve months. Where the heat comes from
-    decides how much electricity Britain has to find on its coldest
-    hour.</p>
-    <div class="h2lab">View</div>
-    <div class="trendctl" style="margin-top:2px">
-      <span>VIEW</span>
-      <button data-rt="h" aria-pressed="true">Hourly · 7d</button>
-      <button data-rt="d">Daily · 90d</button>
-      <button data-rt="m">Monthly · falcon</button>
-      <span id="rt_span"></span>
+    <!-- SEGUE INTO PANEL 2. Panel 1 prices heat; the hook into cooling is
+         that every route it priced can only ADD heat, and one of them can
+         also take it away through the same boreholes - which is also the
+         fact that makes the cooling panel's own price comparison land. -->
+    <div class="panelnext">
+      <div class="arrow">&darr;</div>
+      <div>Every route above can only <b>add</b> heat. One of them can also
+        take it away &mdash; through the same boreholes, at a fraction of a
+        chiller. <b>And that demand is the one that is growing.</b></div>
     </div>
-    <div id="rt_main" style="width:100%;height:340px;margin-top:10px"></div>
-
-    <div class="h2lab">The coldest hour <span class="qual">— extra electricity the fifth would need</span></div>
-    <div class="statrow" id="rt_winter"></div>
-    <div id="rt_winbars" style="width:100%;height:300px;margin-top:12px"></div>
-    <button class="pngbtn" onclick="exportChart('rt_winbars','The tightest week on record','hourly requirement against the winter capacity block')">⬇ PNG FOR SLIDES</button>
-    <div class="h2lab" id="rt_bindlbl" hidden>The tightest hour of the year <span class="qual">— what Britain’s power stations would have to cover with the new fifth of electrified heat†</span></div>
-    <div class="statrow" id="rt_bind"></div>
-    <div id="rt_bindbars" style="width:100%;height:300px;margin-top:12px" hidden></div>
-    <div class="h2lab" id="rt_limlbl" hidden>How would electrified heat have sat against national capacity, in the winters on record? <span class="qual">— †</span></div>
-    <div class="statrow limrow" id="rt_lim"></div>
-    <div id="rt_limbars" style="width:100%;height:320px;margin-top:12px" hidden></div>
-    <p class="costnote" id="rt_limnote"></p>
-    <div class="h2lab">The hottest hour <span class="qual">— cooling, and what doubling it would cost†</span></div>
-    <div class="statrow" id="rt_summer"></div>
-    <div id="rt_sumbars" style="width:100%;height:300px;margin-top:12px" hidden></div>
-    <div class="h2lab" id="rt_wklbl">The tightest week of the year</div>
-    <div id="rt_worst" style="width:100%;height:320px;margin-top:8px"></div>
-    <details class="fold" id="fold_cop"><summary>METHOD —
-      <b>how much heat each route gets per unit of electricity, by temperature</b></summary>
-    <div class="foldbody">
-    <div id="rt_cop" style="width:100%;height:260px;margin-top:8px"></div>
-    <p class="costnote" id="rt_note"></p>
-    </div></details>
-
-    <!-- Three sibling folds, not one carrying three subjects. METHOD had
-         grown to hold the COP curve, the blend behind SPF* and the measured
-         evidence for it, so opening it dumped all three. A reader after the
-         assumption should not have to read the chart method to reach it. -->
-    <details class="fold" id="fold_blend" style="display:none"><summary>WHAT SPF* ASSUMES —
-      <b>the blend behind it, and the shares it rests on</b></summary>
-    <div class="foldbody">
-      <p class="costnote" id="blendnote">—</p>
-      <table class="geotbl" id="blendtbl" style="margin-top:12px"><tbody></tbody></table>
-      <p class="costnote" id="blendcheck" style="margin-top:12px">—</p>
-      <p class="costnote" id="blendcond" style="margin-top:14px">—</p>
-    </div></details>
-
-    <details class="fold" id="fold_spfev" style="display:none"><summary>WHAT HAS BEEN MEASURED —
-      <b>other fleets, and the boundary each figure sits on</b></summary>
-    <div class="foldbody">
-      <p class="costnote" id="spfevnote">—</p>
-      <table class="geotbl" id="spfevtbl" style="margin-top:12px"><tbody></tbody></table>
-      <p class="costnote" id="spfevfind" style="margin-top:14px">—</p>
-    </div></details>
   </section>
+
+
 
   <section id="coolsection">
-    <h1 class="sect">4. The rising demand for cooling, and geothermal’s role</h1>
+    <h1 class="sect" id="coolhead" tabindex="-1">2. The rising demand for cooling, and geothermal’s role</h1>
 
     <!-- LEAD ON THE YEAR, NOT ON THIS WEEK. Every weekly figure in this panel
          reads zero from about October to April, and at position 2 that is the
@@ -1135,12 +1073,101 @@
     <!-- HAND-OFF into the grid panel. The argument that carries across is
          the seasonal one: heating and cooling peak at opposite ends of the
          year, which is what the grid panel then has to reckon with. -->
-    <div class="coolnext">
+    <div class="panelnext">
       <div class="arrow">&darr;</div>
       <div>Heating peaks in January, cooling in July. One electricity system
         has to carry both &mdash; <b>and the coldest hour is the one that
         sizes it</b>.</div>
     </div>
+  </section>
+
+  <section id="routes" hidden>
+    <h1 class="sect" id="gridhead" tabindex="-1">3. Electricity grid impacts — the 20% what-if, hour by hour</h1>
+    <p class="lede">One fifth of Britain's heat, replaced three ways —
+    air-source heat pumps, ground source, and geothermal networks —
+    hour by hour across the last twelve months. Where the heat comes from
+    decides how much electricity Britain has to find on its coldest
+    hour.</p>
+    <div class="h2lab">View</div>
+    <div class="trendctl" style="margin-top:2px">
+      <span>VIEW</span>
+      <button data-rt="h" aria-pressed="true">Hourly · 7d</button>
+      <button data-rt="d">Daily · 90d</button>
+      <button data-rt="m">Monthly · falcon</button>
+      <span id="rt_span"></span>
+    </div>
+    <div id="rt_main" style="width:100%;height:340px;margin-top:10px"></div>
+
+    <div class="h2lab">The coldest hour <span class="qual">— extra electricity the fifth would need</span></div>
+    <div class="statrow" id="rt_winter"></div>
+    <div id="rt_winbars" style="width:100%;height:300px;margin-top:12px"></div>
+    <button class="pngbtn" onclick="exportChart('rt_winbars','The tightest week on record','hourly requirement against the winter capacity block')">⬇ PNG FOR SLIDES</button>
+    <div class="h2lab" id="rt_bindlbl" hidden>The tightest hour of the year <span class="qual">— what Britain’s power stations would have to cover with the new fifth of electrified heat†</span></div>
+    <div class="statrow" id="rt_bind"></div>
+    <div id="rt_bindbars" style="width:100%;height:300px;margin-top:12px" hidden></div>
+    <div class="h2lab" id="rt_limlbl" hidden>How would electrified heat have sat against national capacity, in the winters on record? <span class="qual">— †</span></div>
+    <div class="statrow limrow" id="rt_lim"></div>
+    <div id="rt_limbars" style="width:100%;height:320px;margin-top:12px" hidden></div>
+    <p class="costnote" id="rt_limnote"></p>
+    <div class="h2lab">The hottest hour <span class="qual">— cooling, and what doubling it would cost†</span></div>
+    <div class="statrow" id="rt_summer"></div>
+    <div id="rt_sumbars" style="width:100%;height:300px;margin-top:12px" hidden></div>
+    <div class="h2lab" id="rt_wklbl">The tightest week of the year</div>
+    <div id="rt_worst" style="width:100%;height:320px;margin-top:8px"></div>
+    <details class="fold" id="fold_cop"><summary>METHOD —
+      <b>how much heat each route gets per unit of electricity, by temperature</b></summary>
+    <div class="foldbody">
+    <div id="rt_cop" style="width:100%;height:260px;margin-top:8px"></div>
+    <p class="costnote" id="rt_note"></p>
+    </div></details>
+
+    <!-- Three sibling folds, not one carrying three subjects. METHOD had
+         grown to hold the COP curve, the blend behind SPF* and the measured
+         evidence for it, so opening it dumped all three. A reader after the
+         assumption should not have to read the chart method to reach it. -->
+    <details class="fold" id="fold_blend" style="display:none"><summary>WHAT SPF* ASSUMES —
+      <b>the blend behind it, and the shares it rests on</b></summary>
+    <div class="foldbody">
+      <p class="costnote" id="blendnote">—</p>
+      <table class="geotbl" id="blendtbl" style="margin-top:12px"><tbody></tbody></table>
+      <p class="costnote" id="blendcheck" style="margin-top:12px">—</p>
+      <p class="costnote" id="blendcond" style="margin-top:14px">—</p>
+    </div></details>
+
+    <details class="fold" id="fold_spfev" style="display:none"><summary>WHAT HAS BEEN MEASURED —
+      <b>other fleets, and the boundary each figure sits on</b></summary>
+    <div class="foldbody">
+      <p class="costnote" id="spfevnote">—</p>
+      <table class="geotbl" id="spfevtbl" style="margin-top:12px"><tbody></tbody></table>
+      <p class="costnote" id="spfevfind" style="margin-top:14px">—</p>
+    </div></details>
+  </section>
+
+  <!-- PANEL 4, 21 Nov 2026 - Simon. "What it emits" was a sub-section of
+       the cost panel, where a reader met it as an afterthought to a page
+       about money. Carbon and energy security are a claim in their own
+       right and now carry their own panel. The content and its fold are
+       unchanged; only where they sit has moved, so every writer that
+       targets carbline / carbchart / carbrows / carbnote still finds them. -->
+  <section id="climatesection">
+    <h1 class="sect" id="climatehead" tabindex="-1">4. Geothermal benefits to
+      climate and energy security</h1>
+    <p class="lede">The same swap that lowers the bill lowers the carbon, and
+      moves the energy onshore. Ground heat is not imported, not burnt, and
+      not exposed to a commodity price.</p>
+    <div class="h2lab" style="margin-top:22px">What it emits
+      <span class="qual">— by route, at live grid intensity</span></div>
+    <div class="billline" id="carbline"></div>
+    <div id="carbchart" style="height:230px;margin:16px 0 6px"></div>
+    <details class="fold" id="fold_carb"><summary>METHOD —
+      <b>every route’s carbon per useful kWh, live grid intensity</b></summary>
+    <div class="foldbody">
+    <table class="costtable">
+      <thead><tr><th>Route</th><th class="num">gCO2e per useful kWh</th></tr></thead>
+      <tbody id="carbrows"></tbody>
+    </table>
+    <p class="costnote" id="carbnote"></p>
+    </div></details>
   </section>
 
   <section id="geosection">
@@ -1713,7 +1740,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.8.0';
+const SITE_VERSION = '9.9.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
