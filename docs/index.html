@@ -578,6 +578,14 @@
   .status{display:flex;gap:16px;flex-wrap:wrap;font-family:"IBM Plex Mono";font-size:12px}
   .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
   .ok{background:var(--geo)} .stale{background:var(--ember)} .lag{background:#d9a514}
+  /* Footer data-freshness block, 22 Nov 2026. */
+  .freshblock{margin:4px 0 18px;padding:14px 16px;border:1px solid var(--line);
+      border-radius:8px;background:rgba(255,255,255,.02)}
+  .freshlab{font-family:"IBM Plex Mono";font-size:10.5px;letter-spacing:.09em;
+      text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+  .freshnote{font-size:12px;line-height:1.55;color:var(--muted);margin:14px 0 0}
+  .freshnote b{color:var(--paper)}
+  .freshnote .due{color:#d9a514} .freshnote .over{color:var(--ember)}
   .method p{color:var(--paper);font-size:16px;line-height:1.6;margin-bottom:12px}
   .method b{color:var(--paper);font-weight:500}
   footer{padding:26px 0 calc(120px + env(safe-area-inset-bottom,0px));
@@ -1982,105 +1990,15 @@
       mine water barely move with the weather, so the lift in February is
       close to the lift in August.<span id="whyfig"></span></p>
 
-    <details class="fold" id="fold_start"><summary>METHOD —
-      <b>where every number on this page comes from, and what it cannot see</b></summary>
-    <div class="foldbody">
-    <h2>The gas engine room: daily gas to buildings vs the heating signal</h2>
-    <div id="ts"></div>
-    <div class="burnbar" id="burnbar" aria-label="This week's buildings gas split"></div>
-    <div class="legend">
-      <span><span class="key" style="background:var(--ember)"></span><b>Space heating</b> (useful)</span>
-      <span><span class="key" style="background:repeating-linear-gradient(135deg,#b83f1e 0 4px,#7e2c15 4px 8px)"></span><b>Wasted at the boiler</b> (~15–17.5%)</span>
-      <span><span class="key" style="background:var(--ash)"></span><b>Non-weather gas to buildings</b> (hot water, cooking, industry on the distribution network)</span>
-    </div>
-    <h2>Method &amp; caveats</h2>
-    <p class="geosub" style="margin-bottom:10px">Full technical methodology — equations, calibration figures, limitations, and a table of corrections found and declared since v7: <a href="uk-heatsplit-methodology.pdf" style="color:var(--geo)">UK Heat Split: data sources and estimation methodology, v8 (PDF)</a>. Currently under peer review.</p>
-    <p style="color:var(--geo);font-size:15px;line-height:1.6">† Current
-      Causeway Energies estimate – challenge and input welcome at
-      <a href="mailto:contact@causewaygt.com" style="color:var(--geo)">contact@causewaygt.com</a>.</p>
-    <p><b>Gas (live).</b> Daily gas offtake to Britain's local distribution zones
-      (LDZ — the network serving homes and most businesses) is regressed against
-      population-weighted GB heating degree days (ERA5 reanalysis via Open-Meteo).
-      The temperature-sensitive component is attributed to space heating.
-      Directly-connected power stations are excluded. Approach follows the
-      published Watson/Sansom method. Current fit: <span id="fit">—</span>.</p>
-    <p><b>Everything else (shaped annual).</b> Oil, electric heating, bioenergy,
-      heat networks, solid fuel and cooling take their annual levels from the
-      DESNZ ECUK 2025 End Use tables (calendar 2024) and are distributed across
-      the year by heating/cooling degree days. They do not respond to live grid
-      data. Cooling is the weakest element: the ECUK figure combines cooling and
-      ventilation, split here 50% flat / 50% weather-shaped by assumption, and UK
-      cooling demand is poorly measured. Electric heating counts the electricity
-      into heat pumps, not the ambient heat they harvest — so the useful heat
-      delivered by heat pumps is understated for now.</p>
-    <p><b>The two bars.</b> The top bar is final energy — fuel and electricity
-      purchased. The bottom bar is useful heat and cooling delivered: combustion
-      derated by measured in-situ efficiencies (gas 83.5%, oil 82%, bio 70%,
-      solid 55% — the last three are estimates), heat networks shown at delivered
-      heat, resistive electric at 100%, heat pumps multiplied by a blended SPF of
-      2.8 (Electrification of Heat, 742 metered homes) with the harvested ambient heat
-      shown in teal, and the weather-driven half of cooling multiplied by an
-      assumed EER of 3. Heat-pump electricity is the ECUK 2025 domestic figure
-      (2.0 TWh, 2024); non-domestic heat pumps are not yet counted, so the teal
-      segment is understated.</p>
-    <p><b>Boiler efficiency, by end use.</b> Space heating and hot water are
-      converted at <b>different</b> efficiencies. A boiler serving only a
-      cylinder fires in short bursts, cools between them, and returns water
-      above the condensing dewpoint, losing its latent recovery: gas is 0.835
-      for space heating and <b>0.73</b> for hot water, oil 0.82 and
-      <b>0.71</b>. Both hot-water figures are the mean SAP 2012 Table 4b
-      summer/winter ratio applied to the in-situ winter anchor, and SAP applies
-      the summer figure to hot water in every month, not seasonally. Summer
-      runs 82–89% of winter across that table. Bioenergy and solid fuel keep
-      a single figure, because Table 4b does not cover them. The effect is that
-      the effective gas efficiency now moves with the season — about 0.81 in
-      January and 0.74 in July, when the load is almost all hot water.</p>
-    <p><b>Known biases.</b> Hot-water heating is treated as flat but is mildly
-      seasonal (colder mains water in winter), so gas space heating carries a
-      small upward bias. Table 4b is SAP’s fallback for boilers absent from
-      the Product Characteristics Database, so it is conservative and skewed to
-      older plant; a PCDB-weighted fleet figure would beat it. Table 4c deducts
-      5 points where a regular boiler has no interlock, which is not applied
-      here.</p>
-    <p><b>Geothermal panel.</b> Today's heat figure is anchored on the EGEC
-      2025 UK Country Update (1,430 GWhth/yr from ~55,210 GSHP units,
-      847–861 MWth installed — a 2023 estimate from sales data; the
-      Environment Agency's 2024 review suggests only ~30–38k of those units
-      may be operational, hence the 1.4–2.0 range) plus ~0.07 TWh/yr from
-      mine-water, deep and open-loop district schemes. No national metering
-      or single register of ground-source systems exists; cooling is anchored
-      only on 11 ATES systems (~8 MWth cold) and historic Southampton data.
-      Forward bars are third-party pathways (CCC, Project InnerSpace/REA/ARUP)
-      or explicitly flagged Causeway derivations, not predictions. The 2031
-      bar carries a range of roughly 3.5–6 TWh/yr. If the NI DfE licensing
-      proposals (consultation to 7 Aug 2026; heat below 100&nbsp;m depth)
-      proceed, the resulting register with published system performance would
-      be the UK's first mandatory geothermal data source — this panel is
-      designed to ingest it from ~2027.</p>
-    <p><b>Northern Ireland, and the UK-to-GB step.</b> NI is
-      not on the GB network shown here. NI heating is estimated annually from
-      subnational consumption statistics shaped by NI degree days, and that
-      estimate now has a source: NIHE and BRE modelled NI domestic heat at
-      14.2 TWh (10,700 GWh primary space heating plus 3,500 GWh water) from the
-      House Condition Survey, which is within 2% of the figure this site was
-      already carrying.
-      <b>The annual figures behind every other series are UK totals from ECUK,
-      scaled to GB per fuel.</b> Until 17 August 2026 a single gas-network
-      factor of 0.985 was applied to all of them, which is a statement about
-      the GB gas grid and does not transfer. It was wrong for oil, where
-      NI holds a far larger share than its population: NIHE put NI oil heat at
-      10.8 TWh on a 2016 basis, and the Irish sibling site estimates 8.3 TWh on
-      a trailing twelve months — not a conflict but nine years apart, with
-      NISRA showing the oil share of NI homes falling from 68% to 61% over that
-      period. On the current basis NI holds about 17% of UK oil heat, so the
-      shares are now per fuel: gas 0.988, <b>oil 0.830</b>, solid fuel 0.893,
-      everything else the household share of 0.972†. GB oil heat falls
-      about 16%. Found in peer review.</p>
-    <p id="trendpara" style="display:none"><b>Trends.</b> <span id="trendnote">—</span></p>
-    <p><b>Indigenous share &amp; 20% what-if.</b> <span id="indignote">—</span></p>
-    <p><b>Calibration.</b> <span id="calib">—</span></p>
-    <div class="status" id="status"></div>
-    </div></details>
+    <!-- The METHOD fold that stood here came out on 22 Nov 2026 (Simon) and
+         went to the Methodology Statement, which is where a full method
+         belongs: it had grown to fourteen paragraphs plus two charts, and a
+         fold that long on an appendix is a document hiding in a disclosure
+         triangle.
+         One piece stayed on the site, because it is not method - it is
+         whether today's page can be trusted today. The source traffic
+         lights (#status) moved to the footer, beside the methodology link
+         and the version stamp, where provenance already lives. -->
 
   </section>
 
@@ -2313,6 +2231,21 @@
   and declared corrections. Under peer review; comment welcome.<br>
   † Causeway Energies estimate – challenge and input welcome:
   <a href="mailto:contact@causewaygt.com" style="color:var(--geo)">contact@causewaygt.com</a><br>
+  <!-- Data freshness, moved out of Appendix A's method fold 22 Nov 2026.
+       It sits here because it answers "can I trust what I am reading right
+       now", which is a property of the page rather than of any one panel,
+       and because a reader who has scrolled to the bottom is exactly the
+       reader asking it. The manual list is static markup on purpose: these
+       anchors are updated by hand, so nothing in the daily build knows when
+       they fell due. -->
+  <div class="freshblock">
+    <div class="freshlab">Automatic sources — refreshed by the daily build</div>
+    <div class="status" id="status"></div>
+    <div class="freshlab" style="margin-top:14px">Manual anchors — updated by hand</div>
+    <div class="status" id="manualstatus"></div>
+    <p class="freshnote" id="freshnote">—</p>
+  </div>
+
   <span id="siteversion"></span>Contains data from National Gas Transmission open data · Weather: Open-Meteo.com
   (CC BY 4.0) / Copernicus ERA5 · Contains public sector information licensed under
   the Open Government Licence v3.0 (DESNZ ECUK 2025) · A Causeway Energies
@@ -2330,7 +2263,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.40.0';
+const SITE_VERSION = '9.42.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -4349,7 +4282,12 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       ') burned ~' + fmt(d.peak_week.space_heat_GWh) + ' GWh of gas for space heating alone.';
   }
 
-  if(d.weekly){
+  // #burnbar and #ts left with Appendix A's method fold on 22 Nov 2026.
+  // Gated, not deleted: Plotly.newPlot throws on a missing container, and
+  // this whole block sits inside the catch that reports any failure as
+  // "data.json not found" - so an unguarded chart here would have been
+  // diagnosed as a missing payload.
+  if(d.weekly && document.getElementById('burnbar')){
     const w=d.weekly, gtotal=w.gas_total_GWh || 1;
     const useful=w.gas_space_heat_GWh*0.835, waste=w.gas_space_heat_GWh*0.165;
     const bb=document.getElementById('burnbar');
@@ -4361,7 +4299,12 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     });
   }
 
-  if(d.series){
+  // The #ts container left with Appendix A's method fold, and this is a
+  // SECOND block - gating the burnbar above did not cover it. Plotly throws
+  // "No DOM element with id 'ts' exists" on a missing container, and that
+  // throw landed in the render's catch, which reported it to the reader as
+  // "data.json not found - run the workflow once". The payload was fine.
+  if(d.series && document.getElementById('ts')){
     const traces=[
       {x:d.series.dates,y:d.series.gas_GWh,name:'Gas to buildings (LDZ)',
        mode:'lines',line:{color:css('--ash'),width:1.5}},
@@ -6134,11 +6077,12 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       ni.why_separate;
   }
   if(d.headlines && d.headlines.indig_note){
-    document.getElementById('indignote').textContent = d.headlines.indig_note;
+    const _ind=document.getElementById('indignote');
+    if(_ind) _ind.textContent = d.headlines.indig_note;
   }
   const reg=d.regression;
   if(reg){
-    document.getElementById('fit').textContent =
+    const _fit=document.getElementById('fit'); if(_fit) _fit.textContent =
       'R² ' + reg.r2 + ' over ' + reg.window_days + ' days, base ' +
       reg.base_temp + '°C, sensitivity ' + reg.slope_GWh_per_HDD +
       ' GWh per degree day' +
@@ -6154,7 +6098,7 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     // +/-10% gate is not, a gate whose tolerance matched the spread it
     // ignored. Falls back to the old sentence on a payload without the band.
     const hasBand = c.ratio_lo != null && c.ratio_hi != null;
-    document.getElementById('calib').textContent =
+    const _cal=document.getElementById('calib'); if(_cal) _cal.textContent =
       `Trailing 12-month gas space-heat estimate ${c.model_12m_gas_space_heat_TWh} TWh vs ` +
       `ECUK-derived, GB-adjusted, weather-normalised anchor ${c.ecuk_anchor_TWh} TWh ` +
       `(ratio ${c.ratio}). ` +
@@ -6212,10 +6156,10 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     if(d.history_note){
       ctl.title = d.history_note;
       const tn = document.getElementById('trendnote');
-      tn.textContent = d.history_note +
+      if(tn) tn.textContent = d.history_note +
         (d.gas_window ? ' Live gas window: ' + d.gas_window.oldest +
                         ' → ' + d.gas_window.newest + '.' : '');
-      document.getElementById('trendpara').style.display = '';
+      const _tp=document.getElementById('trendpara'); if(_tp) _tp.style.display = '';
     }
     const dfmt = s => {
       const dte = new Date(s + 'T00:00:00Z');
@@ -6538,12 +6482,79 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
   })();
 
   const st=document.getElementById('status');
-  Object.entries(d.sources||{}).forEach(([k,v])=>{
+  if(st) Object.entries(d.sources||{}).forEach(([k,v])=>{
     st.insertAdjacentHTML('beforeend',
       `<span><span class="dot ${v.status==='ok'?'ok':(v.status==='lagging'?'lag':'stale')}"></span>${k}: ${v.status}` +
       (v.last_good?` (last good ${v.last_good})`:'') +
       (v.status==='lagging'?' — source publishes on a lag':'')+'</span>');
   });
+
+  // ===== manual anchors ====================================================
+  // The six sources above refresh themselves and report their own state.
+  // These do not: they are editions of publications that someone has to
+  // notice, download and ingest. Nothing in the daily build can know they
+  // have fallen due, so the page works it out against today's date and says
+  // so - the alternative being that a 2025 edition quietly anchors the site
+  // through 2027 because no screen ever mentioned it.
+  // `due` is when the NEXT edition is expected. Move it on when you ingest.
+  (function(){
+    const box = document.getElementById('manualstatus'),
+          out = document.getElementById('freshnote');
+    if(!box || !out) return;
+    // THREE STATES, NOT DATE ARITHMETIC. The first version of this block
+    // computed "overdue by N days" against a cadence I had guessed, and
+    // promptly told the reader that FES and EGEC were months late when both
+    // were the current editions, and that ECUK was late when the 2026 tables
+    // had been read on 21 Nov 2026 and deliberately NOT adopted. A freshness
+    // indicator that invents its own deadlines is worse than none: it is
+    // confidently wrong in public.
+    //   held    - this is the edition in use and nothing newer is known
+    //   pending - a newer edition exists and has been looked at, not adopted
+    //   due     - a real, known date for the next one
+    // Anything whose cadence is not actually known says so instead of
+    // guessing. Update these by hand when you ingest an edition.
+    const MANUAL = [
+      {k:'DESNZ ECUK End Use tables', have:'2025 edition (calendar 2024)',
+       state:'pending',
+       note:'2026 edition read 21 Nov 2026, not adopted \u2014 it moves the ' +
+            'cooling anchor 10.4 \u2192 11.0 TWh (+5.7%) for the same year, ' +
+            'which belongs in a run of its own',
+       what:'the annual level for every non-gas fuel, and the cooling anchor'},
+      {k:'Ofgem price cap', have:'current quarter', state:'due', due:'2027-01-01',
+       note:'quarterly', what:'the unit prices every cost chart is drawn at'},
+      {k:'EGEC / EGC Country Update', have:'EGC 2025 (2024 reporting year)',
+       state:'held', note:'in use — builds the 30-country chart in panel 6',
+       what:'installed geothermal capacity and the country comparison'},
+      {k:'NESO Future Energy Scenarios', have:'2025 workbook (V006)', state:'held',
+       note:'published annually \u2014 check for a newer edition',
+       what:'the 2050 demand, peak and capacity projections in panel 4'}
+    ];
+    const today = new Date(), DAY = 864e5;
+    let flagged = null;
+    MANUAL.forEach(m => {
+      let cls = 'ok', note = m.note;
+      if(m.state === 'pending'){ cls = 'lag'; if(!flagged) flagged = m; }
+      else if(m.state === 'due'){
+        const days = Math.round((new Date(m.due) - today)/DAY);
+        if(days < 0){ cls = 'stale'; note = 'overdue by ' + Math.abs(days) + ' days';
+                      flagged = m; }
+        else { cls = days < 45 ? 'lag' : 'ok';
+               note = m.note + ', next ' + m.due + ' (' + days + ' days)'; }
+      }
+      box.insertAdjacentHTML('beforeend',
+        '<span><span class="dot ' + cls + '"></span>' + m.k + ': ' + m.have +
+        ' \u2014 ' + note + '</span>');
+    });
+    const built = (d.updated || '').slice(0,10);
+    out.innerHTML =
+      'Page data built <b>' + (built || 'unknown') + '</b>. The automatic sources above ' +
+      'refresh daily; the manual anchors do not, and each one keeps its edition until ' +
+      'somebody replaces it. ' +
+      (flagged
+        ? '<span class="due"><b>' + flagged.k + '</b></span> is the one to action \u2014 ' +
+          'it sets ' + flagged.what + '.'
+        : '<span class="due">Every anchor is on its current known edition.</span>');
+  })();
 
   // ===== panel 4: reveal only ==============================================
   // WHAT WAS HERE. Five hundred lines building the seven observed charts -
