@@ -2099,7 +2099,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.24.0';
+const SITE_VERSION = '9.25.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -5420,36 +5420,57 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       if(!gb || !gb.countries || gb.countries.length < 3){
         box.style.display = 'none'; return;
       }
-      const cs = gb.countries.slice().sort((x, y) => y.GWh - x.GWh);
+      // SHALLOW AND DEEP, STACKED - 22 Nov 2026, Simon. Heat and cooling
+      // only; EGC's power-generation table is deliberately not here. The
+      // two are stacked rather than summed into one bar because the mix is
+      // half the story: Sweden's fleet is almost entirely shallow, Türkiye
+      // and Iceland almost entirely deep, and a merged bar would hide
+      // that a country can lead on geothermal heat by two completely
+      // different routes. The UK's problem is that it has neither.
+      const tot = c => (c.shallow_GWh || 0) + (c.deep_GWh || 0);
+      const cap = c => (c.shallow_MWth || 0) + (c.deep_MWth || 0);
+      const SHOW = 20;
+      const cs = gb.countries.slice().sort((x, y) => tot(y) - tot(x))
+                   .slice(0, SHOW);
       const isUK = n => /united kingdom|^uk$/i.test(n);
       const names = cs.map(c => c.name);
-      const twh = cs.map(c => +(c.GWh / 1000).toFixed(2));
       const perHead = cs.map(c => c.population_m
-        ? +(c.MWth / c.population_m).toFixed(1) : null);
+        ? +(cap(c) / c.population_m).toFixed(1) : null);
       Plotly.newPlot('benchplot', [
-        {x: names, y: twh, type: 'bar', name: 'annual output, TWh',
+        {x: names, y: cs.map(c => +((c.shallow_GWh || 0) / 1000).toFixed(2)),
+         type: 'bar', name: 'shallow ground source',
          marker: {color: names.map(n => isUK(n) ? css('--ember')
                                                 : css('--ash'))},
-         hovertemplate: '%{x}<br>%{y} TWh a year<extra></extra>'},
+         hovertemplate: '%{x}<br>shallow %{y} TWh<extra></extra>'},
+        {x: names, y: cs.map(c => +((c.deep_GWh || 0) / 1000).toFixed(2)),
+         type: 'bar', name: 'deep direct use',
+         marker: {color: names.map(n => isUK(n) ? '#8c3418' : css('--dh'))},
+         hovertemplate: '%{x}<br>deep %{y} TWh<extra></extra>'},
         {x: names, y: perHead, yaxis: 'y2', type: 'scatter', mode: 'markers',
-         name: 'installed capacity per head, W',
+         name: 'installed capacity per head, W (log)',
          marker: {color: names.map(n => isUK(n) ? css('--ember')
                                                 : css('--geo')),
                   size: 9, line: {color: css('--ink'), width: 1.5}},
          hovertemplate: '%{x}<br>%{y} W per person<extra></extra>'}
       ], {
+        barmode: 'stack',
         paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
         font: {family: 'Lato', color: css('--muted'), size: 11},
-        margin: {l: 52, r: 54, t: 28, b: 76},
+        margin: {l: 48, r: 54, t: 26, b: 80},
         xaxis: {gridcolor: css('--line'), tickangle: -45},
         yaxis: {title: {text: 'TWh a year'}, gridcolor: css('--line')},
-        yaxis2: {title: {text: 'W per person', font: {color: css('--geo')}},
-                 overlaying: 'y', side: 'right', showgrid: false,
-                 tickfont: {color: css('--geo')}, rangemode: 'tozero'},
+        // LOG, BECAUSE THE RANGE IS 12 W TO 6,554 W. On a linear axis
+        // Iceland alone would press every other country into the bottom
+        // eighth of the plot and the dot would stop being readable, which
+        // is the opposite of what it is there for. Labelled as log.
+        yaxis2: {title: {text: 'W per person (log)',
+                         font: {color: css('--geo')}},
+                 overlaying: 'y', side: 'right', showgrid: false, type: 'log',
+                 tickfont: {color: css('--geo')}},
         hoverlabel: {bgcolor: 'rgba(255,255,255,0.5)',
                      bordercolor: 'rgba(0,0,0,0.35)',
                      font: {color: '#000', size: 11}},
-        legend: {orientation: 'h', y: 1.1, x: 0,
+        legend: {orientation: 'h', y: 1.12, x: 0,
                  font: {size: 10, color: css('--muted')}}
       }, {displayModeBar: false, responsive: true});
 
@@ -5457,20 +5478,34 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       const note = document.getElementById('benchnote');
       if(uk && note){
         const rankOut = cs.findIndex(c => isUK(c.name)) + 1;
+        // Per head now counts BOTH fleets, like the bars - cap(), not
+        // the shallow-only field the first build used.
         const byHead = cs.slice().filter(c => c.population_m)
-          .sort((x, y) => (y.MWth / y.population_m) - (x.MWth / x.population_m));
+          .sort((x, y) => (cap(y) / y.population_m) - (cap(x) / x.population_m));
         const rankHead = byHead.findIndex(c => isUK(c.name)) + 1;
-        const best = byHead[0];
+        // MEDIAN, NOT THE LEADER. The top of this list is Iceland at 6,554
+        // W a head, which invites "well, that is Iceland" and lets the
+        // reader put the whole chart down. The median carries the same
+        // point and survives the objection, because it is not one country.
+        const heads = byHead.map(c => cap(c) / c.population_m)
+                            .sort((x, y) => x - y);
+        const mid = heads.length % 2
+          ? heads[(heads.length - 1) / 2]
+          : (heads[heads.length / 2 - 1] + heads[heads.length / 2]) / 2;
+        const deepShare = tot(uk) ? (uk.deep_GWh || 0) / tot(uk) : 0;
         // The face carries the reading; the basis and the source go to the
         // fold with the rest of the panel's prose - 22 Nov 2026, Simon.
         note.innerHTML =
-          'The UK is <b>' + rankOut + 'th of ' + cs.length + '</b> on annual ' +
-          'output and <b>' + rankHead + 'th</b> on capacity per head, at <b>' +
-          (uk.MWth / uk.population_m).toFixed(0) + ' W</b> against ' +
-          best.name + '\u2019s <b>' +
-          (best.MWth / best.population_m).toFixed(0) + ' W</b> \u2014 but ' +
-          'every country above it drilled the same rock with the same ' +
-          'machines\u2020.';
+          'Heat and cooling, shallow and deep together. The UK is <b>' +
+          rankOut + 'th of ' + cs.length + '</b> on output and <b>' +
+          rankHead + 'th</b> on capacity per head, at <b>' +
+          (cap(uk) / uk.population_m).toFixed(0) + ' W</b> against a ' +
+          'median of <b>' + mid.toFixed(0) + ' W</b>, and ' +
+          (deepShare < 0.05
+            ? 'almost none of what little it has is deep'
+            : 'only ' + Math.round(100 * deepShare) + '% of it is deep') +
+          ' \u2014 but every country above it drilled the same rock with ' +
+          'the same machines\u2020.';
         const bf = document.getElementById('benchfold');
         if(bf) bf.innerHTML =
           '<b>What the country chart counts.</b> ' + (gb.basis || '') + ' ' +
