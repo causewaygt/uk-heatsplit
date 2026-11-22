@@ -592,9 +592,6 @@
   .heroexp .foldbody p{font-size:15px;line-height:1.66;color:var(--paper);
       margin:0 0 12px}
   .heroexp .foldbody p b{color:var(--geo)}
-  .heromini{font-size:12.5px;line-height:1.6;color:var(--muted);
-      margin:5px 0 0;max-width:86ch}
-  .heromini b{color:var(--muted)}
   @media(max-width:760px){ .heroexp .foldbody p{font-size:14px} }
 
   /* Footer data-freshness block, 22 Nov 2026. */
@@ -781,8 +778,8 @@
   /* Standfirst pair, above the question. Tighter top margin than the old
      under-question placement, and the two lines sit together as one block
      rather than reading as two unrelated notes. */
-  .strap{font-size:12.5px;line-height:1.6;color:var(--muted);
-         margin:16px 0 0;max-width:86ch}
+  .strap{font-size:12.5px;line-height:1.62;color:var(--muted);
+         margin:16px 0 0;max-width:92ch}
   .strap b{color:var(--paper);font-weight:700}
   /* Styled on .trendctl, the site's real control class. `.trendbar` carries
      NO rules at all - it is used on six window bars across the page and
@@ -906,12 +903,11 @@
        it. Both lines are deliberately small - they are the frame, not
        the headline. -->
   <p class="strap"><b>UK Heat Split</b> &mdash; a live tracker of how Britain
-    heats and cools itself, and what would change if geothermal adoption
-    were accelerated.</p>
-  <p class="heromini">Every week is priced at its own week&rsquo;s tariff,
-      cap and carbon, so this is a comparison rather than a forecast.
-      Estimates, not measurements.
-    <a href="uk-heatsplit-methodology.pdf" style="color:var(--geo)">Methodology</a>.</p>
+    heats and cools itself, and what would change if geothermal adoption were
+    accelerated. Every week is priced at its own week&rsquo;s tariff, cap and
+    carbon, so this is a comparison rather than a forecast. Estimates, not
+    measurements. <a href="uk-heatsplit-methodology.pdf"
+    style="color:var(--geo)">Methodology</a>.</p>
 
   <h1 class="ask">How much would Britain have saved if a fifth of its
     heating and cooling were served by <em>geothermal</em>?</h1>
@@ -993,6 +989,25 @@
       electricity use, which is why it is the thing being asked about
       &mdash; set out in
       <a href="#appendixdhead" style="color:var(--geo)">Appendix D</a>.</p>
+    <!-- WHAT THIS NUMBER IS NOT, 22 Nov 2026 - Simon. "No capex" was
+         stated only in panel 7's fold, some thousands of words below the
+         headline it qualifies, so the first objection a hostile reader
+         raises at the top of the page was answered at the bottom. Saying
+         it here also gives the page a map: running cost in 1 and 2, the
+         investment case in 7. -->
+    <p><b>Running cost, not the whole cost.</b> The saving above is energy
+      never bought &mdash; what the meters would have read. It carries no
+      capital: no boreholes, no heat pumps, no network in the street, no
+      connection charges. Those are real and they are not hidden, just
+      counted elsewhere. What each route costs to <em>run</em> is
+      <a href="#costhead" style="color:var(--geo)">panel 1</a>, and what
+      cooling adds is
+      <a href="#coolhead" style="color:var(--geo)">panel 2</a>; the
+      <em>investment</em> case &mdash; what the hardware costs, over what
+      life, and whether the public benefit justifies it under Green Book
+      rules &mdash; is set out in
+      <a href="#vfmhead" style="color:var(--geo)">panel 7</a>.</p>
+
     <!-- THE TWO "20%"s ARE NOT THE SAME 20%, and conflating them is the
          easiest mistake this site invites. The full basis table lives in
          the builder for hw.denominators, written after Charlotte Adams
@@ -2353,7 +2368,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.46.0';
+const SITE_VERSION = '9.48.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -4422,9 +4437,28 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     document.getElementById('billline').innerHTML =
       'Britain\'s estimated heating &amp; cooling energy bill this week: <b>~£' +
       fmt(cost.national_week_total_Mgbp) + ' million</b>' +
+      // VENTILATION NAMED, 22 Nov 2026 - Simon. The bracket used to list
+      // heat and cooling against a total that also carried ventilation, so
+      // it did not add up: £1,341m + £0m printed beside £1,366m, with £25m
+      // unexplained. In winter that gap is conspicuous because cooling is
+      // zero and a reader can see it; in summer it hides inside a
+      // plausible-looking sum, which is worse.
+      //
+      // ECUK publishes cooling and ventilation as one line and this site
+      // splits them, so ventilation exists as its own quantity on the
+      // energy side (purchased = heat + cooling + ventilation) but had no
+      // name on the cost side. It is taken as the residual rather than a
+      // published field because the payload carries no ventilation cost;
+      // the energy identity above is what licenses that.
       (cost.national_week_heat_Mgbp != null
-        ? ' (heat ~£' + fmt(cost.national_week_heat_Mgbp) +
-          'm · cooling ~£' + fmt(cost.national_week_cool_Mgbp) + 'm)'
+        ? (() => {
+            const vent = cost.national_week_total_Mgbp -
+                         cost.national_week_heat_Mgbp -
+                         (cost.national_week_cool_Mgbp || 0);
+            return ' (heat ~£' + fmt(cost.national_week_heat_Mgbp) +
+                   'm · cooling ~£' + fmt(cost.national_week_cool_Mgbp) + 'm' +
+                   (vent > 0.5 ? ' · ventilation ~£' + fmt(vent) + 'm' : '') + ')';
+          })()
         : '') +
       (cost.gshp_vs_gas_boiler && cost.gshp_vs_gas_boiler.gshp_cheaper
         ? ' · On the cap in force today, ground-source heat (' +
