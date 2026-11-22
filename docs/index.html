@@ -1422,8 +1422,13 @@
   <section id="storagesection">
     <h1 class="sect" id="storagehead" tabindex="-1">3. The potential for
       storing heat underground</h1>
-    <p class="lede">Heat is wanted in January and produced all year, and the
-      ground is the only store big enough to hold a season of it.</p>
+    <!-- Written by the UTES block below from the same SCOPs the bars use,
+         so the two percentages in it cannot drift from the chart beside
+         them. The text here is the fallback if those figures cannot be
+         computed - never a typed percentage. 22 Nov 2026 - Simon. -->
+    <p class="lede" id="storelede">Heat is wanted in January and produced all
+      year, and the ground is the only store big enough to hold a season of
+      it.</p>
     <!-- UTES, AS A DECOMPOSITION - NOT AN ADDITION. The store's benefit is
          already inside the network route: retro.py sets its source to 19.6 C
          and says why ("UTES and intermediate-doublet blend, NOT virgin
@@ -1465,6 +1470,33 @@
     <details class="fold" id="fold_store"><summary>WHY THESE NUMBERS —
       <b>what the store is doing, and what the case study rests on</b></summary>
     <div class="foldbody">
+      <!-- ATES AND BTES NAMED AND DISTINGUISHED, 22 Nov 2026 - Simon. The
+           panel says "the store" throughout and the byline now says
+           "underground thermal energy storage", but neither form was ever
+           described - so a reader meeting the idea here had no way to tell
+           what is actually in the ground, or why one scheme uses water and
+           another uses rock. Placed first, because both charts below
+           assume it. -->
+      <p class="costnote"><b>Two ways to store heat in the ground.</b>
+        <b>ATES</b> — aquifer thermal energy storage — moves
+        groundwater between a warm well and a cold well: heat goes into the
+        water itself, and the aquifer holds it. It is the cheaper store
+        where the geology allows, which is why every operating UK example
+        sits on the Chalk or the Sherwood Sandstone. <b>BTES</b> —
+        borehole thermal energy storage — circulates fluid through a
+        sealed array of closed loops and stores the heat in the rock around
+        them. It needs no aquifer and so works almost anywhere, at the cost
+        of more drilling for the same capacity.</p>
+      <p class="costnote"><b>What each chart is doing with that.</b> The
+        left-hand bars are <b>not three technologies</b>: they are the same
+        heat pump working across three different gaps — outside air,
+        virgin ground, and ground that a store has warmed. Only the source
+        temperature changes, which is why the comparison is about the store
+        and not about equipment. The right-hand case study is the other
+        half of the argument: one real scheme, month by month, charging
+        through the summer and drawing back down through the winter. The
+        first chart shows what a store is worth in a single season; the
+        second shows the cycle that produces it.</p>
       <p class="costnote" id="utesdecompnote">—</p>
       <p class="costnote" id="storecasenote">—</p>
     </div></details>
@@ -2393,7 +2425,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.55.0';
+const SITE_VERSION = '9.57.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -5099,11 +5131,37 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     // 78, and a heading a reader cannot reproduce from the chart under it
     // is worse than a heading one decimal less exact.
     const r2 = x => Math.round(x * 100) / 100;
+    // THE HEADING STOPPED REPEATING THE BYLINE, 22 Nov 2026 - Simon. The
+    // byline directly above now carries "X% more efficient than air
+    // source", and this heading said the same thing in the same words
+    // fifty pixels below it. A chart label should say what the chart
+    // shows, so it names the decomposition instead - the byline makes the
+    // claim, the chart shows where it comes from.
     const hd = document.getElementById('uteshead');
     if(hd && sAir) hd.innerHTML =
-      'Geothermal heat and cooling: <b>' +
-      Math.round(100 * (r2(sUtes) / r2(sAir) - 1)) + '% more efficient ' +
-      'than air</b>';
+      'Where that efficiency comes from: <b>one machine, three different ' +
+      'gaps</b>';
+    // BYLINE, 22 Nov 2026 - Simon. Two percentages, and they answer two
+    // different questions: the first is what the whole geothermal route is
+    // worth against air source, the second is how much of that the STORE
+    // itself contributes rather than the ground being ground. Stating only
+    // the first would attribute the entire gap to recharge, which is not
+    // what the decomposition beside it says.
+    const sl = document.getElementById('storelede');
+    if(sl && sAir && sVirgin && sUtes){
+      sl.innerHTML =
+        'Geothermal can do something air and water cannot: <b>store</b> ' +
+        'thermal energy. Recharging the ground instead of drawing it cold ' +
+        'makes a geothermal asset <b style="color:' + css('--geo') + '">' +
+        Math.round(100 * (r2(sUtes) / r2(sAir) - 1)) + '% more efficient ' +
+        'than air source</b>, and the store alone accounts for <b ' +
+        'style="color:' + css('--geo') + '">' +
+        (100 * (1 - sVirgin / sUtes)).toFixed(0) + '% less electricity</b> ' +
+        'than the same machine on virgin ground. Underground thermal energy ' +
+        'storage can also move summer waste heat \u2014 from a data centre, ' +
+        'say \u2014 from the months when nobody wants it to the months when ' +
+        'everybody does.';
+    }
     const note = document.getElementById('utesdecompnote');
     if(note) note.innerHTML =
       // THE SOURCE TEMPERATURES LIVE HERE NOW. They came off the bar
