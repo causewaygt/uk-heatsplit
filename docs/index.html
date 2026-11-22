@@ -2099,7 +2099,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.25.0';
+const SITE_VERSION = '9.27.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -5427,8 +5427,14 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       // and Iceland almost entirely deep, and a merged bar would hide
       // that a country can lead on geothermal heat by two completely
       // different routes. The UK's problem is that it has neither.
-      const tot = c => (c.shallow_GWh || 0) + (c.deep_GWh || 0);
-      const cap = c => (c.shallow_MWth || 0) + (c.deep_MWth || 0);
+      // extra_* is the mine-water correction: schemes verified from their
+      // operators that EGC's table omits. Counted in the totals and the
+      // per-head dot, and drawn as its own segment so it can be seen and
+      // discounted - 22 Nov 2026, Simon.
+      const tot = c => (c.shallow_GWh || 0) + (c.deep_GWh || 0) +
+                       (c.extra_GWh || 0);
+      const cap = c => (c.shallow_MWth || 0) + (c.deep_MWth || 0) +
+                       (c.extra_MWth || 0);
       const SHOW = 20;
       const cs = gb.countries.slice().sort((x, y) => tot(y) - tot(x))
                    .slice(0, SHOW);
@@ -5446,6 +5452,10 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
          type: 'bar', name: 'deep direct use',
          marker: {color: names.map(n => isUK(n) ? '#8c3418' : css('--dh'))},
          hovertemplate: '%{x}<br>deep %{y} TWh<extra></extra>'},
+        {x: names, y: cs.map(c => +((c.extra_GWh || 0) / 1000).toFixed(2)),
+         type: 'bar', name: 'mine water, not in the EGC table',
+         marker: {color: css('--cool')},
+         hovertemplate: '%{x}<br>mine water %{y} TWh (estimate)<extra></extra>'},
         {x: names, y: perHead, yaxis: 'y2', type: 'scatter', mode: 'markers',
          name: 'installed capacity per head, W (log)',
          marker: {color: names.map(n => isUK(n) ? css('--ember')
@@ -5492,7 +5502,11 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
         const mid = heads.length % 2
           ? heads[(heads.length - 1) / 2]
           : (heads[heads.length / 2 - 1] + heads[heads.length / 2]) / 2;
-        const deepShare = tot(uk) ? (uk.deep_GWh || 0) / tot(uk) : 0;
+        // Counts the mine-water correction too - it is deep heat, and
+        // leaving it out of this sentence while drawing it on the bar
+        // would be the chart and its caption disagreeing again.
+        const deepShare = tot(uk)
+          ? ((uk.deep_GWh || 0) + (uk.extra_GWh || 0)) / tot(uk) : 0;
         // The face carries the reading; the basis and the source go to the
         // fold with the rest of the panel's prose - 22 Nov 2026, Simon.
         note.innerHTML =
@@ -5512,7 +5526,16 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
           (gb.source || '') + ' Populations are ' +
           (gb.population_source || 'as stated in the data file') +
           ', carried in the file so the chart computes watts per person ' +
-          'rather than being handed a derived number.';
+          'rather than being handed a derived number.' +
+          // The known gap in the source, surfaced rather than left in the
+          // data file where only someone reading the JSON would find it.
+          (gb.caveat ? '</p><p class="costnote"><b>What it misses.</b> ' +
+                       gb.caveat : '') +
+          (gb.extra_basis
+            ? '</p><p class="costnote"><b>The UK\u2019s third segment.</b> ' +
+              gb.extra_basis + ' ' +
+              ((cs.find(c => isUK(c.name)) || {}).extra_note || '')
+            : '');
       }
     });
     // ONE DEFINITION OF "20% OF UK HEAT". Raised by Charlotte Adams in peer
