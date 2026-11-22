@@ -1331,6 +1331,27 @@
          are method and were transferred to the Methodology Statement
          before the chart went; that document retains them. -->
 
+    <!-- HOW THE UNEQUIPPED FIGURE IS BUILT, 22 Nov 2026 - Simon. The byline
+         now asserts 190 million m2 with no cooling, which is the panel's
+         boldest claim and was previously nowhere explained. Static text,
+         because the constants it describes live in scripts/build.py and
+         the build does not emit them - see the byline writer. -->
+    <p class="costnote"><b>Where the unequipped figure comes from.</b> It is a
+      stock calculation, not a meter reading. Two populations are counted
+      separately: <b>homes</b>, from the UK total of about 29.9 million
+      dwellings, of which fewer than 5% have air conditioning, with the share
+      that actually overheats taken at 11% (English Housing Survey reports),
+      25% (central) and 50% (the CCC's "over half at risk") to give a range
+      rather than a figure; and <b>services buildings</b>, where the comfort
+      space with no cooling is built up from BEES floor areas &mdash; roughly
+      72 million m&sup2; of education and 45 million m&sup2; of health, plus a
+      share of offices and other &mdash; to about 190 million m&sup2;&dagger;.
+      Each is then multiplied by a thermal response per degree-hour to turn
+      floor space into energy the buildings would use if they were equipped.
+      The area is the solid part; the response rates and the overheating
+      fractions are Causeway judgements&dagger;, which is why the result is
+      published as a range and never as a single number.</p>
+
     <p class="costnote" id="deficitfold"></p>
     <!-- deficitnote removed with the tier chart, 21 Nov 2026. It derived the
          comfort deficit's base temperature, and the deficit is no longer
@@ -2372,7 +2393,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.54.0';
+const SITE_VERSION = '9.55.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -4800,16 +4821,45 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     const coolShare = fac.cool_share;
     const lede = document.getElementById('coollede');
     if(lede && anchor){
-      lede.innerHTML =
-        // The old second half promised "mostly about the cooling it does
-        // not" and the day-by-day tier chart was what delivered that. With
-        // the chart gone the promise pointed at nothing, so it now points
-        // at what is actually on the panel: the degree-day record, then
-        // the four facts about what is there to answer it. No span is
-        // named here - this writer does not read the degree-day file.
-        'Britain spends about <b>' + fmt(anchor * (coolShare || 1))
-        + ' GWh of electricity a year</b> cooling its services buildings — '
-        + 'the cooling it <b>has</b>.';
+      // BYLINE REWRITTEN 22 Nov 2026 - Simon. It stated the cooling Britain
+      // HAS in GWh and promised the cooling it does not have, which the
+      // panel no longer draws. It now states both, in money, plus what the
+      // geothermal route changes - the two margins being the point of the
+      // price chart further down this panel.
+      //
+      // Every figure below is derived from the payload except the uncooled
+      // floor area, which is a build-time constant (NONDOM_UNCOOLED_MM2 in
+      // scripts/build.py) that the build does not emit. It is written here
+      // with its provenance so the drift is visible; emit it and this
+      // should read it instead.
+      var H = (d.history || []).slice(-52);
+      var coolBn = H.reduce(function(a, r){ return a + (r.bill_cool_Mgbp || 0); }, 0) / 1000;
+
+      var CT = {};
+      ((d.cost || {}).household_p_per_useful_kwh || []).forEach(function(r){
+        CT[r.route] = r.p_per_useful_kwh;
+      });
+      var passive = CT['Passive ground cooling'],
+          resist  = CT['Resistive electric'],
+          eer     = fac.cool_eer;
+      // The conventional comparator is built from the SAME electricity
+      // price as the passive figure - resistive is that price at COP 1 - so
+      // the ratio below is an efficiency ratio and not a tariff difference
+      // wearing one.
+      var conv = (resist != null && eer) ? resist / eer : null;
+      var G = function(x){ return '<b style="color:' + css('--geo') + '">' + x + '</b>'; };
+
+      var t = 'Britain spends about ' + G('£' + coolBn.toFixed(2) + 'bn a year')
+            + ' cooling its services buildings. We estimate a further '
+            + G('190 million m²') + ' of school, hospital and office space '
+            + 'has no cooling at all†.';
+      if(conv != null && passive != null){
+        t += ' Geothermal cooling is ' + G((conv / passive).toFixed(1) + '×')
+           + ' more efficient than a conventional chiller and '
+           + G(Math.round(100 * (1 - passive / conv)) + '% cheaper')
+           + ' per kWh delivered.';
+      }
+      lede.innerHTML = t;
     }
     // THE FOUR FACTS WERE ALREADY IN THE PAYLOAD, inside the method fold,
     // where a reader who scrolled past the chart never met them. They are
