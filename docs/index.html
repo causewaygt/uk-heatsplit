@@ -611,6 +611,36 @@
        font-family:"IBM Plex Mono";font-size:12px;color:var(--muted)}
   #capitalpanel .key i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
   #capitalpanel .levers{display:grid;grid-template-columns:repeat(3,1fr);gap:18px 24px;margin-top:24px}
+  /* THE IN-FOLD COPY HAS TO SHARE A SCREEN WITH ITS SLIDERS - 22 Nov 2026,
+     Simon. At the hero's proportions the verdict, the two bars and the six
+     levers ran to 749px, which is a viewport on a 13-inch laptop with
+     nothing to spare. The figures are the same; only the type is smaller,
+     because here the ratio is something you watch move rather than the
+     first thing you read. */
+  /* THE FOLD IS NOW A SEQUENCE, not a pile - 22 Nov 2026, Simon. Six
+     numbered steps: why the panel exists, how the case is structured, the
+     parameters and their gaps, the model to play with, the sensitivities,
+     the conclusion. The number is the point - a reader who opens a fold
+     this long needs to know where they are in it. */
+  #capitalpanel .foldstep{display:flex;align-items:center;gap:11px;
+      font-family:"Lato";font-size:15px;font-weight:700;letter-spacing:.01em;
+      color:var(--paper);margin:34px 0 12px;padding-top:16px;
+      border-top:1px solid var(--line)}
+  #capitalpanel .foldstep:first-child{margin-top:4px;padding-top:0;border-top:0}
+  #capitalpanel .foldstep span{flex:none;width:23px;height:23px;border-radius:50%;
+      background:var(--geo);color:var(--ink);font-family:"IBM Plex Mono";
+      font-size:12.5px;font-weight:600;display:grid;place-items:center}
+  #capitalpanel .vfmlive{margin-top:16px;padding-top:14px;
+                         border-top:1px solid var(--line)}
+  #capitalpanel .vfmlive .verdict{margin:0}
+  #capitalpanel .vfmlive .big{font-size:38px;line-height:1.05}
+  #capitalpanel .vfmlive .big small{font-size:12px}
+  #capitalpanel .vfmlive .h2lab{margin-top:9px}
+  #capitalpanel .vfmlive .key{font-size:11px;margin-top:5px}
+  #capitalpanel .vfmlive .compbar{height:24px}
+  #capitalpanel .vfmlive .levers{margin-top:16px;gap:12px 22px}
+  #capitalpanel .vfmlive .lever .hint{font-size:11px;line-height:1.35;
+                                      margin-top:4px}
   #capitalpanel .lever label{display:flex;justify-content:space-between;font-family:"IBM Plex Mono";
                font-size:12.5px;color:var(--muted);gap:8px}
   #capitalpanel .lever label b{color:var(--paper);font-weight:600}
@@ -1572,6 +1602,17 @@
           <b>what is being compared, the assumptions, and the sliders that
           move the ratio</b></summary>
         <div class="foldbody">
+        <h2 class="foldstep"><span>1</span>Why this panel exists</h2>
+        <p class="basis"><b>The six panels above establish that geothermal
+          can make a material contribution</b> — cheaper heat to run, a
+          cooling resource the country barely has, a store that turns a
+          constant source into a seasonal one, a smaller winter peak, lower
+          carbon and more of the energy from under Britain. None of it
+          happens without infrastructure capital. This panel asks the
+          question that follows: <b>is the investment proposition sound on
+          the government’s own appraisal rules?</b></p>
+
+        <h2 class="foldstep"><span>2</span>How the case is structured</h2>
         <div class="kind">One counterfactual, on Green Book conventions — not a full appraisal</div>
 
         <p class="basis"><b>This does not ask whether to build the networks.</b>
@@ -1601,68 +1642,12 @@
           Green Book also asks for. Added 17 August 2026 after peer
           review.</p>
 
-        <p class="plain" id="plain"></p>
-        <p class="sub" id="sub"></p>
-
-        <div class="verdict" style="margin-top:4px">
-          <div class="side" id="s1">—<small>net present social value</small></div>
-          <div class="side" id="s2">—<small>social cost, 60 years</small></div>
-        </div>
-
         <div class="deal">
           <div class="deallab">The comparison</div>
           <p class="dealnote" id="dealnote"></p>
         </div>
 
-        <p class="caveat" id="invar"></p>
-
-        <div class="levers">
-          <div class="lever">
-            <label for="lv_cap">Subsurface increment <b id="lv_cap_v"></b></label>
-            <input type="range" id="lv_cap" min="6" max="26" step="0.5" value="14">
-            <div class="hint">Energy centre and subsurface over the air-source
-              alternative, at the reference sizing of 50% of peak; it scales with the
-              sizing lever below. Distribution and connections are common to both
-              routes and cancel.</div>
-          </div>
-          <div class="lever">
-            <label for="lv_ob">Optimism bias <b id="lv_ob_v"></b></label>
-            <input type="range" id="lv_ob" min="0" max="66" step="2" value="50">
-            <div class="hint">Treasury upper bound for non-standard civil engineering
-              is 66%, mitigating toward 40–50% at outline business case.</div>
-          </div>
-          <div class="lever">
-            <label for="lv_pk">Avoided winter peak <b id="lv_pk_v"></b></label>
-            <input type="range" id="lv_pk" min="0" max="120" step="5" value="75">
-            <div class="hint">£/kW·yr across distribution, transmission and generation
-              capacity. Generation at net cost of new entry, not the Capacity Market
-              clearing price.</div>
-          </div>
-          <div class="lever">
-            <label for="lv_loss">Subsurface shortfall <b id="lv_loss_v"></b></label>
-            <input type="range" id="lv_loss" min="0" max="40" step="2" value="10">
-            <div class="hint">Rated capacity the ground does not deliver — a
-              failed well, too little recharge, a store driven warm by over-reinjection, or a
-              round-trip below design. Gas makes up the gap, so less heat is
-              electrified. The counterfactual has no equivalent: the atmosphere does
-              not run down.</div>
-          </div>
-          <div class="lever">
-            <label for="lv_cool">Connections taking cooling <b id="lv_cool_v"></b></label>
-            <input type="range" id="lv_cool" min="0" max="100" step="5" value="30">
-            <div class="hint">Of the programme. Cooling improves both sides at
-              once — more benefit, less capital — so set it to zero and
-              watch the heat case stand on its own.</div>
-          </div>
-          <div class="lever">
-            <label for="lv_sizing">Plant sized at <b id="lv_sizing_v"></b></label>
-            <input type="range" id="lv_sizing" min="40" max="100" step="5" value="50">
-            <div class="hint">Of the winter peak, with top-up gas boilers above — applied
-              to BOTH routes. Draft TS1 requires this to be optimised on whole-life
-              cost, not assumed, so it is a lever.</div>
-          </div>
-        </div>
-
+        <h2 class="foldstep"><span>3</span>The key parameters, and what is not in the numbers</h2>
         <p class="note" id="coolnote"></p>
     <p class="fixed" id="fixed"></p>
         <p class="note" id="switch"></p>
@@ -1718,6 +1703,78 @@
           </dl>
         </div>
 
+        <h2 class="foldstep"><span>4</span>Move the assumptions and watch the ratio</h2>
+        <div class="verdict" style="margin-top:4px">
+          <div class="side" id="s1">—<small>net present social value</small></div>
+          <div class="side" id="s2">—<small>social cost, 60 years</small></div>
+        </div>
+
+        <!-- A SECOND COPY OF THE VERDICT, 22 Nov 2026 - Simon. It sits
+             directly above the sliders so a reader moving them watches the
+             ratio and both bars respond without scrolling back to the top
+             of the panel. Same elements, same scale, written from the same
+             calculation - see mirror() in the renderer, which copies rather
+             than recomputes so the two can never disagree. -->
+        <div class="vfmlive">
+          <div class="verdict">
+            <div class="big" id="big2">—<small>benefit-cost ratio</small></div>
+          </div>
+          <div class="h2lab">Benefits</div>
+          <div class="compbar" id="compbar2"></div>
+          <div class="key" id="key2"></div>
+          <div class="h2lab">Costs</div>
+          <div class="compbar" id="costbar2"></div>
+          <div class="key" id="costkey2"></div>
+
+        <div class="levers">
+          <div class="lever">
+            <label for="lv_cap">Subsurface increment <b id="lv_cap_v"></b></label>
+            <input type="range" id="lv_cap" min="6" max="26" step="0.5" value="14">
+            <div class="hint">Energy centre and subsurface over the air-source
+              alternative, at the reference sizing of 50% of peak; it scales with the
+              sizing lever below. Distribution and connections are common to both
+              routes and cancel.</div>
+          </div>
+          <div class="lever">
+            <label for="lv_ob">Optimism bias <b id="lv_ob_v"></b></label>
+            <input type="range" id="lv_ob" min="0" max="66" step="2" value="50">
+            <div class="hint">Treasury upper bound for non-standard civil engineering
+              is 66%, mitigating toward 40–50% at outline business case.</div>
+          </div>
+          <div class="lever">
+            <label for="lv_pk">Avoided winter peak <b id="lv_pk_v"></b></label>
+            <input type="range" id="lv_pk" min="0" max="120" step="5" value="75">
+            <div class="hint">£/kW·yr across distribution, transmission and generation
+              capacity. Generation at net cost of new entry, not the Capacity Market
+              clearing price.</div>
+          </div>
+          <div class="lever">
+            <label for="lv_loss">Subsurface shortfall <b id="lv_loss_v"></b></label>
+            <input type="range" id="lv_loss" min="0" max="40" step="2" value="10">
+            <div class="hint">Rated capacity the ground does not deliver — a
+              failed well, too little recharge, a store driven warm by over-reinjection, or a
+              round-trip below design. Gas makes up the gap, so less heat is
+              electrified. The counterfactual has no equivalent: the atmosphere does
+              not run down.</div>
+          </div>
+          <div class="lever">
+            <label for="lv_cool">Connections taking cooling <b id="lv_cool_v"></b></label>
+            <input type="range" id="lv_cool" min="0" max="100" step="5" value="30">
+            <div class="hint">Of the programme. Cooling improves both sides at
+              once — more benefit, less capital — so set it to zero and
+              watch the heat case stand on its own.</div>
+          </div>
+          <div class="lever">
+            <label for="lv_sizing">Plant sized at <b id="lv_sizing_v"></b></label>
+            <input type="range" id="lv_sizing" min="40" max="100" step="5" value="50">
+            <div class="hint">Of the winter peak, with top-up gas boilers above — applied
+              to BOTH routes. Draft TS1 requires this to be optimised on whole-life
+              cost, not assumed, so it is a lever.</div>
+          </div>
+        </div>
+        </div>
+
+        <h2 class="foldstep"><span>5</span>Key sensitivities and insights</h2>
         <!-- THE ASK -->
         <div class="block" id="sensblock" style="display:none">
           <h3>Sensitivity — what moves the answer, and what does not</h3>
@@ -1726,6 +1783,18 @@
           <p class="caveat" id="sensfoot" style="margin-top:14px">—</p>
         </div>
 
+        <!-- switch moved here from the parameters step, 22 Nov 2026: a
+             switching value is a sensitivity, and it is the sharpest one
+             on the panel. NOTE the block above it, id=sensblock, needs
+             whatif_routes.calibration.sensitivity in the payload and that
+             field is not currently emitted, so the grid stays hidden. -->
+        <p class="note" id="switch"></p>
+        <p class="plain" id="plain"></p>
+        <p class="sub" id="sub"></p>
+
+        <p class="caveat" id="invar"></p>
+
+        <h2 class="foldstep"><span>6</span>Conclusion</h2>
         <div class="block">
           <h3>What would change on the strength of this</h3>
           <ol>
@@ -1751,7 +1820,6 @@
               ground, and the zoned towns and cities are largely the same places.</span></li>
           </ol>
         </div>
-
         </div></details>
 
       </div>
@@ -2117,7 +2185,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.28.0';
+const SITE_VERSION = '9.31.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -3515,6 +3583,19 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       'heat networks government has already committed to returns <b>\u00a3'+
       a.bcr.toFixed(2)+'</b> of benefit over sixty years, on Green Book '+
       'conventions, against the air-source-led alternative.';
+
+    // MIRROR THE VERDICT INTO THE FOLD. Copying the rendered elements
+    // rather than recomputing them is deliberate: a second computation is
+    // a second place for the two to drift apart, and this pair is on the
+    // same screen as each other the moment the fold is open.
+    [['big','big2'],['compbar','compbar2'],['key','key2'],
+     ['costbar','costbar2'],['costkey','costkey2']].forEach(([from,to])=>{
+      const src=el(from), dst=document.getElementById(to);
+      if(!src || !dst) return;
+      dst.innerHTML=src.innerHTML;
+      if(src.style.width) dst.style.width=src.style.width;
+      if(src.style.color) dst.style.color=src.style.color;
+    });
 
     el('invar').textContent=
       'The ratio does not depend on how large you think the programme is. ' +
