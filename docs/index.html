@@ -2330,7 +2330,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.38.0';
+const SITE_VERSION = '9.40.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -7372,6 +7372,12 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
   const plottable = s => s.lat != null && s.lon != null &&
                          s.status === 'operating' && s.meets_threshold !== false;
 
+  // The whole register payload, stashed when it lands. counts() is handed
+  // only the sites array, but the superseded-claims block it now cites is
+  // metadata beside that array rather than a row in it. Declared with var
+  // so it is hoisted: counts() is defined above the fetch that fills it.
+  var REGISTER = null;
+
   function counts(sites){
     const mapped = sites.filter(plottable);
     const held = sites.filter(s => !plottable(s));
@@ -7404,8 +7410,15 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     // about at least two of the six sites it names. The ratio is a key fact
     // and sits outside the fold; the reason it can be trusted sits inside it.
     const ni   = sites.filter(s => s.nation === 'Northern Ireland');
+    // 'suspended' added 22 Nov 2026. The sentence this count feeds says
+    // "never ran or no longer run", and a suspended scheme is one that no
+    // longer runs - so without it here, Clare House moving from
+    // never_commissioned to suspended would have quietly dropped out of
+    // the failure count while still being a failure. A status list written
+    // as a literal is a list that goes stale every time the register
+    // learns a new word for broken.
     const dead = ni.filter(s => ['never_commissioned','inoperable','decommissioned',
-                                 'cancelled'].indexOf(s.status) >= 0);
+                                 'cancelled','suspended'].indexOf(s.status) >= 0);
     // The NI failure count was also printed beside the map as a third
     // counter. Removed 22 Nov 2026: the two counters next to the key say
     // what is on the map and what is held off it, which is what a reader
@@ -7414,10 +7427,20 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     // paragraph around it to mean anything - so it now appears only in the
     // fold, where that paragraph is. gc_ni / gc_nilab stay in the markup,
     // unused and hidden, so nothing else that reaches for them throws.
+    // "wrong about at least two of the six sites it names" used to be
+    // carried by the disputed hospital rows themselves. Those are gone:
+    // the register holds systems that exist as hardware, and a system that
+    // was only ever claimed is not one. So the count now comes from
+    // superseded_claims, where those corrections were moved - a claim the
+    // payload can still substantiate rather than one the page asserts
+    // from rows that are no longer there. 22 Nov 2026.
+    const sup = ((REGISTER || {}).superseded_claims || {}).claims || [];
     if(ni.length >= 8 && dead.length){
       why += ' Northern Ireland is the nation worked through in most detail, from ' +
-             'primary sources rather than from the one public list — which is wrong ' +
-             'about at least two of the six sites it names. ' + dead.length +
+             'primary sources rather than from the one public list' +
+             (sup.length ? ' — which names ' + sup.length + ' systems that were ' +
+                           'never built, each checked with the Trust concerned' : '') +
+             '. ' + dead.length +
              ' of its ' + ni.length + ' entries never ran or no longer run. That is a ' +
              'failure rate no national estimate can show you, and it is the reason ' +
              'this register records status at all.';
@@ -7641,6 +7664,7 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       fetch('geo_sites.json').then(r=>r.json()),
       fetch('uk_outline.json').then(r=>r.json())
     ]).then(([d, outline]) => {
+      REGISTER = d;
       const sites = (d && d.sites) || [];
       if(!sites.length) throw new Error('register empty');
       fillCounts(sites); fillTable(sites); fillLogBox(d);
