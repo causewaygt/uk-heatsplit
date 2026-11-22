@@ -298,6 +298,19 @@
   .key{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:6px;vertical-align:-1px}
   .combline{font-family:"IBM Plex Mono";font-size:13px;color:var(--muted);margin:10px 0 36px}
   .combline b{color:var(--ember)}
+  /* Appendix A's plain-language explainer, 22 Nov 2026. The energy balance
+     shows a bar of bought energy and a longer bar of delivered heat, which
+     looks like an accounting error to anyone who has not met a heat pump.
+     These two paragraphs sit under the chart and answer that in words, with
+     no equations: the numbers in them are filled from the site's own
+     figures so they cannot drift from the panels above. */
+  #appendixa .why{font-size:15px;line-height:1.65;color:var(--paper);
+      max-width:80ch;margin:0 0 16px}
+  #appendixa .why:first-of-type{margin-top:4px}
+  #appendixa .why b{color:var(--geo)}
+  #appendixa .whyhd{font-family:"IBM Plex Mono";font-size:11px;
+      letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
+      margin:26px 0 9px}
   section{border-top:1px solid var(--line);padding:22px 0}
   h2{font-family:Lato;font-weight:700;font-size:14.5px;margin-bottom:14px;
      text-transform:uppercase;letter-spacing:.05em}
@@ -1615,7 +1628,11 @@
   </section>
 
   <section>
-    <h1 class="sect">7. Value for money: the business case for UK geothermal</h1>
+    <!-- id added 22 Nov 2026: this was the only section heading without
+         one, so a cross-reference to panel 7 had to aim at #capitalpanel,
+         which sits below the heading and is display:none until the
+         payload lands. -->
+    <h1 class="sect" id="vfmhead" tabindex="-1">7. Value for money: the business case for UK geothermal</h1>
       <div id="capitalpanel" style="display:none">
 
         <!-- EVERYTHING BUT THE RATIO, THE SENTENCE AND THE BARS MOVED
@@ -1921,7 +1938,49 @@
       <div class="legend" id="uselegend"></div></div>
     <div class="combline" id="combline"></div>
     <button class="pngbtn" onclick="exportBars('The energy balance','what Britain bought for heat and cooling, and what it delivered')">⬇ PNG FOR SLIDES</button>
-  </div>
+
+    <!-- An orphan closing div tag stood here, left over from the move out of the
+         old lead section. The parser matched it against the section, so
+         #appendixa ended at this point and the method fold below it was a
+         sibling of the section rather than a child. Nothing looked wrong,
+         because no rule was scoped to #appendixa until now. Removed 22 Nov
+         2026; the tree balances and the whole appendix is inside its
+         section. -->
+
+    <div class="whyhd">Why the second bar is longer than the first</div>
+    <p class="why"><b>A boiler makes heat. A heat pump moves it.</b> That is
+      the whole difference. Burning gas can only ever give back a little less
+      than the energy in the gas — a good modern boiler turns about 85% of
+      what you buy into warmth in the room, and the rest goes up the flue. A
+      heat pump does not make heat at all. It uses electricity to drive a
+      compressor that gathers heat already sitting in the air, the ground or
+      water, and lifts it to a temperature a building can use. The
+      electricity is the fee for the moving, not the heat itself — so one
+      unit of electricity bought can deliver three, four or five units of
+      heat. That is why the two bars above do not match. The first is what
+      Britain paid for; the second is what it got. For a boiler the second
+      is shorter, because some of what was bought went up the chimney. For a
+      heat pump it is several times longer, and the difference is heat
+      lifted out of the ground or the air, which nobody sends an invoice
+      for.</p>
+
+    <div class="whyhd">COP, SCOP and SPF — and why the ground beats the air</div>
+    <p class="why"><b>COP</b> — coefficient of performance — is that
+      multiplier at a single moment: three units of heat out for one unit of
+      electricity in is a COP of 3. <b>SCOP</b> and <b>SPF</b> are the same
+      idea averaged over a whole year, SCOP usually from a standard
+      laboratory test and SPF from a real installation&rsquo;s own meters, which
+      is the harder number to flatter. One thing controls all three: the
+      <b>temperature lift</b> — how far the machine has to raise the heat,
+      from whatever it collects from up to what the building needs. A short
+      lift is cheap, a long lift is expensive, and that is why the source a
+      system draws on matters more than the badge on the equipment. Air
+      source collects from outside air, which is coldest on precisely the
+      day the building wants the most heat: the lift is longest when the
+      demand is highest, and some of the electricity goes on melting frost
+      off the outdoor coil rather than on heating anyone. Ground, water and
+      mine water barely move with the weather, so the lift in February is
+      close to the lift in August.<span id="whyfig"></span></p>
 
     <details class="fold" id="fold_start"><summary>METHOD —
       <b>where every number on this page comes from, and what it cannot see</b></summary>
@@ -2023,6 +2082,92 @@
     <div class="status" id="status"></div>
     </div></details>
 
+  </section>
+
+  <!-- APPENDIX B, 22 Nov 2026 - Simon. The archetypes panel sat under
+       Footnotes, where a reader looking for what the site does and does
+       not model had no reason to look: it is the definition of scope,
+       not an aside. Promoted to an appendix between A and C. The content
+       is unchanged apart from the closing cross-reference, which named
+       section NUMBERS and had gone stale through two reorderings. -->
+  <section id="appendixb">
+    <h1 class="sect" id="appendixbhead" tabindex="-1">Appendix B: geothermal
+      archetypes — what this site models, and what it does not</h1>
+    <p class="lede">Geothermal is not one technology. This is the family,
+      which members of it this site carries, and why the two modelled
+      routes perform as differently as they do.</p>
+    <figure style="margin:0 0 16px">
+      <img src="geothermal-archetypes.png" alt="Classification of geothermal
+        technologies by depth and output temperature. Shallow geothermal
+        heating, cooling and storage and deep geothermal heating and storage
+        are in scope; deep geothermal power is not."
+        style="width:100%;height:auto;border-radius:4px">
+      <figcaption class="costnote" style="margin-top:8px">Figure: BGS
+        classification modified by Todd et al. 2025,
+        <a href="https://doi.org/10.1144/geoenergy2025-057"
+           style="color:var(--geo)">doi.org/10.1144/geoenergy2025-057</a>.</figcaption>
+    </figure>
+    <p class="costnote">The site models heat and storage, not power. The two
+      columns inside the green boundary — <b>shallow</b> heating, cooling
+      and storage, and <b>intermediate</b> heating and storage — are in
+      scope. The deep, high-temperature systems on the right are not, because
+      their output is electricity and this site is about what heats and cools
+      buildings. The two modelled routes map onto the green columns and not
+      onto the orange one.</p>
+    <p class="costnote"><b>Ground source (SPF 3.24)</b> is the shallow column on
+      the left — open-loop doublets, closed-loop borehole arrays and mine
+      water energy, drawing on ground and shallow aquifers at 10–17 °C.
+      It is modelled here as <b>heat only or heat dominated</b>: a source
+      temperature of 8 °C after a 3 K brine approach, weather-compensated
+      flow, and no credit for anything the ground gets back. That is
+      deliberately the conservative end of what shallow geothermal can do, and
+      the seasonal performance factor comes from <i>In-Situ Heat Pump
+      Performance: Analysis of Ofgem Data 2017–22</i> — a DESNZ, RECC and
+      Ground Source Heat Pump Association study of Ofgem metering returns.
+      Its 1,700+ installations cover both technologies; the ground-source
+      sample is roughly 270. <b>No large, recent, representative UK
+      ground-source fleet exists</b>: the three available samples are about
+      270, 37 and 14 installations, so 3.24 is the best available figure
+      rather than a well-evidenced one†.</p>
+    <p class="costnote"><b>Future Geothermal (SPF* 5.0†)</b> is a blend of
+      two things in the figure. Shallow underground thermal energy storage on
+      the left, where summer heat rejected by cooling and waste heat from data
+      centres and other sources is banked in the ground and drawn back in
+      winter; and intermediate geothermal — the hydrothermal direct-use
+      column — where the geology suits it. Both feed a shared ambient loop
+      with heat pumps at each building.</p>
+    <p class="costnote"><b>Why SPF* and not SPF.</b> The other routes carry a
+      measured seasonal performance factor from a monitored fleet. This one
+      does not, and no UK fleet exists to give it one. <b>SPF* is an assumed
+      blend across geothermal archetypes</b> — shallow storage and
+      intermediate direct use — expressed as delivered heat over electricity
+      bought, so it spans a route where a heat pump does the lifting and one
+      where a doublet largely does not. It is wired into the model the same
+      way the others are: an assumed average source temperature of 19.6 °C
+      and the same Carnot fraction the two monitored routes calibrate to. The
+      asterisk marks it as derived from those two assumptions rather than
+      observed, and the two are one estimate with two faces — fix either and
+      the other follows†.</p>
+    <p class="costnote">The difference between the two routes is mostly
+      <b>what the loop is sitting at</b>. A network loop is modelled at
+      19.6 °C†, not the 8 °C of a passive ground array, because it
+      is a <b>charged</b> loop: the cooling season and the rejected waste heat
+      have put energy into it. That shortens the lift, which is what a heat
+      pump’s efficiency actually depends on.</p>
+    <p class="costnote"><b>This is the least evidenced route on the site.</b>
+      There is no monitored UK network fleet to anchor an SPF against, so both
+      the 5.0 and the 19.6 °C are Causeway estimates, and every network
+      figure inherits them.</p>
+    <p class="costnote">Where the two routes are used: priced against the
+      other ways of heating a building in
+      <a href="#costhead" style="color:var(--geo)">1. What heat costs now</a>,
+      compared on efficiency in
+      <a href="#storagehead" style="color:var(--geo)">3. The potential for
+      storing heat underground</a>, and carried into the appraisal in
+      <a href="#vfmhead" style="color:var(--geo)">7. Value for
+      money</a>. Named by heading rather than by number, because the
+      numbering has changed twice and a cross-reference that cites a
+      position goes stale silently.</p>
   </section>
 
   <!-- APPENDIX C, 21 Nov 2026 - Simon. The register map and its two
@@ -2130,75 +2275,6 @@
   <h1 class="sect" style="margin-top:44px">Footnotes</h1>
 
   <section>
-    <h2>Geothermal archetypes</h2>
-    <figure style="margin:0 0 16px">
-      <img src="geothermal-archetypes.png" alt="Classification of geothermal
-        technologies by depth and output temperature. Shallow geothermal
-        heating, cooling and storage and deep geothermal heating and storage
-        are in scope; deep geothermal power is not."
-        style="width:100%;height:auto;border-radius:4px">
-      <figcaption class="costnote" style="margin-top:8px">Figure: BGS
-        classification modified by Todd et al. 2025,
-        <a href="https://doi.org/10.1144/geoenergy2025-057"
-           style="color:var(--geo)">doi.org/10.1144/geoenergy2025-057</a>.</figcaption>
-    </figure>
-    <p class="costnote">The site models heat and storage, not power. The two
-      columns inside the green boundary — <b>shallow</b> heating, cooling
-      and storage, and <b>intermediate</b> heating and storage — are in
-      scope. The deep, high-temperature systems on the right are not, because
-      their output is electricity and this site is about what heats and cools
-      buildings. The two modelled routes map onto the green columns and not
-      onto the orange one.</p>
-    <p class="costnote"><b>Ground source (SPF 3.24)</b> is the shallow column on
-      the left — open-loop doublets, closed-loop borehole arrays and mine
-      water energy, drawing on ground and shallow aquifers at 10–17 °C.
-      It is modelled here as <b>heat only or heat dominated</b>: a source
-      temperature of 8 °C after a 3 K brine approach, weather-compensated
-      flow, and no credit for anything the ground gets back. That is
-      deliberately the conservative end of what shallow geothermal can do, and
-      the seasonal performance factor comes from <i>In-Situ Heat Pump
-      Performance: Analysis of Ofgem Data 2017–22</i> — a DESNZ, RECC and
-      Ground Source Heat Pump Association study of Ofgem metering returns.
-      Its 1,700+ installations cover both technologies; the ground-source
-      sample is roughly 270. <b>No large, recent, representative UK
-      ground-source fleet exists</b>: the three available samples are about
-      270, 37 and 14 installations, so 3.24 is the best available figure
-      rather than a well-evidenced one†.</p>
-    <p class="costnote"><b>Future Geothermal (SPF* 5.0†)</b> is a blend of
-      two things in the figure. Shallow underground thermal energy storage on
-      the left, where summer heat rejected by cooling and waste heat from data
-      centres and other sources is banked in the ground and drawn back in
-      winter; and intermediate geothermal — the hydrothermal direct-use
-      column — where the geology suits it. Both feed a shared ambient loop
-      with heat pumps at each building.</p>
-    <p class="costnote"><b>Why SPF* and not SPF.</b> The other routes carry a
-      measured seasonal performance factor from a monitored fleet. This one
-      does not, and no UK fleet exists to give it one. <b>SPF* is an assumed
-      blend across geothermal archetypes</b> — shallow storage and
-      intermediate direct use — expressed as delivered heat over electricity
-      bought, so it spans a route where a heat pump does the lifting and one
-      where a doublet largely does not. It is wired into the model the same
-      way the others are: an assumed average source temperature of 19.6 °C
-      and the same Carnot fraction the two monitored routes calibrate to. The
-      asterisk marks it as derived from those two assumptions rather than
-      observed, and the two are one estimate with two faces — fix either and
-      the other follows†.</p>
-    <p class="costnote">The difference between the two routes is mostly
-      <b>what the loop is sitting at</b>. A network loop is modelled at
-      19.6 °C†, not the 8 °C of a passive ground array, because it
-      is a <b>charged</b> loop: the cooling season and the rejected waste heat
-      have put energy into it. That shortens the lift, which is what a heat
-      pump’s efficiency actually depends on.</p>
-    <p class="costnote"><b>This is the least evidenced route on the site.</b>
-      There is no monitored UK network fleet to anchor an SPF against, so both
-      the 5.0 and the 19.6 °C are Causeway estimates, and every network
-      figure inherits them.</p>
-    <p class="costnote">Both routes are first named in Section 3, “How far
-      would electrified heat have sat against national capacity?”, and
-      appear again in Section 2’s price chart and Section 6’s value
-      case.</p>
-  </section>
-  <section>
     <h2>Northern Ireland</h2>
     <p class="costnote" id="nipanel">—</p>
   </section>
@@ -2240,7 +2316,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.34.0';
+const SITE_VERSION = '9.36.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -7497,6 +7573,45 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     }, {rootMargin:'400px'});
     io.observe(wrap);
   } else { start(); }
+})();
+
+// APPENDIX A EXPLAINER - the one sentence in it that carries numbers.
+// Deliberately outside the data.json chain: that chain is wrapped in a
+// catch which reports any failure inside it as "data.json not found", so
+// an explainer that threw would be blamed on a missing payload. It also
+// means the two paragraphs stand on their own if this never runs - they
+// are written to be a complete argument without the figures, and the
+// sentence below is an addition to them rather than their conclusion.
+// Reads the SCOPs the UTES block publishes rather than recomputing them,
+// so Appendix A cannot quote a different efficiency from panels 3 and 4.
+(function(){
+  const slot = document.getElementById('whyfig');
+  if(!slot) return;
+  let tries = 0;
+  const fill = () => {
+    const S = window.__SITE_SCOP;
+    if(!S || !S.air || !S.utes){
+      // ~20s at 250ms. The UTES block runs inside the payload chain, so a
+      // slow or failed fetch simply leaves the paragraph as written.
+      if(++tries < 80) setTimeout(fill, 250);
+      return;
+    }
+    let s = ' On this site’s own figures that is about <b>' +
+            S.air.toFixed(2) + '</b> units of heat per unit of electricity ' +
+            'across the season for air source, against <b>' +
+            S.utes.toFixed(2) + '</b> for a warmed ground store';
+    const P = S.peak;
+    if(P && P.air && P.network){
+      s += ' — and the gap widens at the coldest hour, where it matters ' +
+           'most to both the building and the grid: <b>' + P.air.toFixed(2) +
+           '</b> against <b>' + P.network.toFixed(2) + '</b> at ' +
+           // a true minus sign, as the rest of the page uses - a
+           // hyphen-minus reads as a dash at this size
+           P.t.toFixed(1).replace('-', '−') + ' °C';
+    }
+    slot.innerHTML = s + '.';
+  };
+  fill();
 })();
 
 </script>
