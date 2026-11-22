@@ -2245,6 +2245,8 @@
           social housing scheme at Lisnafin. Neither is a household's appliance; both
           were entered by hand for precedent. They are in the register and off the map.</p>
 
+        <p class="costnote" style="margin-top:14px" id="geoprecision">—</p>
+
         <p class="costnote" style="margin-top:14px">Colour carries nothing. Green and
           orange are indistinguishable to a deutan reader on this background, so identity
           is shape and size, which also survive greyscale and print.</p>
@@ -2316,7 +2318,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.36.0';
+const SITE_VERSION = '9.37.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -7392,14 +7394,15 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     const ni   = sites.filter(s => s.nation === 'Northern Ireland');
     const dead = ni.filter(s => ['never_commissioned','inoperable','decommissioned',
                                  'cancelled'].indexOf(s.status) >= 0);
+    // The NI failure count was also printed beside the map as a third
+    // counter. Removed 22 Nov 2026: the two counters next to the key say
+    // what is on the map and what is held off it, which is what a reader
+    // needs to read the map. A failure rate for one nation is a finding
+    // about the register, not a key to the symbols, and it needs the
+    // paragraph around it to mean anything - so it now appears only in the
+    // fold, where that paragraph is. gc_ni / gc_nilab stay in the markup,
+    // unused and hidden, so nothing else that reaches for them throws.
     if(ni.length >= 8 && dead.length){
-      const v = document.getElementById('gc_ni'),
-            l = document.getElementById('gc_nilab');
-      if(v && l){
-        v.textContent = dead.length + ' of ' + ni.length;
-        l.textContent = 'Northern Ireland entries that never ran or no longer run';
-        v.hidden = false; l.hidden = false;
-      }
       why += ' Northern Ireland is the nation worked through in most detail, from ' +
              'primary sources rather than from the one public list — which is wrong ' +
              'about at least two of the six sites it names. ' + dead.length +
@@ -7408,6 +7411,29 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
              'this register records status at all.';
     }
     set('gc_heldwhy', why);
+
+    // Siting precision, stated once and counted rather than asserted, so it
+    // falls away on its own as coordinates are corrected. This replaces the
+    // line that used to appear on every town-placed marker's popup.
+    const sited = sites.filter(s => s.location_precision === 'address').length,
+          towny = sites.filter(s => s.location_precision === 'town').length;
+    const pel = document.getElementById('geoprecision');
+    // innerHTML, not the set() helper above, which writes textContent and
+    // would print the bold tag rather than apply it.
+    if(towny && pel){
+      pel.innerHTML = (
+        '<b style="color:var(--paper)">Siting.</b> ' + sited + ' of these ' +
+        'entries are placed at the system itself; ' + towny + ' are still ' +
+        'placed to the centre of their town or borough, which at national ' +
+        'scale puts the marker within a kilometre or so of the truth and at ' +
+        'street scale puts it in the wrong place. These are named buildings ' +
+        'and networks rather than households, so there is no privacy reason ' +
+        'not to site them exactly, and the coordinates are being corrected ' +
+        'scheme by scheme against a source. Zoom in far enough and a ' +
+        'town-placed marker will not sit on its building yet.');
+    } else if(pel){
+      pel.hidden = true;
+    }
   }
 
   function fillTable(sites){
@@ -7465,10 +7491,43 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     // for correcting a row, which is conversational and arrives with a source
     // attached. Either may be absent: the box then shows the text alone,
     // never a dead link.
-    if(sub.url){
+    // Three states, in order of preference. A real form is still best: it
+    // can enforce the 45 kW floor and hand back fields that map onto the
+    // schema without re-keying. Failing that, a mailto with the fields in
+    // the body does the same job at the cost of the submitter deleting
+    // the prompts - which is worth far more than a button that is not
+    // there. Only with neither does the box fall back to text alone.
+    // Added 22 Nov 2026.
+    if(sub.url || sub.email){
       const a = document.createElement('a');
-      a.className = 'btn'; a.href = sub.url; a.rel = 'noopener';
-      a.target = '_blank'; a.textContent = sub.label || 'Add a system';
+      a.className = 'btn';
+      a.textContent = sub.label || 'Add a system';
+      if(sub.url){
+        a.href = sub.url; a.rel = 'noopener'; a.target = '_blank';
+      } else {
+        // The body is the schema in plain words. Anyone replying to it has
+        // already told us everything the register needs, in the order it
+        // is stored in, and the floor is stated rather than enforced.
+        const body = [
+          'Site name:',
+          'Operator:',
+          'Full address (and postcode):',
+          'Thermal capacity, kW:',
+          'Heating / cooling / seasonal store:',
+          'Type (gshp, ates, btes, minewater, deep):',
+          'Loop (open or closed):',
+          'Year commissioned:',
+          'Current status:',
+          'Source, or a contact to verify against:',
+          '',
+          'The register covers systems at or above 45 kW - buildings and',
+          'networks rather than households. Your contact detail is used to',
+          'verify the entry and is never published.'
+        ].join('\r\n');
+        a.href = 'mailto:' + sub.email +
+                 '?subject=' + encodeURIComponent('UK geothermal register - new system') +
+                 '&body=' + encodeURIComponent(body);
+      }
       box.appendChild(a);
     }
     if(sub.email){
@@ -7518,9 +7577,14 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
                   ' nameplate' : '') + ' · '
             : '') +
           esc(s.type) + (s.commissioned_year ? ' · ' + s.commissioned_year : '') +
-          '<br>' + g +
-          (s.location_precision === 'town'
-            ? '<br><i>placed to the town, not the site</i>' : '')),
+          '<br>' + g),
+          // The per-marker "placed to the town, not the site" line is gone,
+          // 22 Nov 2026. Siting precision is a property of the dataset, not
+          // of each system, so repeating it on all fifty popups was noise
+          // that said nothing about the system the reader had clicked. It
+          // is stated once in the NOTES fold instead, and the remedy is to
+          // site the schemes properly rather than to caveat them: these are
+          // named buildings and networks, not households.
         hoverinfo:'text',
         marker:{symbol: rows.map(SYMBOL), size: rows.map(s=>SIZE(s.capacity_kWth)),
                 color: GEO, opacity:.92, line:{color:INK, width:2}}
@@ -7538,7 +7602,26 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
              range:[mercY(49.9), mercY(59.0)]},
       hoverlabel:{bgcolor:'#1a2129', bordercolor:LINE, font:{color:'#eae6de'}},
       dragmode:'pan'
-    }, {displayModeBar:false, responsive:true, scrollZoom:false});
+    }, {
+      // Zoom enabled 22 Nov 2026. At UK scale the London ATES cluster is
+      // five systems inside a few hundred metres and reads as one marker,
+      // so the map could not be interrogated at the scale its own data is
+      // recorded at.
+      //
+      // scrollZoom stays FALSE on purpose: this map sits in the middle of
+      // a long page, and a wheel that zooms the map instead of scrolling
+      // the page traps the reader. Zoom is on the buttons and on
+      // double-click, both of which are deliberate acts.
+      displayModeBar: true,
+      // Kept: box zoom, pan, + / - and reset. Dropped: the selection tools,
+      // which do nothing useful on a locator map, and the PNG button, since
+      // the register's own export is the table.
+      modeBarButtonsToRemove: ['select2d','lasso2d','autoScale2d','toImage'],
+      displaylogo: false,
+      responsive: true,
+      scrollZoom: false,
+      doubleClick: 'reset'
+    });
   }
 
   function start(){
