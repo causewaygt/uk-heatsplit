@@ -593,7 +593,7 @@
       margin:0 0 12px}
   .heroexp .foldbody p b{color:var(--geo)}
   .heromini{font-size:12.5px;line-height:1.6;color:var(--muted);
-      margin:14px 0 0;max-width:96ch}
+      margin:5px 0 0;max-width:86ch}
   .heromini b{color:var(--muted)}
   @media(max-width:760px){ .heroexp .foldbody p{font-size:14px} }
 
@@ -775,11 +775,14 @@
   .topline .sp{flex:1}
   .topline .stamp{font-family:"IBM Plex Mono",monospace;font-size:11px;
                   color:var(--muted);letter-spacing:.03em;text-align:right}
-  .ask{font-size:29px;line-height:1.26;font-weight:700;margin:22px 0 0;
+  .ask{font-size:29px;line-height:1.26;font-weight:700;margin:18px 0 0;
        max-width:44ch}
   .ask em{font-style:normal;color:var(--geo)}
+  /* Standfirst pair, above the question. Tighter top margin than the old
+     under-question placement, and the two lines sit together as one block
+     rather than reading as two unrelated notes. */
   .strap{font-size:12.5px;line-height:1.6;color:var(--muted);
-         margin:10px 0 0;max-width:86ch}
+         margin:16px 0 0;max-width:86ch}
   .strap b{color:var(--paper);font-weight:700}
   /* Styled on .trendctl, the site's real control class. `.trendbar` carries
      NO rules at all - it is used on six window bars across the page and
@@ -896,15 +899,23 @@
     <div class="stamp" id="stamp">loading…</div>
   </div>
 
-  <h1 class="ask">How much would Britain have saved if a fifth of its
-    heating and cooling were served by <em>geothermal</em>?</h1>
-
-  <!-- Strapline, 22 Nov 2026 - Simon. The page opened on a question with
-       no statement of what the page IS, so a reader arriving cold met a
-       counterfactual before they met the subject. -->
+  <!-- STANDFIRST ABOVE THE QUESTION, 22 Nov 2026 - Simon. What the
+       site IS, then the basis the headline is computed on, then the
+       question. The caveat moved up from under the cards: it qualifies
+       the number, so it is read before the number rather than after
+       it. Both lines are deliberately small - they are the frame, not
+       the headline. -->
   <p class="strap"><b>UK Heat Split</b> &mdash; a live tracker of how Britain
     heats and cools itself, and what would change if geothermal adoption
     were accelerated.</p>
+  <p class="heromini">Every week is priced at its own week&rsquo;s tariff,
+      cap and carbon, so this is a comparison rather than a forecast.
+      Estimates, not measurements.
+    <a href="uk-heatsplit-methodology.pdf" style="color:var(--geo)">Methodology</a>.</p>
+
+  <h1 class="ask">How much would Britain have saved if a fifth of its
+    heating and cooling were served by <em>geothermal</em>?</h1>
+
 
   <div class="trendctl askwin" id="askwin">
     <button data-aw="1">1W</button>
@@ -1004,10 +1015,6 @@
 
     </div></details>
 
-  <p class="heromini">Every week is priced at its own week&rsquo;s tariff,
-      cap and carbon, so this is a comparison rather than a forecast.
-      Estimates, not measurements.
-    <a href="uk-heatsplit-methodology.pdf" style="color:var(--geo)">Methodology</a>.</p>
 
   <!-- THE HAND-OFF SITS LAST, 21 Nov 2026 - Simon. It was between the bars
        and the caveat line, which put an invitation to scroll on in the
@@ -2346,7 +2353,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.45.0';
+const SITE_VERSION = '9.46.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
