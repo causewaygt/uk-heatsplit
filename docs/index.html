@@ -1458,36 +1458,48 @@
          target; the delegated handler needs both to scroll and focus. -->
     <h1 class="sect" id="startinghead" tabindex="-1">6. UK geothermal: now,
       next and benchmarks</h1>
-      <div class="geofig" id="geofig">—<small> GWh of heat from geothermal this week (estimate)</small></div>
-      <p class="geosub" id="geoshare"></p>
-      <div class="geobars" id="geobars"></div>
-      <div class="billline" id="geowhatif" style="margin-top:18px"></div>
-      <p class="geosub" id="geowhatifnote"></p>
+      <!-- THE WEEKLY ESTIMATE AND ITS SENTENCE WENT 22 Nov 2026 - Simon.
+           A single week's geothermal output is a rounding error on a panel
+           about 2050 targets, and leading a panel called "what should our
+           targets be" with "55 GWh this week" set the wrong scale in the
+           reader's head before the first chart. The annual figure survives
+           as the Today bar on the targets chart. -->
+
+      <!-- THE COMPARISON COMES FIRST, 22 Nov 2026 - Simon. Where the UK
+           stands has to land before what it might aim for, or the target
+           bars are a wish with no yardstick. Data: docs/geo_benchmarks.json,
+           eighteen countries from the EGC country-update table.
+           Bars are annual output, dots are installed capacity per head on
+           the right axis: a country can look respectable on one and not the
+           other, and the UK manages to look poor on both. -->
+      <h2 style="margin-top:4px;font-size:16px">The UK is a laggard — but can
+        use others’ learning to catch up</h2>
+      <div id="benchplot" style="width:100%;height:290px;margin-top:10px"></div>
+      <p class="costnote" id="benchnote"></p>
+
+      <h2 style="margin-top:26px;font-size:16px">What should our geothermal
+        targets be?</h2>
+      <div class="geobars" id="geobars" style="margin-top:12px"></div>
+      <!-- The what-if line and its caveat moved into the fold, 22 Nov 2026
+           - Simon. It restates the headline what-if from the top of the
+           page, so on this panel it is corroboration rather than news. -->
       <!-- THE PANEL'S PROSE MOVED INTO A FOLD, 22 Nov 2026 - Simon. The
            benchmark line and the two 2026 targets are context for the bars
            rather than readings off them, and on a panel whose job is "here
            is where we are and where we could be" the numbers should arrive
            before the commentary. -->
       <div id="emptybar" style="display:none">
-
-        <!-- REPLACED THE FOUR-COUNTRY SHARE CHART, 21 Nov 2026 - Simon. Four
-             comparators chosen to flatter the argument is a weaker chart
-             than eighteen chosen by the source's own table, and the
-             per-head dot is what turns "the UK is behind" from a claim into
-             a reading. Bars are annual output, dots are installed capacity
-             per head on the right axis: a country can look respectable on
-             one and not the other, and the UK manages to look poor on both.
-             Data: docs/geo_benchmarks.json, the same EGC country-update
-             table the comparators above come from. -->
-        <h2 style="margin-top:26px;font-size:16px">The UK is a laggard — but
-          can use others’ learning to catch up</h2>
-        <div id="benchplot" style="width:100%;height:300px;margin-top:10px"></div>
-        <p class="costnote" id="benchnote"></p>
-
         <details class="fold" id="fold_geo6"><summary>CONTEXT —
           <b>how this compares, and the targets published in 2026</b></summary>
         <div class="foldbody">
           <p class="costnote" id="benchfold">—</p>
+          <!-- WHERE EACH TARGET BAR'S NUMBER COMES FROM. Written by the
+               bars themselves: the tags used to sit under each bar on the
+               face, where three paragraphs of provenance separated three
+               bars that should be read together. -->
+          <div id="geotagfold"></div>
+          <div class="billline" id="geowhatif" style="margin-top:14px"></div>
+          <p class="geosub" id="geowhatifnote"></p>
       <p class="geosub" id="geobench" style="margin-top:16px"></p>
       <!-- THE TWO 2026 TARGETS, added 21 Nov 2026 at
            Simon's request. Static text, not payload: both are one-off
@@ -2087,7 +2099,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.23.0';
+const SITE_VERSION = '9.24.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -5639,24 +5651,12 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
 
   const geo = d.geothermal;
   if(geo){
-    document.getElementById('geofig').innerHTML =
-      fmt(geo.week_GWh) + '<small> GWh heat</small>' +
-      ' <span style="color:var(--cool)">· ' + fmt(geo.week_cool_GWh || 0) +
-      '<small style="color:var(--muted)"> GWh cool</small></span>' +
-      '<small> — from geothermal this week (estimate)</small>';
-    if(geo.week_share_of_heat != null){
-      let t = 'That is ~' + (100*geo.week_share_of_heat).toFixed(1) +
-        '% of Britain\'s building heat this week. Deep and mine-water schemes ' +
-        'contribute ~' + geo.annual_TWh.today_deep_only +
-        ' TWh/yr of the ' + geo.annual_TWh.today + ' TWh/yr total today.';
-      if(geo.week_cool_GWh > 0){
-        t += ' Geothermal also supplied an estimated ' + fmt(geo.week_cool_GWh) +
-          ' GWh of cooling this week (reversible ground-source systems and ' +
-          'aquifer storage, ~' + geo.cool_today_TWh + ' TWh/yr — barely measured, ' +
-          'and the clearest growth headroom of all).';
-      }
-      document.getElementById('geoshare').textContent = t;
-    }
+    // THE WEEKLY FIGURE AND ITS SENTENCE WENT WITH THEIR MARKUP on
+    // 22 Nov 2026 - Simon. Both writers were unguarded, so they are
+    // removed rather than left to throw into the page's swallowing
+    // .catch(). The payload still carries week_GWh, week_cool_GWh and
+    // week_share_of_heat; nothing on this panel reads them now, and the
+    // annual figure survives as the Today bar below.
     const w20 = d.headlines && d.headlines.whatif_20pct_geothermal;
     if(w20 && d.cost.national_week_total_Mgbp){
       const actual = d.cost.national_week_total_Mgbp;
@@ -5687,18 +5687,28 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       ["2050",   geo.annual_TWh.ambition_2050, true,  geo.tags.ambition_2050],
     ];
     const maxv = Math.max(...rows.map(r=>r[1]));
+    // TAGS OFF THE FACE, 22 Nov 2026 - Simon. Each bar carried a
+    // paragraph of provenance underneath it, so three bars meant to be
+    // read against each other were separated by three blocks of text.
+    // They are collected into the fold instead, labelled by their bar, so
+    // nothing is lost and the chart reads as one chart.
     const holder = document.getElementById('geobars');
+    const tagbox = document.getElementById('geotagfold');
+    const tags = [];
     rows.forEach(([lab,v,isFc,tag])=>{
       const row = document.createElement('div');
       row.className = 'geobar';
       row.innerHTML =
         `<div class="lab">${lab} · ${v} TWh/yr</div>` +
-        `<div class="track"><div class="fill${isFc?' fc':''}"></div></div>` +
-        `<div class="geotag">${tag}</div>`;
+        `<div class="track"><div class="fill${isFc?' fc':''}"></div></div>`;
       holder.appendChild(row);
       const fill = row.querySelector('.fill');
       requestAnimationFrame(()=>{ fill.style.width = (100*v/maxv)+'%'; });
+      if(tag) tags.push(`<p class="costnote"><b>${lab}</b> — ${tag}</p>`);
     });
+    if(tagbox && tags.length) tagbox.innerHTML =
+      '<p class="costnote" style="margin-bottom:4px"><b>Where each bar ' +
+      'comes from.</b></p>' + tags.join('');
   }
 
   const sp = d.spark;
