@@ -2274,14 +2274,19 @@
     </div></details>
   </section>
 
-  <h1 class="sect" style="margin-top:44px">Footnotes</h1>
-
-  <section>
-    <h2>Northern Ireland</h2>
-    <p class="costnote" id="nipanel">—</p>
-  </section>
-  <section class="method">
-    <h2>WHY HEAT?</h2>
+  <!-- APPENDIX D, 22 Nov 2026 - Simon. The four national bars sat at the
+       very bottom under Footnotes, after the Northern Ireland note, which
+       is the last place a reader looking for why heat matters at all would
+       think to look. They are the premise of the whole site, not a
+       footnote to it. Promoted; the inner h2 went because the appendix
+       heading now says the same thing, and #whyheatline supplies the
+       standfirst underneath it. Every id is unchanged, so exportPies and
+       the four chart writers find their elements one section further up. -->
+  <section class="method" id="appendixd">
+    <h1 class="sect" id="appendixdhead" tabindex="-1">Appendix D: why heat?</h1>
+    <p class="lede">Heat and cooling are the largest part of what the UK
+      buys energy for, the largest part of what it imports, and the largest
+      part of what it emits. That is the premise everything above rests on.</p>
     <p class="geosub" id="whyheatline"></p>
     <div class="whygrid">
       <div><div class="barlabel">ENERGY SERVICES DELIVERED — TWh/yr</div><div id="why_twh" style="width:100%;height:260px"></div></div>
@@ -2292,6 +2297,13 @@
     <button class="pngbtn" onclick="exportPies()">⬇ PNG FOR SLIDES</button>
     <p class="costnote" id="whyheatnote"></p>
 
+  </section>
+
+  <h1 class="sect" style="margin-top:44px">Footnotes</h1>
+
+  <section>
+    <h2>Northern Ireland</h2>
+    <p class="costnote" id="nipanel">—</p>
   </section>
 </div>
 
@@ -2318,7 +2330,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.37.0';
+const SITE_VERSION = '9.38.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
