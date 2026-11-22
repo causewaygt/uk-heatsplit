@@ -630,6 +630,46 @@
   #capitalpanel .foldstep span{flex:none;width:23px;height:23px;border-radius:50%;
       background:var(--geo);color:var(--ink);font-family:"IBM Plex Mono";
       font-size:12.5px;font-weight:600;display:grid;place-items:center}
+
+  /* ---- panel 7 fold: one treatment across the six steps -------------
+     The steps were written at different times and each paragraph kept
+     whatever class it had wherever the text previously sat, so running
+     prose appeared at 13.5px, 15px and 16.5px and carried three
+     different decorations - a green left rule, a grey left rule and a
+     filled box - distributed by provenance rather than by what the
+     paragraph does.
+     Everything below is scoped to #fold_vfm on purpose: .note, .caveat,
+     .basis and the rest are used on the panel face and in other panels,
+     where they still mean what they always meant. 22 Nov 2026. */
+  #capitalpanel #fold_vfm .basis,
+  #capitalpanel #fold_vfm .caveat,
+  #capitalpanel #fold_vfm .fixed,
+  #capitalpanel #fold_vfm .sub,
+  #capitalpanel #fold_vfm .plain,
+  #capitalpanel #fold_vfm .note,
+  #capitalpanel #fold_vfm .dealnote{
+      font-size:14px;line-height:1.62;color:var(--muted);
+      margin-top:14px;max-width:78ch}
+  /* Two devices, each with one job. A green left rule marks the lead
+     statement of a step; a filled box marks the single finding the step
+     exists to make, and carries the same green edge so the two rhyme
+     rather than compete. The grey left rule was a weaker copy of the
+     green one and is gone. */
+  #capitalpanel #fold_vfm .basis{
+      border-left:2px solid var(--geo);padding-left:15px}
+  #capitalpanel #fold_vfm .fixed{border-left:0;padding-left:0}
+  #capitalpanel #fold_vfm .note,
+  #capitalpanel #fold_vfm .deal{
+      background:var(--surface);border-radius:6px;
+      border-left:2px solid var(--geo);
+      padding:14px 16px;margin-top:18px}
+  #capitalpanel #fold_vfm .deal{padding-left:16px}
+  #capitalpanel #fold_vfm .dealnote{margin-top:10px;max-width:none}
+  #capitalpanel #fold_vfm .note{max-width:none}
+  /* The step heading is already a separator, so a block rule directly
+     under one draws a second line against the first. */
+  #capitalpanel #fold_vfm .foldstep + .block{
+      border-top:0;padding-top:0;margin-top:14px}
   #capitalpanel .vfmlive{margin-top:16px;padding-top:14px;
                          border-top:1px solid var(--line)}
   #capitalpanel .vfmlive .verdict{margin:0}
@@ -1623,7 +1663,11 @@
           of them. The model compares geothermal as the source and store of thermal
           energy to an air-source heat pump system.</p>
 
-        <p class="basis" style="border-color:var(--muted)"><b>What this appraisal
+        <!-- plain prose, not a second lead: one green mark per step is the
+             rule the fold now follows. This previously carried a grey-ruled
+             variant of .basis set inline, which was the same weaker-copy
+             device removed from .fixed. 22 Nov 2026. -->
+        <p class="caveat"><b>What this appraisal
           is, and is not.</b> It is <b>one counterfactual</b>: geothermal
           against an air-source-led network with separate air-cooled chillers.
           That is a real and increasingly likely alternative, because zoning is
@@ -1639,8 +1683,7 @@
           rate, DESNZ carbon values, optimism bias — to the increment
           between two sources. It does not carry a full options appraisal, a
           distributional analysis, or unmonetisable effects, all of which the
-          Green Book also asks for. Added 17 August 2026 after peer
-          review.</p>
+          Green Book also asks for.</p>
 
         <div class="deal">
           <div class="deallab">The comparison</div>
@@ -1649,8 +1692,14 @@
 
         <h2 class="foldstep"><span>3</span>The key parameters, and what is not in the numbers</h2>
         <p class="note" id="coolnote"></p>
-    <p class="fixed" id="fixed"></p>
-        <p class="note" id="switch"></p>
+        <p class="fixed" id="fixed"></p>
+        <p class="caveat" id="pkfixed">The <b>avoided winter peak is fixed at
+          £75/kW·yr</b> across distribution, transmission and generation
+          capacity, generation at net cost of new entry rather than the
+          Capacity Market clearing price. It is deliberately not a lever:
+          panel 4 prices avoided peak at the same rate, and a reader tuning
+          it here would be moving a figure quoted two panels earlier as
+          settled.</p>
         <p class="caveat" id="caveat"></p>
         <p class="caveat" id="whopays"></p>
         <p class="caveat" id="devex"></p>
@@ -1741,12 +1790,18 @@
             <div class="hint">Treasury upper bound for non-standard civil engineering
               is 66%, mitigating toward 40–50% at outline business case.</div>
           </div>
+          <!-- lv_pk is kept as a hidden input, not deleted: the model reads
+               S.pk from it and panel 4's bottom line reads this element for
+               the £/kW·yr it quotes. Fixing the value is the change; losing
+               the element would have broken two panels. -->
+          <input type="hidden" id="lv_pk" value="75">
           <div class="lever">
-            <label for="lv_pk">Avoided winter peak <b id="lv_pk_v"></b></label>
-            <input type="range" id="lv_pk" min="0" max="120" step="5" value="75">
-            <div class="hint">£/kW·yr across distribution, transmission and generation
-              capacity. Generation at net cost of new entry, not the Capacity Market
-              clearing price.</div>
+            <label for="lv_spf">Geothermal SPF* <b id="lv_spf_v"></b></label>
+            <input type="range" id="lv_spf" min="3.5" max="6" step="0.1" value="5">
+            <div class="hint">The seasonal factor the comparison turns on,
+              against air source at 2.90. Peak COP moves with it on the
+              anchor's ratio. At 3.5 — virgin ground, not a warmed store —
+              see what survives.</div>
           </div>
           <div class="lever">
             <label for="lv_loss">Subsurface shortfall <b id="lv_loss_v"></b></label>
@@ -2185,7 +2240,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.31.0';
+const SITE_VERSION = '9.34.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -3275,7 +3330,14 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
   // Runs down to 15% of peak so a large subsurface shortfall still bites.
   const SERVED={15:0.388,20:0.490,25:0.585,30:0.671,40:0.811,50:0.907,
                 60:0.963,70:0.987,80:0.996,90:0.999,100:1.0};
-    let S={cap:14, ob:50, pk:75, sizing:50, loss:10, cool:30};
+    // AVOIDED WINTER PEAK IS NOW FIXED at the value panel 7 and the
+    // bottom line of panel 4 both quote - 22 Nov 2026, Simon. It keeps its
+    // place in S and its hidden input, so the model and panel 4 read it
+    // exactly as before; what went is the lever, because a reader moving
+    // it was tuning the one number this site uses in two places.
+    // SPF* TAKES ITS SLOT. It is the assumption the whole comparison turns
+    // on and the one a reviewer reaches for first.
+    let S={cap:14, ob:50, pk:75, spf:0, sizing:50, loss:10, cool:30};
 
   const at=(a,y)=>{
     if(y<=YR[0]) return a[0];
@@ -3305,6 +3367,17 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
   // way and cancels; only the electrified remainder differs by source.
   const effSizing=()=>S.sizing*(1-S.loss/100);   // rated size less the shortfall
   const servedNow=()=>served(effSizing());
+  // The peak COP moves with the seasonal factor rather than staying put.
+  // For a given machine the ratio between the two is roughly constant
+  // across source temperatures - the design condition is a bigger lift
+  // whatever the source - so the anchor's own ratio is held, and the hint
+  // on the lever says so. calibration.network_band would give the pair
+  // properly; the build does not currently emit it, and when it does this
+  // should read the pair off the band instead of scaling.
+  const SPF0 = GEO.spf, PEAK0 = GEO.peak;
+  const PEAK_RATIO = SPF0 ? PEAK0 / SPF0 : 0.71;
+  S.spf = +SPF0.toFixed(1);
+  const applySpf=()=>{ GEO.spf = S.spf; GEO.peak = S.spf * PEAK_RATIO; };
   const avoidedTWh=()=>TWh*servedNow()*(1/CF.spf-1/GEO.spf);
   const avoidedGW =()=>PEAK_TH*(effSizing()/100)*(1/CF.peak-1/GEO.peak);
   const storeM3   =()=>PEAK_TH*(S.sizing/100)*1e6*TS1_STORE_L_PER_KW/1000;
@@ -3602,7 +3675,8 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       'Benefits and costs both scale with heat delivered, so halving or doubling ' +
       'the build leaves the ratio where it is and moves only the absolute figures.';
 
-    [['cap',gbp(S.cap)+(S.sizing!==REF_SIZING?' \u2192 '+gbp(capNow()):'')],['ob',S.ob+'%'],['pk','\u00a3'+S.pk+'/kW\u00b7yr'],
+    [['cap',gbp(S.cap)+(S.sizing!==REF_SIZING?' \u2192 '+gbp(capNow()):'')],['ob',S.ob+'%'],
+     ['spf',S.spf.toFixed(1)+' (peak '+(S.spf*PEAK_RATIO).toFixed(2)+')'],
      ['sizing',S.sizing+'% of peak'],
      ['loss',S.loss+'% of rated'],['cool',S.cool+'% of connections'],
      ]
@@ -3667,14 +3741,14 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       'government is enabling rather than procuring. Causeway Energies develops ' +
       'geothermal networks, so this panel is published against interest.';
     el('devex').innerHTML=
-      '<b>Pre-FID development capital is now INSIDE the figures above</b>, at ' +
+      '<b>Pre-FID development capital is inside the figures above</b>, at ' +
       (100 * DEVEX_PCT).toFixed(1) + '% of the subsurface increment \u2014 ' +
       gbp(capNow() * DEVEX_PCT) + ' before optimism bias. It was previously ' +
       'excluded on the ground that a developer carries it at a development ' +
       'return rather than infrastructure capital at financial close. That is ' +
       'a financing argument: a social appraisal counts a resource cost ' +
       'whoever bears it, and must count the prospects that never reached ' +
-      'close. Brought in after peer review. ' +
+      'close. ' +
       '<b>The blend\u2020:</b> shallow underground storage and closed loop at ' +
       '4% of capex on roughly full success, 60% of the scenario; intermediate ' +
       'doublets at 10% on an 80% success rate, 40%. Dividing by the success ' +
@@ -3698,8 +3772,11 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       'Switzerland all operate national resource risk funds. <b>The UK has ' +
       'none</b>, which is why the success rate falls on the developer.';
   }
-  ['cap','ob','pk','sizing','loss','cool'].forEach(k=>{
-    el('lv_'+k).addEventListener('input',e=>{ S[k]=+e.target.value; render(); });
+  ['cap','ob','spf','sizing','loss','cool'].forEach(k=>{
+    const i=el('lv_'+k);
+    if(i) i.addEventListener('input',e=>{ S[k]=+e.target.value;
+                                          if(k==='spf') applySpf();
+                                          render(); });
   });
 
     box.style.display = 'block';
