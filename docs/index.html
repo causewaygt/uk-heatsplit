@@ -1545,9 +1545,33 @@
   </section>
 
   <section>
-    <h1 class="sect">7. Value for money? An illustrative appraisal of geothermal against an air-source-led network</h1>
+    <h1 class="sect">7. Value for money: the business case for UK geothermal</h1>
       <div id="capitalpanel" style="display:none">
 
+        <!-- EVERYTHING BUT THE RATIO, THE SENTENCE AND THE BARS MOVED
+             INTO THE FOLD, 22 Nov 2026 - Simon. A reader who wants the
+             verdict gets it in one screen; a reader who wants to argue with
+             it opens the fold, moves the sliders and watches the ratio
+             change with the full case around it. The levers keep their ids
+             and their handlers - they are in a <details>, not removed, so
+             the model behind the face is the same model. -->
+        <div class="verdict">
+          <div class="big" id="big">—<small>benefit-cost ratio</small></div>
+        </div>
+        <p class="lede" id="bcrline" style="margin-top:6px">—</p>
+
+        <div class="h2lab" style="margin-top:14px">Benefits</div>
+        <div class="compbar" id="compbar"></div>
+        <div class="key" id="key"></div>
+
+        <div class="h2lab" style="margin-top:14px">Costs</div>
+        <div class="compbar" id="costbar"></div>
+        <div class="key" id="costkey"></div>
+
+        <details class="fold" id="fold_vfm"><summary>THE WHOLE CASE —
+          <b>what is being compared, the assumptions, and the sliders that
+          move the ratio</b></summary>
+        <div class="foldbody">
         <div class="kind">One counterfactual, on Green Book conventions — not a full appraisal</div>
 
         <p class="basis"><b>This does not ask whether to build the networks.</b>
@@ -1580,8 +1604,7 @@
         <p class="plain" id="plain"></p>
         <p class="sub" id="sub"></p>
 
-        <div class="verdict">
-          <div class="big" id="big">—<small>benefit-cost ratio</small></div>
+        <div class="verdict" style="margin-top:4px">
           <div class="side" id="s1">—<small>net present social value</small></div>
           <div class="side" id="s2">—<small>social cost, 60 years</small></div>
         </div>
@@ -1591,13 +1614,6 @@
           <p class="dealnote" id="dealnote"></p>
         </div>
 
-        <div class="h2lab" style="margin-top:14px">Benefits</div>
-        <div class="compbar" id="compbar"></div>
-        <div class="key" id="key"></div>
-
-        <div class="h2lab" style="margin-top:14px">Costs</div>
-        <div class="compbar" id="costbar"></div>
-        <div class="key" id="costkey"></div>
         <p class="caveat" id="invar"></p>
 
         <div class="levers">
@@ -1735,6 +1751,8 @@
               ground, and the zoned towns and cities are largely the same places.</span></li>
           </ol>
         </div>
+
+        </div></details>
 
       </div>
   </section>
@@ -2099,7 +2117,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.27.1';
+const SITE_VERSION = '9.28.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -3457,6 +3475,14 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
                  ['Air quality',a.aq,'var(--ash)'],
                  ['Chiller plant not built',a.chill,'var(--cool)']]
                  .filter(p=>p[1]>0.01);
+    // BOTH BARS ON ONE SCALE - 22 Nov 2026, Simon. Each used to be drawn
+    // to its own total, so a 3:1 case and a 1:1 case looked identical and
+    // the two bars said nothing the numbers beside them did not. Scaled to
+    // the larger of the two, the benefit-cost ratio IS the length
+    // difference, which is the only thing the pair is there to show.
+    const BCSCALE = Math.max(a.ben, a.cost) || 1;
+    el('compbar').style.width = (100*a.ben/BCSCALE).toFixed(2)+'%';
+    el('costbar').style.width = (100*a.cost/BCSCALE).toFixed(2)+'%';
     el('compbar').innerHTML=parts.map(p=>
       '<span style="width:'+(100*p[1]/a.ben)+'%;background:'+p[2]+'"></span>').join('');
     el('key').innerHTML=parts.map(p=>
@@ -3478,6 +3504,17 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       '<span style="white-space:nowrap"><i style="background:'+p[2]+'"></i>'+p[0]+
       ' '+gbp(p[1])+' <span style="color:var(--muted)">'+
       Math.round(100*p[1]/a.cost)+'%</span></span>').join('');
+
+    // ONE SENTENCE ON THE FACE. Everything it needs is already computed;
+    // it names what the ratio compares, because a bare number does not say
+    // against what - and that is the single most common misreading of a
+    // BCR lifted off a page.
+    const bl=el('bcrline');
+    if(bl) bl.innerHTML =
+      'Every \u00a31 of extra cost in putting geothermal at the head of the '+
+      'heat networks government has already committed to returns <b>\u00a3'+
+      a.bcr.toFixed(2)+'</b> of benefit over sixty years, on Green Book '+
+      'conventions, against the air-source-led alternative.';
 
     el('invar').textContent=
       'The ratio does not depend on how large you think the programme is. ' +
