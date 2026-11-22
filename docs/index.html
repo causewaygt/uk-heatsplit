@@ -594,6 +594,23 @@
   .heroexp .foldbody p b{color:var(--geo)}
   @media(max-width:760px){ .heroexp .foldbody p{font-size:14px} }
 
+  /* GREEN BOLD IN EVERY EXPLANATION FOLD, 22 Nov 2026 - Simon. The hero's
+     fold set its bold runs in the geo green and that is what makes the
+     bold-lead structure scannable: the eye finds the lead of each
+     paragraph without reading it. Panel 1's fold used the same structure
+     in paper white, so it read as a wall of equal-weight text.
+     Scoped to .foldbody so it reaches the explanation folds and nothing
+     on a panel face, and written once here rather than per panel, so the
+     panels still to be reviewed inherit it instead of each needing a
+     rule of its own. */
+  .foldbody p b, .foldbody li b{color:var(--geo)}
+  /* Exceptions, and they are exceptions to a NEW rule rather than colours
+     of their own: bold inside .caveat, .fixed and .heromini had no rule
+     before this one and simply inherited its paragraph's muted grey. The
+     green is for the affirmative leads; a qualification set in it would
+     read as a claim. So these keep what they already had. */
+  .foldbody .caveat b, .foldbody .fixed b, .foldbody .heromini b{color:inherit}
+
   /* Footer data-freshness block, 22 Nov 2026. */
   .freshblock{margin:4px 0 18px;padding:14px 16px;border:1px solid var(--line);
       border-radius:8px;background:rgba(255,255,255,.02)}
@@ -2355,7 +2372,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.52.0';
+const SITE_VERSION = '9.54.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -4478,16 +4495,13 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
         t += ' Future geothermal networks would be ' + G(pc(ashp, net) + '%')
            + ' cheaper than air source.';
       }
-      var vent = cost.national_week_total_Mgbp - cost.national_week_heat_Mgbp
-               - (cost.national_week_cool_Mgbp || 0);
-      t += ' <span style="color:var(--muted)">Britain’s heating and cooling '
-         + 'bill this week: ~£' + fmt(cost.national_week_total_Mgbp) + 'm'
-         + (cost.national_week_heat_Mgbp != null
-             ? ' (heat ~£' + fmt(cost.national_week_heat_Mgbp)
-               + 'm · cooling ~£' + fmt(cost.national_week_cool_Mgbp) + 'm'
-               + (vent > 0.5 ? ' · ventilation ~£' + fmt(vent) + 'm' : '') + ')'
-             : '')
-         + '.</span>';
+      // The national weekly bill came off this byline on 22 Nov 2026
+      // (Simon). The panel is about what each ROUTE costs; the bill is a
+      // different quantity, and the hero already carries it over a window
+      // the reader chose. It survives in the what-if line further down,
+      // which needs it to state what the 20% block would have cost
+      // instead - and that line quotes a single total, so the bracket
+      // that used to omit ventilation goes with it.
       document.getElementById('billline').innerHTML = t;
     })();
     const rows = document.getElementById('costrows');
