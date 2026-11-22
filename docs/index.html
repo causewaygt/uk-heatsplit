@@ -1463,40 +1463,12 @@
       <div class="geobars" id="geobars"></div>
       <div class="billline" id="geowhatif" style="margin-top:18px"></div>
       <p class="geosub" id="geowhatifnote"></p>
-      <p class="geosub" id="geobench" style="margin-top:16px"></p>
-      <!-- THE TWO TARGETS PUBLISHED IN THE LAST MONTH, added 21 Nov 2026 at
-           Simon's request. Static text, not payload: both are one-off
-           publications with fixed figures, and inventing a build field for
-           two sentences that change once a year would be worse. The
-           load-factor note is the point of including the NGC figure rather
-           than simply repeating it - 10 GW reaching 70 TWh implies about
-           7,000 equivalent full-load hours, and this site's own UK fleet
-           runs at 1,661. The difference is deep district heat against
-           shallow ground source, and a reader comparing the two bars
-           without it would conclude the site's 2050 row is unambitious
-           when it is mostly a different kind of plant. -->
-      <p class="geosub" id="geotargets" style="margin-top:12px">
-        <b>Two targets published last month.</b> The National Geothermal
-        Centre’s <i>Our Geothermal Nation</i> (October 2026) sets <b>10 GW
-        of heat and 1.5 GW of power by 2050</b>, illustrated as ~70 and
-        ~11.8 TWh a year, from about 1 GW and 0.3% of UK heat today. That
-        70 TWh implies ~7,000 full-load hours against the 1,661 measured on
-        the UK’s shallow fleet, so it describes a far deeper,
-        district-heat-led build than the bars above†. EGEC’s declaration of
-        29 October calls for <b>250 GW across the EU by 2040</b> — over
-        1,000 TWh a year, a fifth of projected 2040 final energy demand
-        excluding transport.</p>
+      <!-- THE PANEL'S PROSE MOVED INTO A FOLD, 22 Nov 2026 - Simon. The
+           benchmark line and the two 2026 targets are context for the bars
+           rather than readings off them, and on a panel whose job is "here
+           is where we are and where we could be" the numbers should arrive
+           before the commentary. -->
       <div id="emptybar" style="display:none">
-        <h2 style="margin-top:30px">The empty bar — installed hardware vs the 20% what-if</h2>
-        <div class="statrow" style="grid-template-columns:repeat(3,1fr);margin-top:14px">
-          <div class="stat"><div class="fig" id="eb_installed">—</div>
-            <div class="cap" id="eb_installed_cap">UK ground-source operating today†</div></div>
-          <div class="stat"><div class="fig" id="eb_pp">—</div>
-            <div class="cap" id="eb_pp_cap">installed thermal watts per person†</div></div>
-          <div class="stat"><div class="fig" id="eb_need">—</div>
-            <div class="cap" id="eb_need_cap">what the 20% what-if requires†</div></div>
-        </div>
-        <div id="emptybarplot" style="width:100%;height:260px;margin-top:14px"></div>
 
         <!-- REPLACED THE FOUR-COUNTRY SHARE CHART, 21 Nov 2026 - Simon. Four
              comparators chosen to flatter the argument is a weaker chart
@@ -1511,6 +1483,47 @@
           can use others’ learning to catch up</h2>
         <div id="benchplot" style="width:100%;height:300px;margin-top:10px"></div>
         <p class="costnote" id="benchnote"></p>
+
+        <details class="fold" id="fold_geo6"><summary>CONTEXT —
+          <b>how this compares, and the targets published in 2026</b></summary>
+        <div class="foldbody">
+          <p class="costnote" id="benchfold">—</p>
+      <p class="geosub" id="geobench" style="margin-top:16px"></p>
+      <!-- THE TWO 2026 TARGETS, added 21 Nov 2026 at
+           Simon's request. Static text, not payload: both are one-off
+           publications with fixed figures, and inventing a build field for
+           two sentences that change once a year would be worse. The
+           load-factor note is the point of including the NGC figure rather
+           than simply repeating it - 10 GW reaching 70 TWh implies about
+           7,000 equivalent full-load hours, and this site's own UK fleet
+           runs at 1,661. The difference is deep district heat against
+           shallow ground source, and a reader comparing the two bars
+           without it would conclude the site's 2050 row is unambitious
+           when it is mostly a different kind of plant. -->
+      <p class="geosub" id="geotargets" style="margin-top:12px">
+        <b>Two targets, both published in October 2026.</b> The National Geothermal
+        Centre’s <i>Our Geothermal Nation</i> sets <b>10 GW
+        of heat and 1.5 GW of power by 2050</b>, illustrated as ~70 and
+        ~11.8 TWh a year, from about 1 GW and 0.3% of UK heat today. That
+        70 TWh implies ~7,000 full-load hours against the 1,661 measured on
+        the UK’s shallow fleet, so it describes a far deeper,
+        district-heat-led build than the bars above†. EGEC’s declaration of
+        29 October 2026 calls for <b>250 GW across the EU by 2040</b> — over
+        1,000 TWh a year, a fifth of projected 2040 final energy demand
+        excluding transport.</p>
+      <!-- THE EMPTY BAR CAME OUT 22 Nov 2026 - Simon: the three-stat row
+           and the four-country hardware chart. The eighteen-country chart
+           below makes the same point against a wider field, and the
+           hatched what-if bar towering over four real ones said more about
+           the scale of the what-if than about any country.
+
+           IT ALSO SETTLES THE PER-HEAD QUESTION. That row carried the only
+           other watts-per-person figure on the page, on the site's own
+           68.0m population convention and including the deep fleet; the
+           chart below is shallow-only on a published population. With the
+           row gone there is one such figure, not two that differ for two
+           reasons. -->
+        </div></details>
         <button class="pngbtn" onclick="exportPanel5()">⬇ PNG FOR SLIDES</button>
     </div>
 
@@ -2074,7 +2087,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.21.0';
+const SITE_VERSION = '9.23.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -2163,8 +2176,14 @@ function py0(head){ return head + 22; }
 // means it must be LARGER relative to the canvas than a full-slide export,
 // not smaller: the graphic will be projected at the same width either way.
 window.exportPanel5 = async function(){
-  const gd1 = document.getElementById('emptybarplot');
-  const gd2 = document.getElementById('benchplot');
+  // REPOINTED 22 Nov 2026. This exported the empty-bar chart with the
+  // benchmark chart stacked under it; the empty bar has gone, so the
+  // benchmark chart is now the only one and the second slot is empty.
+  // Left as a two-slot layout rather than rewritten: the function lays out
+  // whatever it is given, and a one-chart export is the case it already
+  // handles when the second is missing.
+  const gd1 = document.getElementById('benchplot');
+  const gd2 = null;
   if(!window.Plotly || !gd1 || !gd1.data || !gd1.data.length) return;
   const has2 = !!(gd2 && gd2.data && gd2.data.length);
   // PORTRAIT, half a 16:9 slide BY WIDTH - 800x900 - so it sits in the left
@@ -5364,52 +5383,12 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
 
   const hw = (d.geothermal || {}).hardware;
   if(hw && hw.whatif_MWth){
+    // The empty-bar block's writers went with its markup on 22 Nov 2026.
+    // They were unguarded getElementById().innerHTML calls, so leaving
+    // them behind would have thrown into the page's swallowing .catch()
+    // and reported the whole payload as missing - the same failure the
+    // orphaned share-of-heat sentence caused the day before.
     document.getElementById('emptybar').style.display = '';
-    const inst = hw.uk_gshp_MWth + hw.uk_deep_MWth;
-    document.getElementById('eb_installed').innerHTML =
-      fmt(hw.uk_gshp_MWth) + '<small> MWth</small>';
-    document.getElementById('eb_installed_cap').textContent =
-      'UK ground-source operating today† · ~55,210 systems (EGEC ' +
-      '2025) · deeper geothermal adds ~' + hw.uk_deep_MWth + ' MWth†';
-    document.getElementById('eb_pp').innerHTML =
-      hw.per_person_W.toFixed(0) + '<small> vs </small>' +
-      hw.sweden_per_person_W + '<small> W†</small>';
-    document.getElementById('eb_pp_cap').textContent =
-      'installed thermal watts per person, UK vs Sweden† · and still ' +
-      'compounding: 2025 sales UK ' + fmt(hw.sales_2025.uk) + ' vs Sweden ' +
-      fmt(hw.sales_2025.sweden) + ' units (EGEC)';
-    document.getElementById('eb_need').innerHTML =
-      (hw.whatif_MWth / 1000).toFixed(1) + '<small> GWth</small>';
-    document.getElementById('eb_need_cap').textContent =
-      'installed capacity the 20% what-if requires at ' + fmt(hw.uk_flh) +
-      ' equivalent full-load hours†';
-    const cats = ['United Kingdom'].concat(hw.comparators.map(c =>
-      c.name + '†'));
-    const gshp = [hw.uk_gshp_MWth].concat(hw.comparators.map(c => c.gshp_MWth));
-    const deep = [hw.uk_deep_MWth].concat(hw.comparators.map(c => c.deep_MWth));
-    const wif  = [Math.max(0, hw.whatif_MWth - inst)]
-                 .concat(hw.comparators.map(() => 0));
-    Plotly.newPlot('emptybarplot', [
-      {x: cats, y: gshp, type: 'bar', name: 'ground source, installed',
-       marker: {color: css('--geo')}},
-      {x: cats, y: deep, type: 'bar', name: 'deeper geothermal, installed†',
-       marker: {color: css('--cool')}},
-      {x: cats, y: wif, type: 'bar', name: 'the 20% what-if†',
-       marker: {color: 'rgba(58,170,53,.25)',
-                pattern: {shape: '/', fgcolor: css('--geo'), solidity: .25}}},
-    ], {
-      barmode: 'stack',
-      paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
-      font: {family: 'Lato', color: css('--muted'), size: 12},
-      margin: {l: 60, r: 10, t: 10, b: 30},
-      xaxis: {gridcolor: css('--line')},
-      yaxis: {title: 'installed capacity — MWth', gridcolor: css('--line')},
-      legend: {orientation: 'h', y: 1.12, traceorder: 'normal'},
-      annotations: [{x: 'United Kingdom',
-        y: hw.whatif_MWth, yanchor: 'bottom',
-        text: '→ ' + fmt(hw.whatif_MWth) + ' MWth†',
-        showarrow: false, font: {size: 11, color: css('--geo')}}],
-    }, {displayModeBar: false, responsive: true});
     // ---- eighteen countries, output and capacity per head --------------
     // TWO SCALES BECAUSE THERE ARE TWO QUESTIONS. Annual output says how
     // much geothermal heat a country actually gets; capacity per head says
@@ -5470,15 +5449,23 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
           .sort((x, y) => (y.MWth / y.population_m) - (x.MWth / x.population_m));
         const rankHead = byHead.findIndex(c => isUK(c.name)) + 1;
         const best = byHead[0];
+        // The face carries the reading; the basis and the source go to the
+        // fold with the rest of the panel's prose - 22 Nov 2026, Simon.
         note.innerHTML =
           'The UK is <b>' + rankOut + 'th of ' + cs.length + '</b> on annual ' +
-          'output and <b>' + rankHead + 'th</b> on installed capacity per ' +
-          'head, at <b>' + (uk.MWth / uk.population_m).toFixed(0) + ' W</b> ' +
-          'against ' + best.name + '\u2019s <b>' +
-          (best.MWth / best.population_m).toFixed(0) + ' W</b>. Every ' +
-          'country above it drilled the same rock with the same machines, ' +
-          'which is the encouraging half: none of this is a technology the ' +
-          'UK has to invent. ' + (gb.basis || '') + ' ' + (gb.source || '');
+          'output and <b>' + rankHead + 'th</b> on capacity per head, at <b>' +
+          (uk.MWth / uk.population_m).toFixed(0) + ' W</b> against ' +
+          best.name + '\u2019s <b>' +
+          (best.MWth / best.population_m).toFixed(0) + ' W</b> \u2014 but ' +
+          'every country above it drilled the same rock with the same ' +
+          'machines\u2020.';
+        const bf = document.getElementById('benchfold');
+        if(bf) bf.innerHTML =
+          '<b>What the country chart counts.</b> ' + (gb.basis || '') + ' ' +
+          (gb.source || '') + ' Populations are ' +
+          (gb.population_source || 'as stated in the data file') +
+          ', carried in the file so the chart computes watts per person ' +
+          'rather than being handed a derived number.';
       }
     });
     // ONE DEFINITION OF "20% OF UK HEAT". Raised by Charlotte Adams in peer
