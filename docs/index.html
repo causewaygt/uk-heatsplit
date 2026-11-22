@@ -1152,52 +1152,39 @@
          argument against heat pumps until you know what sets it. Every
          figure quoted below is read from the payload by the paragraph that
          follows, or stated as a direction rather than a number. -->
-    <p class="costnote"><b>Why the heat pumps are not all in one place.</b>
-      A heat pump does not make heat, it moves it, and the cost is set by how
-      far it has to move it. An <b>air-source</b> unit lifts from whatever the
-      outside air is doing, which on the coldest mornings is the moment the
-      house wants most heat - the efficiency falls exactly when the demand
-      peaks.
-      <b>Ground source</b> lifts from ground that sits near 10 °C all winter,
-      so the gap it works across barely changes between October and February.
-      A <b>geothermal network</b> starts warmer still and shares one set of
-      boreholes and one loop across many buildings, so each building is
-      lifting a short distance on a shared infrastructure.</p>
-    <p class="costnote"><b>Why hot water is the expensive half.</b> Space
-      heating can run at a low flow temperature on a mild day, and the heat
-      pump rewards that. A hot-water cylinder wants its 52 °C whatever the
-      weather, so none of that benefit is available - the lift is fixed and
-      the efficiency with it. A gas boiler is indifferent: it burns the same
-      gas for the cylinder as for the radiators. That is most of why the
-      AS DELIVERED view is dearer than the SPACE HEATING one for every heat
-      pump on the chart, and barely moves gas at all.</p>
-    <p class="costnote"><b>Why electricity carries more than its fuel.</b>
-      On the AT THE METER basis each route is priced at what a household
-      actually pays, and the policy and network costs loaded onto a unit of
-      electricity are several times those on a unit of gas. Switch to
-      WHOLESALE and that loading comes off both: the heat pumps move down the
-      chart, gas moves far less, and the distance between the two views is the
-      part of the price that is a policy choice rather than a physical one.</p>
-    <p class="costnote"><b>Why gas looks dear today and cheap over the year.</b>
-      The gas routes are flat lines that step: they are the price cap, and it
-      is reset quarterly. A mean taken over a long window still carries the
-      months when the cap was lower, so the twelve-month figure sits below
-      today's. The heat pumps have no such steps - their lines wander daily
-      with the weather, because the weather is what sets the lift.</p>
-    <p class="costnote"><b>Why the means are weighted by heat.</b> A plain
-      average over days would count a mild September day, when almost no heat
-      is delivered and every heat pump looks excellent, the same as a January
-      day carrying twenty times the load. Weighting by the heat actually
-      delivered puts the figure where the energy is - and it is what moves
-      air-source above gas on the year rather than below it.</p>
-    <p class="costnote"><b>Why resistive electric is hidden.</b> Direct
-      electric heat is a unit of electricity for a unit of heat, with no
-      lift and no multiplier, so it runs near 26p and the axis has to stretch
-      to about three times its height to reach it. Everything the panel is
-      about then happens in the bottom third. It is on the toggle because it
-      is the ceiling every other route is measured against, not because it is
-      a route anybody is choosing.</p>
-    <p class="costnote" id="hpnote"></p>
+    <p class="costnote"><b>A heat pump moves heat rather than making it,</b>
+      so its cost is set by how far it has to move it. <b>Air source</b>
+      lifts from outside air, which is coldest on the morning the house
+      wants most heat — the efficiency falls exactly when demand peaks.
+      <b>Ground source</b> lifts from ground near 10&nbsp;°C all winter,
+      so the gap barely changes between October and February. A
+      <b>geothermal network</b> starts warmer still and shares one set of
+      boreholes across many buildings.</p>
+    <p class="costnote"><b>Hot water is the expensive half.</b> Space heating
+      can run at a low flow temperature on a mild day and a heat pump rewards
+      that; a cylinder wants its 52&nbsp;°C whatever the weather, so the
+      lift is fixed and the efficiency with it. A gas boiler is indifferent.
+      That is most of why AS DELIVERED sits above SPACE HEATING for every
+      heat pump here, and barely moves gas.</p>
+    <p class="costnote"><b>Electricity carries more than its fuel.</b> AT THE
+      METER prices each route at what a household actually pays, and the
+      policy and network costs on a unit of electricity are several times
+      those on a unit of gas. Switch to WHOLESALE and that loading comes off
+      both: the heat pumps drop, gas moves far less. The distance between the
+      two views is the part of the price that is a policy choice rather than
+      a physical one.</p>
+    <p class="costnote"><b>Gas looks dear today and cheap over the year.</b>
+      The gas lines are the price cap, reset quarterly, so a mean over a long
+      window still carries the months when the cap was lower. The heat pumps
+      have no steps — they wander daily with the weather, because the
+      weather is what sets the lift.</p>
+    <p class="costnote"><b>Resistive electric is hidden by default.</b> A unit
+      of electricity for a unit of heat, no lift and no multiplier, so it runs
+      near 26p and the axis has to stretch to about three times its height to
+      reach it — leaving everything the panel is about in the bottom
+      third. It is on the toggle because it is the ceiling the other routes
+      are measured against, not because anyone is choosing it.</p>
+    <div id="hpnote"></div>
     <table class="costtable">
       <thead><tr><th>Route</th><th class="num">p per useful kWh</th><th>Basis</th></tr></thead>
       <tbody id="costrows"></tbody>
@@ -2368,7 +2355,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.48.0';
+const SITE_VERSION = '9.52.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -4044,6 +4031,17 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     const gbp = m => m >= 1000
       ? '£' + (m / 1000).toFixed(2) + 'bn'
       : '£' + Math.round(m).toLocaleString('en-GB') + 'm';
+    // ONE UNIT FOR THE WHOLE CARD, 22 Nov 2026 - Simon. gbp() above picks
+    // a unit per value, so at the short windows the saving printed in £m
+    // while the two bars beside it printed in £bn: the tip read "the
+    // hatched gap is the £128m" pointing at bars labelled £1.35bn and
+    // £1.22bn, and the reader had to convert to see they were the same
+    // number. The unit is taken from the SAVING, not the totals, because
+    // the saving is the headline and "£0.13bn" is a worse headline than
+    // "£128m".
+    const gbpIn = (m, unit) => unit === 'bn'
+      ? '£' + (m / 1000).toFixed(2) + 'bn'
+      : '£' + Math.round(m).toLocaleString('en-GB') + 'm';
     const WORDS = {1: 'in the last week', 4: 'in the last four weeks',
                    12: 'in the last twelve weeks',
                    52: 'in the last twelve months',
@@ -4055,7 +4053,8 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       const wf  = rows.reduce((a, e) => a + e.whatif.bill_Mgbp, 0);
       const saved = now - wf;
       const sc = Math.max(now, wf) || 1;
-      hero.textContent = gbp(saved);
+      const unit = saved >= 1000 ? 'bn' : 'm';
+      hero.textContent = gbpIn(saved, unit);
       document.getElementById('ask_sub').innerHTML =
         'not spent on heating and cooling <b>' +
         (WORDS[win] || 'over the window') + '</b>';
@@ -4067,11 +4066,11 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
           ? ' · ' + rows.length + ' priced weeks on record, not ' + win
           : '');
       document.getElementById('ask_val_now').innerHTML =
-        gbp(now).replace(/bn$/, '<small>bn</small>')
-                .replace(/m$/, '<small>m</small>');
+        gbpIn(now, unit).replace(/bn$/, '<small>bn</small>')
+                        .replace(/m$/, '<small>m</small>');
       document.getElementById('ask_val_wf').innerHTML =
-        gbp(wf).replace(/bn$/, '<small>bn</small>')
-               .replace(/m$/, '<small>m</small>');
+        gbpIn(wf, unit).replace(/bn$/, '<small>bn</small>')
+                       .replace(/m$/, '<small>m</small>');
       document.getElementById('ask_bar_now').style.width =
         (100 * now / sc) + '%';
       document.getElementById('ask_bar_wf').style.width =
@@ -4081,7 +4080,7 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       g.style.left  = (100 * wf / sc + 1) + '%';
       g.style.width = Math.max(0, 100 * saved / sc - 1) + '%';
       document.getElementById('ask_tip').innerHTML =
-        'the hatched gap is the ' + gbp(saved) +
+        'the hatched gap is the ' + gbpIn(saved, unit) +
         ' — energy that is never bought';
       // THE TWO SECONDARY WINS, on the same window as the headline.
       // emissions_kt, NOT carbon_kt: the history rows carry the former and
@@ -4136,7 +4135,7 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       // be misread as answering.
       const nt = document.getElementById('ask_next_text');
       if(nt) nt.innerHTML =
-        'The headline saving of <b>' + gbp(saved) + '</b> is the gap between ' +
+        'The headline saving of <b>' + gbpIn(saved, unit) + '</b> is the gap between ' +
         'what Britain pays for heat today and what geothermal would cost to ' +
         'run. <b>See what each route costs</b> — in pence per kWh, at the ' +
         'meter.';
@@ -4434,38 +4433,63 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
 
   const cost = d.cost;
   if(cost){
-    document.getElementById('billline').innerHTML =
-      'Britain\'s estimated heating &amp; cooling energy bill this week: <b>~£' +
-      fmt(cost.national_week_total_Mgbp) + ' million</b>' +
-      // VENTILATION NAMED, 22 Nov 2026 - Simon. The bracket used to list
-      // heat and cooling against a total that also carried ventilation, so
-      // it did not add up: £1,341m + £0m printed beside £1,366m, with £25m
-      // unexplained. In winter that gap is conspicuous because cooling is
-      // zero and a reader can see it; in summer it hides inside a
-      // plausible-looking sum, which is worse.
-      //
-      // ECUK publishes cooling and ventilation as one line and this site
-      // splits them, so ventilation exists as its own quantity on the
-      // energy side (purchased = heat + cooling + ventilation) but had no
-      // name on the cost side. It is taken as the residual rather than a
-      // published field because the payload carries no ventilation cost;
-      // the energy identity above is what licenses that.
-      (cost.national_week_heat_Mgbp != null
-        ? (() => {
-            const vent = cost.national_week_total_Mgbp -
-                         cost.national_week_heat_Mgbp -
-                         (cost.national_week_cool_Mgbp || 0);
-            return ' (heat ~£' + fmt(cost.national_week_heat_Mgbp) +
-                   'm · cooling ~£' + fmt(cost.national_week_cool_Mgbp) + 'm' +
-                   (vent > 0.5 ? ' · ventilation ~£' + fmt(vent) + 'm' : '') + ')';
-          })()
-        : '') +
-      (cost.gshp_vs_gas_boiler && cost.gshp_vs_gas_boiler.gshp_cheaper
-        ? ' · On the cap in force today, ground-source heat (' +
-          cost.gshp_vs_gas_boiler.gshp + 'p/useful kWh) is <b style="color:' +
-          css('--geo') + '">cheaper than a gas boiler</b> (' +
-          cost.gshp_vs_gas_boiler.gas_boiler + 'p).'
-        : '');
+    // BYLINE REWRITTEN 22 Nov 2026 - Simon. It led with the national
+    // weekly bill and mentioned the route comparison in passing at the end
+    // of the sentence, which put the panel's actual subject last. The
+    // comparison leads now, and all three margins are computed from the
+    // same route table the chart is drawn from rather than written down.
+    //
+    // The bill keeps its place at the end, muted, with ventilation named
+    // so the bracket sums to the total - ECUK publishes cooling and
+    // ventilation as one line, this site splits them, and the cost side
+    // had no name for the remainder. It is the residual rather than a
+    // published field because the payload carries no ventilation cost;
+    // the energy identity (purchased = heat + cooling + ventilation) is
+    // what licenses taking it that way.
+    (function(){
+      var R = {};
+      (cost.household_p_per_useful_kwh || []).forEach(function(r){
+        R[r.route] = r.p_per_useful_kwh;
+      });
+      var gs   = R['Ground-source / geothermal'],
+          gas  = R['Gas boiler'],
+          ashp = R['Air-source heat pump'],
+          net  = R['Geothermal heat/cool network'];
+      var pc = function(hi, lo){ return Math.round(100 * (hi - lo) / hi); };
+      var G  = function(x){ return '<b style="color:' + css('--geo') + '">' + x + '</b>'; };
+      var t = '';
+      if(gs != null && gas != null && ashp != null){
+        // Only claim "cheaper" where it is cheaper. After a cap step, or on
+        // a mild week, ground source can sit above gas - and a byline that
+        // asserts otherwise is the first thing a reader checks against the
+        // chart directly beneath it.
+        var vGas = gs < gas, vAir = gs < ashp;
+        t = 'This week <b>ground source</b> (shallow geothermal) is '
+          + (vGas && vAir ? 'cheaper to run than ' : 'priced against ')
+          + 'gas '
+          + (vGas ? 'by ' + G(pc(gas, gs) + '%')
+                  : '— dearer by ' + pc(gs, gas) + '%')
+          + ' and an air-source heat pump '
+          + (vAir ? 'by ' + G(pc(ashp, gs) + '%')
+                  : '— dearer by ' + pc(gs, ashp) + '%')
+          + '.';
+      }
+      if(net != null && ashp != null){
+        t += ' Future geothermal networks would be ' + G(pc(ashp, net) + '%')
+           + ' cheaper than air source.';
+      }
+      var vent = cost.national_week_total_Mgbp - cost.national_week_heat_Mgbp
+               - (cost.national_week_cool_Mgbp || 0);
+      t += ' <span style="color:var(--muted)">Britain’s heating and cooling '
+         + 'bill this week: ~£' + fmt(cost.national_week_total_Mgbp) + 'm'
+         + (cost.national_week_heat_Mgbp != null
+             ? ' (heat ~£' + fmt(cost.national_week_heat_Mgbp)
+               + 'm · cooling ~£' + fmt(cost.national_week_cool_Mgbp) + 'm'
+               + (vent > 0.5 ? ' · ventilation ~£' + fmt(vent) + 'm' : '') + ')'
+             : '')
+         + '.</span>';
+      document.getElementById('billline').innerHTML = t;
+    })();
     const rows = document.getElementById('costrows');
     (cost.household_p_per_useful_kwh || []).forEach(r=>{
       const isGeo = r.route.toLowerCase().includes('ground');
@@ -4477,8 +4501,20 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     // Route bars above the evidence fold. Same route order in both charts,
     // so cost and carbon can be read against each other; geothermal routes
     // carry the geo colour in both so the eye tracks one family across.
-    document.getElementById('costnote').textContent =
-      cost.price_tag + '. ' + cost.note;
+    // cost.price_tag and cost.note BOTH state the domestic/services price
+    // split, so concatenating them printed it twice in one paragraph.
+    // price_tag is the more specific of the two (it carries the cap date),
+    // so the duplicate sentence is dropped from note. 22 Nov 2026.
+    (function(){
+      var note = cost.note || '';
+      var dup  = note.indexOf('Gas and electricity priced by sector');
+      if(dup > -1){
+        var end = note.indexOf('.', note.indexOf('estimates', dup));
+        if(end > -1) note = (note.slice(0, dup) + note.slice(end + 1)).replace(/\s+/g, ' ').trim();
+      }
+      document.getElementById('costnote').textContent =
+        cost.price_tag + '. ' + note;
+    })();
   }
 
   const cb = d.carbon;
@@ -5429,26 +5465,7 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       // illegible on top of the other. ay is a PIXEL offset from the
       // anchor, so the line still points at the true value while the text
       // steps clear of its neighbour.
-      // In PIXELS, not in a fraction of the span: the text is 12px whatever
-      // the axis happens to cover, so a percentage threshold is right at one
-      // window and wrong at the next. The axis runs from zero, so the top of
-      // the drawn range stands in for the plot's height.
-      // MEASURED, NOT TYPED. This read a hardcoded 300 to match the markup's
-      // height, and when the chart was shortened to 268 on 21 Nov 2026 the
-      // separation silently started overestimating the spacing by 12% - the
-      // kind of drift that shows up as two labels touching on one window and
-      // nowhere else.
-      const plotH = (document.getElementById('hpchart') || {}).clientHeight
-                    || 268;
-      const top = Math.max(...anns.map(a => a.y)) || 1;
-      const pxPerUnit = plotH / top;
-      anns.sort((a, b) => a.y - b.y).forEach((a, i, arr) => {
-        if(!i) return;
-        const prev = arr[i - 1];
-        if((a.y - prev.y) * pxPerUnit < 15)
-          a.ay = (prev.ay || 0) - 15;
-      });
-      Plotly.newPlot('hpchart', tr, {
+      function PLOT_LAYOUT(){ return {
         paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)',
         font:{family:'Lato', color:css('--muted'), size:12},
         margin:{l:62,r:58,t:46,b:42},
@@ -5457,7 +5474,51 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
                gridcolor:css('--line'), rangemode:'tozero'},
         legend:{orientation:'h', y:1.02, yanchor:'bottom'},
         annotations: anns
-      }, {displayModeBar:false, responsive:true});
+      }; }
+      const PLOT_CONFIG = {displayModeBar:false, responsive:true};
+      // SEPARATION IS APPLIED AFTER THE PLOT IS DRAWN, 22 Nov 2026 - Simon.
+      //
+      // WHAT WAS WRONG. This estimated pixels-per-pence as clientHeight of
+      // the chart div divided by the largest mean. Both halves were wrong:
+      // clientHeight includes the 46px top and 42px bottom margins, so on a
+      // 268px div the real plotting area is 180px and the estimate ran ~49%
+      // high; and the axis runs past the largest mean to its own round
+      // number, so the span was wrong again. Two labels half a pence apart
+      // measured as 16px and passed the 15px test while actually sitting
+      // 11px apart - closer than the 12px text - and printed on top of each
+      // other. That is the pair visible at the right edge on the twelve
+      // month window.
+      //
+      // Asking Plotly for the axis after it has drawn removes the guess:
+      // l2p() is the same data-to-pixel mapping the chart itself used.
+      const sorted = anns.slice().sort((a, b) => a.y - b.y);
+      Plotly.newPlot('hpchart', tr, PLOT_LAYOUT(), PLOT_CONFIG).then(gd => {
+        const ya = gd && gd._fullLayout && gd._fullLayout.yaxis;
+        if(!ya || typeof ya.l2p !== 'function') return;
+        // ay IS THE TEXT'S PIXEL OFFSET FROM THE ANCHOR, AND NEGATIVE IS
+        // UP. The first version of this subtracted ay instead of adding it,
+        // which pushed the crowded label the wrong way and left 9.5 and 8.2
+        // seven pixels apart - tighter than the pair it was fixing.
+        //
+        // Walk DOWN the page (values descending) and keep a running floor:
+        // each label sits at least MIN below the one above it, so a run of
+        // three crowded means fans out instead of the third landing back on
+        // the first.
+        const MIN = 14;              // 12px text plus a little air
+        let moved = false, floorPx = -Infinity;
+        sorted.sort((x, y) => y.y - x.y);          // top of plot first
+        sorted.forEach(x => {
+          const base = ya.l2p(x.y);
+          let pos = base + (x.ay || 0);
+          if(pos - floorPx < MIN){
+            pos = floorPx + MIN;
+            x.ay = pos - base;
+            moved = true;
+          }
+          floorPx = pos;
+        });
+        if(moved) Plotly.relayout('hpchart', {annotations: anns});
+      });
       // LEGEND CLICKS MUST TAKE THE MEAN WITH THE LINE. Plotly hides a trace
       // on a legend click and rescales the axis to what is left, but an
       // annotation is a layout object and knows nothing about it - so the
@@ -5589,86 +5650,96 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       // chart's own labels are the figures; this note explains them. The
       // last() helper went with it - nothing else on this line reads a
       // single day.
+      // RESTRUCTURED 22 Nov 2026 - Simon, to match the hero's fold: short
+      // bold-lead paragraphs, one idea each.
+      //
+      // WHAT CAME OUT. This was ~700 words in a single undifferentiated
+      // block appended after six static paragraphs that already made most
+      // of its points - the retail-versus-wholesale loading, the quarterly
+      // cap steps, and the heat-weighted means each had a paragraph of
+      // their own directly above. What is kept is only what those six do
+      // not say: how to read the right-hand figures and the volume band,
+      // the measured COP spread, the basis caveats that are specific to a
+      // toggle setting, and the peak-shape premium.
+      var P = [];
+
+      P.push('<b>Reading the chart.</b> The figures at the right are the ' +
+             'means for the window selected above, and the line under the ' +
+             'chart ties them to the headline.' +
+             (hp.space_GWh && hp.space_GWh.length
+               ? ' The band beneath shows what is actually being delivered ' +
+                 'on the same days, so a price can be weighed against the ' +
+                 'volume it applies to. By July the load is entirely hot ' +
+                 'water — a space-heating price that month describes ' +
+                 'something nobody is buying.'
+               : ''));
+
+      if(hp.cop_heat_weighted){
+        P.push('<b>Read the cold days, not the average of the days.</b> ' +
+               'Air source beats ground source in mild weather and loses ' +
+               'badly in the cold — and almost all the heat is drawn ' +
+               'in the cold. Across this record its COP averages <b>' +
+               hp.cop_unweighted.ashp + '</b> over all days but <b>' +
+               hp.cop_heat_weighted.ashp + '</b> weighted by the heat ' +
+               'actually wanted, against <b>' + hp.cop_heat_weighted.shallow +
+               '</b> for ground source and <b>' + hp.cop_heat_weighted.network +
+               '</b> for a network. The days that matter are the spikes.');
+      } else {
+        P.push('<b>Read the cold days, not the average of the days.</b> ' +
+               'Air source is the one that moves: its COP collapses toward ' +
+               '2 on the coldest days, exactly when the heat is wanted, ' +
+               'while a ground loop barely notices.');
+      }
+
+      if(SVC === 'dhw'){
+        P.push('<b>Hot water.</b> A cylinder needs its temperature whatever ' +
+               'the weather, so the lift never shrinks and none of the ' +
+               'flow-reduction benefit is available. The heat-pump advantage ' +
+               'is much smaller here, and roughly the same in January as in ' +
+               'July. Gas is at the SAP summer efficiency, because a boiler ' +
+               'serving only a cylinder loses its latent recovery.');
+      } else if(SVC === 'blend'){
+        P.push('<b>As delivered.</b> The two services blended by the mix ' +
+               'actually served each day — space heat on the degree-day ' +
+               'curve, hot water flat — as a harmonic mean of cost per ' +
+               'unit delivered. It is the only view that moves with the load.');
+      }
+
+      if(!hp.routes.gas){
+        P.push('<b>Gas is not on this chart yet.</b> The daily price series ' +
+               'is fetched by the build, so the line appears after the next ' +
+               'run.');
+      }
+
+      // Basis caveats, only the ones the toggle actually makes true.
+      var basis = '';
+      if(BASIS === 'retail'){
+        basis = '<b>What the network line is.</b> It is the ' +
+                '<b>non-domestic</b> rate: an operator buys on a commercial ' +
+                'contract, not the domestic cap, so what is compared is its ' +
+                'input cost rather than a connected household’s bill†.';
+        if(hp.retail_annual_mean_to && winFrom && winFrom <= hp.retail_annual_mean_to){
+          basis += ' <b>And before ' + hp.retail_annual_mean_to +
+                   ' the cap does not step at all:</b> none is carried that ' +
+                   'far back, so those ' + hp.retail_annual_mean_days +
+                   ' days are priced at that year’s published annual ' +
+                   'mean. The energy crisis appears here as three flat steps ' +
+                   'while the wholesale basis shows it at full amplitude†.';
+        }
+      } else {
+        basis = '<b>Wholesale commodity only.</b> At the meter the gap is ' +
+                'far smaller, because policy and network costs land on ' +
+                'electricity rather than gas.';
+      }
+      P.push(basis);
+
+      P.push('<b>One thing the flat price hides.</b> On this window a heat ' +
+             'pump would pay <b>' + prem.toFixed(1) + '% more</b> than the ' +
+             'flat mean plotted here, because its load sits on the morning ' +
+             'and evening peaks†.');
+
       document.getElementById('hpnote').innerHTML =
-        'The figures at the right of the chart are the means for the window ' +
-        'selected above; the line under the chart ties them to the headline. ' +
-        (hp.space_GWh && hp.space_GWh.length
-          ? ' The band beneath shows what is actually being delivered on the ' +
-            'same days, so the price above can be weighed against the volume ' +
-            'it applies to \u2014 the selected service solid, the other faded. ' +
-            'By July the load is entirely hot water, so a space-heating price ' +
-            'that month is describing something nobody is buying.'
-          : '') +
-        (SVC === 'dhw'
-          ? ' <b>Hot water.</b> A cylinder needs its temperature whatever the ' +
-            'weather, so the lift never shrinks and none of the ' +
-            'flow-reduction benefit is available. The heat-pump advantage is ' +
-            'much smaller here than on space heating, and roughly the same in ' +
-            'January as in July. Gas is at the SAP summer efficiency, because ' +
-            'a boiler serving only a cylinder loses its latent recovery. '
-          : SVC === 'blend'
-          ? ' <b>As delivered.</b> The two services blended by the mix ' +
-            'actually being served each day \u2014 space heat on the ' +
-            'degree-day curve, hot water flat \u2014 as a harmonic mean of ' +
-            'cost per unit delivered. This is the only view that moves with ' +
-            'the load, and it is where the separate hot-water efficiency ' +
-            'shows: it tracks space heating through the winter and hot water ' +
-            'through the summer, when almost nothing else is being asked for. '
-          : '') +
-        ' The electric routes are one electricity price divided by each ' +
-        'route\u2019s <b>own COP on that day\u2019s temperature</b>, not by a ' +
-        'fixed seasonal factor \u2014 so they spread apart in cold weather ' +
-        'and close up in mild. ' +
-        (hp.cop_heat_weighted
-          ? '<b>Read the cold days, not the average of the days.</b> ' +
-            'Air-source beats ground source in mild weather and loses badly ' +
-            'in the cold, and almost all the heat is drawn in the cold: ' +
-            'across this record its COP averages ' +
-            hp.cop_unweighted.ashp + ' over all days but ' +
-            hp.cop_heat_weighted.ashp + ' weighted by the heat actually ' +
-            'wanted, against ' + hp.cop_heat_weighted.shallow +
-            ' for ground source and ' + hp.cop_heat_weighted.network +
-            ' for a network. So the eye should not average this chart \u2014 ' +
-            'the days that matter are the spikes. '
-          : 'Air-source is the one that moves: its COP collapses toward 2 on ' +
-            'the coldest days, exactly when the heat is wanted, while a ' +
-            'ground loop barely notices. ') +
-        (hp.routes.gas
-          ? 'Gas moves on its own market, which is why the lines cross where ' +
-            'they do. '
-          : '<b>Gas is not on this chart yet:</b> the daily price series is ' +
-            'fetched by the build, so the line appears after the next run. ') +
-        (BASIS === 'retail'
-          ? 'This is the retail basis: the Ofgem cap in force on each date, ' +
-            'which steps at each quarter rather than moving with the market, ' +
-            'and includes network, policy and supply costs. The gap is far ' +
-            'smaller here than on wholesale, because those costs land on ' +
-            'electricity rather than gas. The network line is the ' +
-            'NON-DOMESTIC rate: an operator buys on a commercial contract, ' +
-            'not the domestic cap, and what is compared is its input cost ' +
-            'rather than a connected household\u2019s bill\u2020. ' +
-            // ONLY ON A WINDOW THAT REACHES IT. Before the cap table begins,
-            // cap_prices resolves to a QEP ANNUAL mean, so the clause above
-            // - "steps at each quarter" - stops being true at the left-hand
-            // end of the 48- and 60-month views. The same disclosure panel 1
-            // carries for its history weeks, read from the payload rather
-            // than typed, so it cannot drift from what was actually priced.
-            (hp.retail_annual_mean_to && winFrom &&
-             winFrom <= hp.retail_annual_mean_to
-              ? '<b>Before ' + hp.retail_annual_mean_to + ' it does not ' +
-                'step at all:</b> no quarterly cap is carried that far back, ' +
-                'so those ' + hp.retail_annual_mean_days + ' days are priced ' +
-                'at that year\u2019s published annual mean. The energy ' +
-                'crisis therefore appears here as three flat steps while ' +
-                'the wholesale basis shows it at full amplitude. Both are ' +
-                'what they say they are\u2020. '
-              : '')
-          : 'Wholesale commodity only: at the meter the gap is far smaller, ' +
-            'because policy and network costs land on electricity rather ' +
-            'than gas. ') +
-        'On this window a heat pump would pay ' +
-        prem.toFixed(1) + '% more than the flat mean plotted here, because ' +
-        'its load sits on the morning and evening peaks\u2020.';
+        P.map(function(t){ return '<p class="costnote">' + t + '</p>'; }).join('');
     }
     let WIN = 365;
     bar.addEventListener('click', ev => {
