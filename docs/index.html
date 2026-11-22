@@ -578,6 +578,19 @@
   .status{display:flex;gap:16px;flex-wrap:wrap;font-family:"IBM Plex Mono";font-size:12px}
   .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
   .ok{background:var(--geo)} .stale{background:var(--ember)} .lag{background:#d9a514}
+  /* Hero explainer, 22 Nov 2026. Sits under the cards and the two wins, so
+     it needs a clear break above it: without one it reads as a caption to
+     the indigenous-share figure rather than as an explanation of the whole
+     panel. */
+  .heroexp{margin-top:26px;padding-top:20px;border-top:1px solid var(--line);
+      max-width:96ch}
+  .heroexp p{font-size:15px;line-height:1.66;color:var(--paper);margin:0 0 12px}
+  .heroexp p b{color:var(--geo)}
+  .heroexp .heromini{font-size:12.5px;line-height:1.6;color:var(--muted);
+      margin-top:14px}
+  .heroexp .heromini b{color:var(--muted)}
+  @media(max-width:760px){ .heroexp p{font-size:14px} }
+
   /* Footer data-freshness block, 22 Nov 2026. */
   .freshblock{margin:4px 0 18px;padding:14px 16px;border:1px solid var(--line);
       border-radius:8px;background:rgba(255,255,255,.02)}
@@ -923,12 +936,32 @@
     </div>
   </div>
 
-  <p class="cardfoot" style="max-width:96ch;margin-top:16px">Every week is priced
-  at its own week’s tariff, cap and carbon. The what-if moves a fifth of
-  purchased energy onto geothermal networks and holds delivered heat and
-  cooling constant, so it is a comparison rather than a forecast. Estimates,
-  not measurements. <a href="uk-heatsplit-methodology.pdf"
-  style="color:var(--geo)">Methodology</a>.</p>
+  <!-- PLAIN EXPLANATION OF THE HERO, 22 Nov 2026 - Simon. What stood here
+       was a four-line caveat: true, but it assumed the reader had already
+       worked out what the number was. The "why heat" argument that answers
+       that came up from the bottom of Appendix D, where it sat under four
+       charts as the last clause of a sourcing note - the reader met the
+       conclusion several thousand words after the number it explains. -->
+  <div class="heroexp">
+    <p><b>What this is.</b> Britain buys energy every week to heat and cool
+      its buildings. This page re-prices that same delivered warmth and
+      coolth as though a fifth of it came from geothermal networks instead,
+      at each week&rsquo;s own tariffs, price cap and carbon intensity.
+      Nobody is colder in the comparison: the heat delivered is held
+      constant and only its source changes. The headline is the
+      difference.</p>
+    <p><b>What &ldquo;a fifth&rdquo; would actually take.</b>
+      <span id="hero_scale">It is a large amount of hardware, and an
+      ordinary amount per person.</span> Heat is the largest single use of
+      energy in Britain, ahead of transport and far ahead of all other
+      electricity use, which is why it is the thing being asked about
+      &mdash; set out in
+      <a href="#appendixdhead" style="color:var(--geo)">Appendix D</a>.</p>
+    <p class="heromini">Every week is priced at its own week&rsquo;s tariff,
+      cap and carbon, so this is a comparison rather than a forecast.
+      Estimates, not measurements.
+      <a href="uk-heatsplit-methodology.pdf" style="color:var(--geo)">Methodology</a>.</p>
+  </div>
 
   <!-- THE HAND-OFF SITS LAST, 21 Nov 2026 - Simon. It was between the bars
        and the caveat line, which put an invitation to scroll on in the
@@ -2181,15 +2214,19 @@
       </div></details>
     </div>
 
-    <details class="fold" id="fold_geo"><summary>METHOD —
-      <b>what the bars price, and where the comparators come from</b></summary>
-    <div class="foldbody">
-      <p class="costnote" id="emptybarnote"></p>
-
-      <div class="h2lab" style="margin-top:26px">What “20% of UK heat” means <span class="qual">— one definition, and where each figure comes from</span></div>
-      <p class="costnote" id="denomnote">—</p>
-      <table class="geotbl" id="denomtbl" style="margin-top:12px"><tbody></tbody></table>
-    </div></details>
+    <!-- The METHOD fold "what the bars price, and where the comparators
+         come from" came out here on 22 Nov 2026 (Simon). It had outlived
+         its subject: the comparator chart it described was removed on
+         21 Nov, so it explained bars nobody could see, and its surviving
+         argument - how much hardware a fifth is, and that per person it is
+         ordinary - now opens the page in the hero explainer instead of
+         closing an appendix.
+         It also carried "What 20% of UK heat means", the basis table
+         raised by Charlotte Adams in peer review. That section has NEVER
+         rendered: it is gated on hw.denominators, which the build does not
+         emit, so the element sat empty behind a fold. Removing the markup
+         does not lose it - the builder is intact and finds no element.
+         Emit denominators and put the markup back and it appears. -->
   </section>
 
   <!-- APPENDIX D, 22 Nov 2026 - Simon. The four national bars sat at the
@@ -2263,7 +2300,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.42.0';
+const SITE_VERSION = '9.43.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -5821,40 +5858,32 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
         '</tbody>';
     })();
 
-    document.getElementById('emptybarnote').textContent =
-      'The chart prices the what-if strip in hardware, in installed thermal '+
-      'megawatts: the solid green base of the UK bar is ground-source '+
-      'capacity operating today (' + fmt(hw.uk_gshp_MWth) + ' MWth, '+
-      'EGC 2025 country update), the blue sliver is deeper geothermal '+
-      '(Gateshead, Eden and peers, ~' + hw.uk_deep_MWth + ' MWth†), '+
-      'and the hatched stack is what serving 20% of delivered buildings '+
-      'heat requires at the UK fleet\u2019s OWN ' + fmt(hw.uk_flh) +
-      ' equivalent full-load hours \u2014 reported by EGC 2025, not '+
-      'assumed \u2014 ' + (hw.whatif_MWth/1000).toFixed(1) + ' GWth '+
-      'against ' + fmt(hw.uk_gshp_MWth + hw.uk_deep_MWth) + ' MWth '+
-      'installed. Today\u2019s entire UK stock is the sliver at the base. '+
-      'The three bars on the right are not scenarios but installed reality '+
-      'elsewhere†: even Sweden\u2019s fleet — the largest in '+
-      'Europe, in a country of 10.5 million \u2014 covers a modest share '+
-      'of the UK requirement, which is the scale argument in one picture: '+
-      'the what-if is unremarkable per person (Sweden already runs ' +
-      hw.sweden_per_person_W + ' W/person against the UK\u2019s ' +
-      hw.per_person_W.toFixed(0) + ') and enormous only because Britain '+
-      'has never started. ' + hw.note + ' A finding rather than a conversion: UK '+
-      'systems run ' + fmt(hw.uk_flh) + ' full-load hours against a '+
-      'European average of 2,420, and the Netherlands only 1,095 \u2014 '+
-      'mild maritime winters, short heating seasons, and probably some '+
-      'oversizing. Fewer hours means MORE capacity to serve the same heat, '+
-      'so using the reported figure moves this bar AGAINST the site\u2019s '+
-      'own argument. ' + hw.note + ' Constants shared with the '+
-      'Irish sibling.' +
-      // The share-of-national-heat chart this clause described went on
-      // 21 Nov 2026 and took its `sh` object with it; the sentence
-      // outlived its subject and threw, which the page's own .catch()
-      // reported to the reader as a missing payload. The boiler-flow
-      // comparison is worth keeping and does not depend on that chart.
-      (((hw.share_of_national_heat || {}).boiler_flow_note)
-        ? ' ' + hw.share_of_national_heat.boiler_flow_note : '');
+    // WAS: a 300-word note under a comparator chart that was itself removed
+    // on 21 Nov 2026, in a fold at the bottom of Appendix C. It described
+    // bars the reader could no longer see, and it interpolated hw.note
+    // TWICE - the same two sentences appeared verbatim in one paragraph.
+    // The method went to the Methodology Statement on 22 Nov 2026 (Simon).
+    //
+    // What survived is the part that answers a question the reader has at
+    // the TOP of the page rather than the bottom: how much hardware "a
+    // fifth" is, and whether that is a lot. It is written into the hero
+    // explainer, live, so the figures cannot drift from the payload.
+    (() => {
+      const el = document.getElementById('hero_scale');
+      if(!el || hw.whatif_MWth == null) return;
+      const installed = (hw.uk_gshp_MWth || 0) + (hw.uk_deep_MWth || 0);
+      el.innerHTML =
+        'About <b>' + (hw.whatif_MWth/1000).toFixed(1) + ' GWth</b> of ' +
+        'geothermal capacity, against ' + fmt(installed) + ' MWth installed ' +
+        'in the UK today \u2014 priced at the UK fleet\u2019s own ' +
+        fmt(hw.uk_flh) + ' equivalent full-load hours, reported rather than ' +
+        'assumed. Britain replaces roughly 1.6 million boilers a year, so ' +
+        'that is about one year of the replacement flow redirected. Per ' +
+        'person it is unremarkable: Sweden already runs ' +
+        hw.sweden_per_person_W + ' W/person against the UK\u2019s ' +
+        (hw.per_person_W != null ? hw.per_person_W.toFixed(0) : '13') +
+        '. The number is large only because Britain has never started.';
+    })();
   }
 
   // THE RECONCILIATION DIAGNOSTIC MOVED TO THE METHODOLOGY STATEMENT on
