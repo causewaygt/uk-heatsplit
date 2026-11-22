@@ -1464,6 +1464,28 @@
       <div class="billline" id="geowhatif" style="margin-top:18px"></div>
       <p class="geosub" id="geowhatifnote"></p>
       <p class="geosub" id="geobench" style="margin-top:16px"></p>
+      <!-- THE TWO TARGETS PUBLISHED IN THE LAST MONTH, added 21 Nov 2026 at
+           Simon's request. Static text, not payload: both are one-off
+           publications with fixed figures, and inventing a build field for
+           two sentences that change once a year would be worse. The
+           load-factor note is the point of including the NGC figure rather
+           than simply repeating it - 10 GW reaching 70 TWh implies about
+           7,000 equivalent full-load hours, and this site's own UK fleet
+           runs at 1,661. The difference is deep district heat against
+           shallow ground source, and a reader comparing the two bars
+           without it would conclude the site's 2050 row is unambitious
+           when it is mostly a different kind of plant. -->
+      <p class="geosub" id="geotargets" style="margin-top:12px">
+        <b>Two targets published last month.</b> The National Geothermal
+        Centre’s <i>Our Geothermal Nation</i> (October 2026) sets <b>10 GW
+        of heat and 1.5 GW of power by 2050</b>, illustrated as ~70 and
+        ~11.8 TWh a year, from about 1 GW and 0.3% of UK heat today. That
+        70 TWh implies ~7,000 full-load hours against the 1,661 measured on
+        the UK’s shallow fleet, so it describes a far deeper,
+        district-heat-led build than the bars above†. EGEC’s declaration of
+        29 October calls for <b>250 GW across the EU by 2040</b> — over
+        1,000 TWh a year, a fifth of projected 2040 final energy demand
+        excluding transport.</p>
       <div id="emptybar" style="display:none">
         <h2 style="margin-top:30px">The empty bar — installed hardware vs the 20% what-if</h2>
         <div class="statrow" style="grid-template-columns:repeat(3,1fr);margin-top:14px">
@@ -1474,103 +1496,26 @@
           <div class="stat"><div class="fig" id="eb_need">—</div>
             <div class="cap" id="eb_need_cap">what the 20% what-if requires†</div></div>
         </div>
-        <div id="emptybarplot" style="width:100%;height:300px;margin-top:14px"></div>
-        <h2 style="margin-top:26px;font-size:16px">The same fleets, calibrated — share of each country's own buildings heat</h2>
-        <div id="emptysharesplot" style="width:100%;height:240px;margin-top:10px"></div>
+        <div id="emptybarplot" style="width:100%;height:260px;margin-top:14px"></div>
+
+        <!-- REPLACED THE FOUR-COUNTRY SHARE CHART, 21 Nov 2026 - Simon. Four
+             comparators chosen to flatter the argument is a weaker chart
+             than eighteen chosen by the source's own table, and the
+             per-head dot is what turns "the UK is behind" from a claim into
+             a reading. Bars are annual output, dots are installed capacity
+             per head on the right axis: a country can look respectable on
+             one and not the other, and the UK manages to look poor on both.
+             Data: docs/geo_benchmarks.json, the same EGC country-update
+             table the comparators above come from. -->
+        <h2 style="margin-top:26px;font-size:16px">The UK is a laggard — but
+          can use others’ learning to catch up</h2>
+        <div id="benchplot" style="width:100%;height:300px;margin-top:10px"></div>
+        <p class="costnote" id="benchnote"></p>
         <button class="pngbtn" onclick="exportPanel5()">⬇ PNG FOR SLIDES</button>
     </div>
 
     <!-- ---- register map: the one part of this site that is not an estimate ---- -->
-    <div id="geomapwrap">
-      <h2 style="margin-top:34px">Where the hardware actually is</h2>
-      <p class="geosub" style="margin-bottom:6px">Individual systems, located, each
-        with a source — a <b>locator, not a statistic</b>.</p>
 
-      <div class="geomapgrid">
-        <div>
-          <div id="geomap"></div>
-          <p class="costnote" id="geomapnote" style="margin-top:10px;font-size:13px">Loading the register…</p>
-        </div>
-        <div>
-          <div class="geokey" id="geokey">
-            <div class="ki"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="6" fill="#3aaa35" stroke="#101418" stroke-width="2"/></svg><span><b>Heating only</b></span></div>
-            <div class="ki"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M11 3.6 18.4 11 11 18.4 3.6 11Z" fill="#3aaa35" stroke="#101418" stroke-width="2"/></svg><span><b>Heating and cooling</b></span></div>
-            <div class="ki"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="4.6" y="4.6" width="12.8" height="12.8" fill="#3aaa35" stroke="#101418" stroke-width="2"/></svg><span><b>With a seasonal store</b> — ATES or BTES</span></div>
-            <div class="ki"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="7" cy="11" r="3.1" fill="none" stroke="#8b95a0" stroke-width="1.6"/><circle cx="16" cy="11" r="6" fill="none" stroke="#8b95a0" stroke-width="1.6"/></svg><span>Marker area is thermal capacity — <b>effective</b>, not nameplate</span></div>
-          </div>
-          <div class="georule">
-            <div class="geocount">
-              <div class="cv" id="gc_mapped">—</div>
-              <div class="cl">mapped — operating, at or above 45&nbsp;kW, located</div>
-              <div class="cv warn" id="gc_held">—</div>
-              <div class="cl">in the register, not on the map</div>
-              <div class="cv warn" id="gc_ni" hidden>—</div>
-              <div class="cl" id="gc_nilab" hidden></div>
-            </div>
-          </div>
-
-          <div class="logbox" id="geologbox">
-            <div class="lt">Log a system, or correct one</div>
-            <p id="geologtext">Submissions are checked against a source before they
-              appear.</p>
-          </div>
-        </div>
-      </div>
-
-      <details class="fold" id="fold_geonotes" style="margin-top:18px"><summary>NOTES —
-        <b>what is on the map, what is held back, and why 45&nbsp;kW</b></summary>
-      <div class="foldbody">
-        <p class="costnote">Everything above this point is inferred from national data.
-          This is the other kind of evidence — individual systems, located, each with a
-          source. It is a <b>locator, not a statistic</b>: an opt-in register carries the
-          same selection bias as any opt-in monitoring sample, so nothing here is
-          averaged, and nothing here feeds the figures above.</p>
-
-        <p class="costnote" style="margin-top:14px" id="gc_heldwhy">—</p>
-
-        <p class="costnote" style="margin-top:14px"><b style="color:var(--paper)">Why
-          45&nbsp;kW.</b> It is the MCS ceiling (MIS&nbsp;3005) and the Boiler Upgrade
-          Scheme limit. Above it a system sits outside domestic certification and is
-          designed bespoke — a defensible line between a building's system and a
-          household's appliance. Domestic systems are not collected at all — not as
-          points, not as counts, not as postcodes. A full postcode plus "has a
-          ground-source heat pump" is one lookup from an address, because the EPC
-          register is public, searchable by postcode, and records the main heating
-          system, so the register does not ask. Nothing is lost by that: MCS
-          registration already counts the domestic base as a census, which is a better
-          figure than a self-selected one could be. The threshold is a privacy line that
-          happens also to be a sensible engineering one.</p>
-
-        <p class="costnote" style="margin-top:14px">Two sites in the table sit below the
-          line and are on it anyway — a demonstration standing column at Markham and a
-          social housing scheme at Lisnafin. Neither is a household's appliance; both
-          were entered by hand for precedent. They are in the register and off the map.</p>
-
-        <p class="costnote" style="margin-top:14px">Colour carries nothing. Green and
-          orange are indistinguishable to a deutan reader on this background, so identity
-          is shape and size, which also survive greyscale and print.</p>
-      </div></details>
-
-      <details class="fold" id="fold_geotbl" style="margin-top:20px"><summary>THE REGISTER —
-        <b>every row, including the ones not on the map</b></summary>
-      <div class="foldbody">
-        <p class="costnote" style="font-size:13px;margin-bottom:10px">Status is recorded
-          because a map of installed systems that quietly plots cancelled and
-          never-commissioned schemes is a map of intentions. Those rows stay here, with
-          what happened to them.</p>
-        <table class="geotbl" id="geotbl"><tbody></tbody></table>
-      </div></details>
-    </div>
-
-    <details class="fold" id="fold_geo"><summary>METHOD —
-      <b>what the bars price, and where the comparators come from</b></summary>
-    <div class="foldbody">
-      <p class="costnote" id="emptybarnote"></p>
-
-      <div class="h2lab" style="margin-top:26px">What “20% of UK heat” means <span class="qual">— one definition, and where each figure comes from</span></div>
-      <p class="costnote" id="denomnote">—</p>
-      <table class="geotbl" id="denomtbl" style="margin-top:12px"><tbody></tbody></table>
-    </div></details>
 
   </section>
 
@@ -1770,6 +1715,7 @@
   </section>
 
   <!-- APPENDIX A, 21 Nov 2026. The energy balance is the mechanism behind
+
        every money figure on this page: what is bought, what is delivered,
        and the gap between them that a heat pump moves. It led the site for
        months and led with its hardest idea. Moved here so the argument runs
@@ -1913,6 +1859,108 @@
 
   </section>
 
+  <!-- APPENDIX C, 21 Nov 2026 - Simon. The register map and its two
+       folds were the back half of panel 6, where they turned a panel
+       about targets into a panel about inventory. They are the one
+       part of this site that is not an estimate, so they are moved
+       rather than cut - and an appendix is where a reader goes
+       looking for the underlying record. Every id is unchanged, so
+       every writer finds its element one section further down. -->
+  <section id="appendixc">
+    <h1 class="sect" id="appendixchead" tabindex="-1">Appendix C: the
+      register — where the hardware actually is</h1>
+    <div id="geomapwrap">
+      <h2 style="margin-top:34px">Where the hardware actually is</h2>
+      <p class="geosub" style="margin-bottom:6px">Individual systems, located, each
+        with a source — a <b>locator, not a statistic</b>.</p>
+
+      <div class="geomapgrid">
+        <div>
+          <div id="geomap"></div>
+          <p class="costnote" id="geomapnote" style="margin-top:10px;font-size:13px">Loading the register…</p>
+        </div>
+        <div>
+          <div class="geokey" id="geokey">
+            <div class="ki"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="6" fill="#3aaa35" stroke="#101418" stroke-width="2"/></svg><span><b>Heating only</b></span></div>
+            <div class="ki"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M11 3.6 18.4 11 11 18.4 3.6 11Z" fill="#3aaa35" stroke="#101418" stroke-width="2"/></svg><span><b>Heating and cooling</b></span></div>
+            <div class="ki"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="4.6" y="4.6" width="12.8" height="12.8" fill="#3aaa35" stroke="#101418" stroke-width="2"/></svg><span><b>With a seasonal store</b> — ATES or BTES</span></div>
+            <div class="ki"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="7" cy="11" r="3.1" fill="none" stroke="#8b95a0" stroke-width="1.6"/><circle cx="16" cy="11" r="6" fill="none" stroke="#8b95a0" stroke-width="1.6"/></svg><span>Marker area is thermal capacity — <b>effective</b>, not nameplate</span></div>
+          </div>
+          <div class="georule">
+            <div class="geocount">
+              <div class="cv" id="gc_mapped">—</div>
+              <div class="cl">mapped — operating, at or above 45&nbsp;kW, located</div>
+              <div class="cv warn" id="gc_held">—</div>
+              <div class="cl">in the register, not on the map</div>
+              <div class="cv warn" id="gc_ni" hidden>—</div>
+              <div class="cl" id="gc_nilab" hidden></div>
+            </div>
+          </div>
+
+          <div class="logbox" id="geologbox">
+            <div class="lt">Log a system, or correct one</div>
+            <p id="geologtext">Submissions are checked against a source before they
+              appear.</p>
+          </div>
+        </div>
+      </div>
+
+      <details class="fold" id="fold_geonotes" style="margin-top:18px"><summary>NOTES —
+        <b>what is on the map, what is held back, and why 45&nbsp;kW</b></summary>
+      <div class="foldbody">
+        <p class="costnote">Everything above this point is inferred from national data.
+          This is the other kind of evidence — individual systems, located, each with a
+          source. It is a <b>locator, not a statistic</b>: an opt-in register carries the
+          same selection bias as any opt-in monitoring sample, so nothing here is
+          averaged, and nothing here feeds the figures above.</p>
+
+        <p class="costnote" style="margin-top:14px" id="gc_heldwhy">—</p>
+
+        <p class="costnote" style="margin-top:14px"><b style="color:var(--paper)">Why
+          45&nbsp;kW.</b> It is the MCS ceiling (MIS&nbsp;3005) and the Boiler Upgrade
+          Scheme limit. Above it a system sits outside domestic certification and is
+          designed bespoke — a defensible line between a building's system and a
+          household's appliance. Domestic systems are not collected at all — not as
+          points, not as counts, not as postcodes. A full postcode plus "has a
+          ground-source heat pump" is one lookup from an address, because the EPC
+          register is public, searchable by postcode, and records the main heating
+          system, so the register does not ask. Nothing is lost by that: MCS
+          registration already counts the domestic base as a census, which is a better
+          figure than a self-selected one could be. The threshold is a privacy line that
+          happens also to be a sensible engineering one.</p>
+
+        <p class="costnote" style="margin-top:14px">Two sites in the table sit below the
+          line and are on it anyway — a demonstration standing column at Markham and a
+          social housing scheme at Lisnafin. Neither is a household's appliance; both
+          were entered by hand for precedent. They are in the register and off the map.</p>
+
+        <p class="costnote" style="margin-top:14px">Colour carries nothing. Green and
+          orange are indistinguishable to a deutan reader on this background, so identity
+          is shape and size, which also survive greyscale and print.</p>
+      </div></details>
+
+      <details class="fold" id="fold_geotbl" style="margin-top:20px"><summary>THE REGISTER —
+        <b>every row, including the ones not on the map</b></summary>
+      <div class="foldbody">
+        <p class="costnote" style="font-size:13px;margin-bottom:10px">Status is recorded
+          because a map of installed systems that quietly plots cancelled and
+          never-commissioned schemes is a map of intentions. Those rows stay here, with
+          what happened to them.</p>
+        <table class="geotbl" id="geotbl"><tbody></tbody></table>
+      </div></details>
+    </div>
+
+    <details class="fold" id="fold_geo"><summary>METHOD —
+      <b>what the bars price, and where the comparators come from</b></summary>
+    <div class="foldbody">
+      <p class="costnote" id="emptybarnote"></p>
+
+      <div class="h2lab" style="margin-top:26px">What “20% of UK heat” means <span class="qual">— one definition, and where each figure comes from</span></div>
+      <p class="costnote" id="denomnote">—</p>
+      <table class="geotbl" id="denomtbl" style="margin-top:12px"><tbody></tbody></table>
+    </div></details>
+  </section>
+
   <h1 class="sect" style="margin-top:44px">Footnotes</h1>
 
   <section>
@@ -2026,7 +2074,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.20.0';
+const SITE_VERSION = '9.21.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -2116,7 +2164,7 @@ function py0(head){ return head + 22; }
 // not smaller: the graphic will be projected at the same width either way.
 window.exportPanel5 = async function(){
   const gd1 = document.getElementById('emptybarplot');
-  const gd2 = document.getElementById('emptysharesplot');
+  const gd2 = document.getElementById('benchplot');
   if(!window.Plotly || !gd1 || !gd1.data || !gd1.data.length) return;
   const has2 = !!(gd2 && gd2.data && gd2.data.length);
   // PORTRAIT, half a 16:9 slide BY WIDTH - 800x900 - so it sits in the left
@@ -5362,35 +5410,77 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
         text: '→ ' + fmt(hw.whatif_MWth) + ' MWth†',
         showarrow: false, font: {size: 11, color: css('--geo')}}],
     }, {displayModeBar: false, responsive: true});
-    const sh = hw.share_of_national_heat;
-    if(sh && sh.countries){
-      const nm = sh.countries.map(c => c.name === 'United Kingdom'
-                                  ? c.name : c.name + '\u2020');
-      const pv = sh.countries.map(c => c.share_pct);
-      Plotly.newPlot('emptysharesplot', [{
-        x: nm, y: pv, type: 'bar', width: .5,
-        marker: {color: pv.map(v =>
-          v >= sh.whatif_pct ? css('--geo') : css('--muted'))},
-        text: pv.map(v => v + '%'), textposition: 'outside',
-        textfont: {size: 11},
-        hovertemplate: '%{x}: %{y}% of own buildings heat<extra></extra>',
-      }], {
+    // ---- eighteen countries, output and capacity per head --------------
+    // TWO SCALES BECAUSE THERE ARE TWO QUESTIONS. Annual output says how
+    // much geothermal heat a country actually gets; capacity per head says
+    // how hard it has worked for it relative to its size. Germany is large
+    // and middling; Sweden is small and dominant; the UK is neither. A
+    // single-axis chart would let the UK hide behind population.
+    //
+    // Dual axes are normally a mistake and this page avoids them elsewhere.
+    // The exception holds here because the two series are not comparable
+    // quantities invited into a trend - they are one bar and one dot per
+    // country, read independently, with the dot's axis labelled and
+    // coloured to match it. Nothing is implied by their crossing.
+    fetch('geo_benchmarks.json').then(r => r.ok ? r.json() : null)
+      .catch(() => null).then(gb => {
+      const box = document.getElementById('benchplot');
+      if(!box) return;
+      if(!gb || !gb.countries || gb.countries.length < 3){
+        box.style.display = 'none'; return;
+      }
+      const cs = gb.countries.slice().sort((x, y) => y.GWh - x.GWh);
+      const isUK = n => /united kingdom|^uk$/i.test(n);
+      const names = cs.map(c => c.name);
+      const twh = cs.map(c => +(c.GWh / 1000).toFixed(2));
+      const perHead = cs.map(c => c.population_m
+        ? +(c.MWth / c.population_m).toFixed(1) : null);
+      Plotly.newPlot('benchplot', [
+        {x: names, y: twh, type: 'bar', name: 'annual output, TWh',
+         marker: {color: names.map(n => isUK(n) ? css('--ember')
+                                                : css('--ash'))},
+         hovertemplate: '%{x}<br>%{y} TWh a year<extra></extra>'},
+        {x: names, y: perHead, yaxis: 'y2', type: 'scatter', mode: 'markers',
+         name: 'installed capacity per head, W',
+         marker: {color: names.map(n => isUK(n) ? css('--ember')
+                                                : css('--geo')),
+                  size: 9, line: {color: css('--ink'), width: 1.5}},
+         hovertemplate: '%{x}<br>%{y} W per person<extra></extra>'}
+      ], {
         paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
-        font: {family: 'Lato', color: css('--muted'), size: 12},
-        margin: {l: 52, r: 10, t: 22, b: 30},
-        xaxis: {gridcolor: css('--line')},
-        yaxis: {title: '% of national buildings heat', gridcolor: css('--line'),
-                range: [0, Math.max(26, Math.max(...pv) + 4)]},
-        shapes: [{type: 'line', xref: 'paper', x0: 0, x1: 1,
-                  y0: sh.whatif_pct, y1: sh.whatif_pct,
-                  line: {color: css('--geo'), width: 1.5}}],
-        annotations: [{xref: 'paper', x: 0.01, y: sh.whatif_pct,
-                       yanchor: 'bottom', xanchor: 'left',
-                       text: 'the 20% what-if',
-                       showarrow: false,
-                       font: {size: 11, color: css('--geo')}}],
+        font: {family: 'Lato', color: css('--muted'), size: 11},
+        margin: {l: 52, r: 54, t: 28, b: 76},
+        xaxis: {gridcolor: css('--line'), tickangle: -45},
+        yaxis: {title: {text: 'TWh a year'}, gridcolor: css('--line')},
+        yaxis2: {title: {text: 'W per person', font: {color: css('--geo')}},
+                 overlaying: 'y', side: 'right', showgrid: false,
+                 tickfont: {color: css('--geo')}, rangemode: 'tozero'},
+        hoverlabel: {bgcolor: 'rgba(255,255,255,0.5)',
+                     bordercolor: 'rgba(0,0,0,0.35)',
+                     font: {color: '#000', size: 11}},
+        legend: {orientation: 'h', y: 1.1, x: 0,
+                 font: {size: 10, color: css('--muted')}}
       }, {displayModeBar: false, responsive: true});
-    }
+
+      const uk = cs.find(c => isUK(c.name));
+      const note = document.getElementById('benchnote');
+      if(uk && note){
+        const rankOut = cs.findIndex(c => isUK(c.name)) + 1;
+        const byHead = cs.slice().filter(c => c.population_m)
+          .sort((x, y) => (y.MWth / y.population_m) - (x.MWth / x.population_m));
+        const rankHead = byHead.findIndex(c => isUK(c.name)) + 1;
+        const best = byHead[0];
+        note.innerHTML =
+          'The UK is <b>' + rankOut + 'th of ' + cs.length + '</b> on annual ' +
+          'output and <b>' + rankHead + 'th</b> on installed capacity per ' +
+          'head, at <b>' + (uk.MWth / uk.population_m).toFixed(0) + ' W</b> ' +
+          'against ' + best.name + '\u2019s <b>' +
+          (best.MWth / best.population_m).toFixed(0) + ' W</b>. Every ' +
+          'country above it drilled the same rock with the same machines, ' +
+          'which is the encouraging half: none of this is a technology the ' +
+          'UK has to invent. ' + (gb.basis || '') + ' ' + (gb.source || '');
+      }
+    });
     // ONE DEFINITION OF "20% OF UK HEAT". Raised by Charlotte Adams in peer
     // review, 19 Nov 2026: the methodology said 87 TWh needs about 52 GWth,
     // the dashboard showed 43.2, and nothing explained the gap. It is a
@@ -5473,8 +5563,13 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       'so using the reported figure moves this bar AGAINST the site\u2019s '+
       'own argument. ' + hw.note + ' Constants shared with the '+
       'Irish sibling.' +
-      (sh ? ' The lower chart is the calibration: ' + sh.note + ' ' +
-            sh.boiler_flow_note : '');
+      // The share-of-national-heat chart this clause described went on
+      // 21 Nov 2026 and took its `sh` object with it; the sentence
+      // outlived its subject and threw, which the page's own .catch()
+      // reported to the reader as a missing payload. The boiler-flow
+      // comparison is worth keeping and does not depend on that chart.
+      (((hw.share_of_national_heat || {}).boiler_flow_note)
+        ? ' ' + hw.share_of_national_heat.boiler_flow_note : '');
   }
 
   // THE RECONCILIATION DIAGNOSTIC MOVED TO THE METHODOLOGY STATEMENT on
@@ -5594,9 +5689,13 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     if(geo.benchmark){
       document.getElementById('geobench').textContent = geo.benchmark;
     }
+    // 2027 DROPPED 21 Nov 2026 - Simon. Three years out it was neither
+    // today nor an ambition, and a near-dated forecast on a chart whose
+    // other rows run to 2050 invites the reader to check it against this
+    // year's sales rather than read the trajectory. The payload still
+    // carries it.
     const rows = [
       ["Today",  geo.annual_TWh.today,         false, geo.tags.today],
-      ["2027",   geo.annual_TWh.forecast_2027, true,  geo.tags.forecast_2027],
       ["2031",   geo.annual_TWh.forecast_2031, true,  geo.tags.forecast_2031],
       ["2050",   geo.annual_TWh.ambition_2050, true,  geo.tags.ambition_2050],
     ];
