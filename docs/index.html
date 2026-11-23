@@ -879,29 +879,13 @@
 </style>
 </head>
 <body>
-<!-- TEMPORARY v9 BANNER, added 20 Nov 2026 at SITE_VERSION 9.3.3.
-     DELETE THIS BLOCK when v9 is settled. It is deliberately plain markup
-     with no script and no payload dependency, so it cannot fail to render
-     and cannot be switched off by a data problem - which is the whole point
-     of a banner that warns about data problems. -->
-<div class="wrap" style="padding-top:14px">
-  <!-- --ink is this page's BACKGROUND and --paper its text, which is the
-       reverse of the usual convention: colour:var(--ink) here would have
-       printed near-black on near-black. rgba literal rather than
-       color-mix() so the tint cannot depend on browser support. -->
-  <p role="status" style="margin:0;padding:10px 14px;border-radius:6px;
-     border:1px solid var(--ember,#e4572e);
-     background:rgba(228,87,46,.12);
-     color:var(--paper,#eae6de);font-size:13.5px;line-height:1.45;
-     letter-spacing:.01em">
-    <b style="color:var(--ember,#e4572e);text-transform:uppercase;
-       letter-spacing:.07em;font-size:12px">Heat Split v9 upgrade in
-       progress</b><br>
-    Some numbers may be wrong. Panels are being rebuilt on a five-year
-    record and figures may move or disagree with each other while that is
-    under way.
-  </p>
-</div>
+<!-- The temporary v9 upgrade banner stood here from 20 Nov 2026 (9.3.3) to
+     23 Nov 2026 (9.64.0), warning that panels were being rebuilt on a
+     five-year record and that figures might move or disagree. Removed at
+     release: the rebuild is done, the record is the five-year one, and the
+     footer's data-freshness block is the standing statement of what is
+     current. A warning that outlives the condition it warns about teaches
+     readers to ignore the next one. -->
 <header><div class="wrap">
   <!-- ONE THIN LINE: mark, title, and the currency of the record. The
        spark-gap ticker that sat at the right has gone with the
@@ -1814,6 +1798,20 @@
          which sits below the heading and is display:none until the
          payload lands. -->
     <h1 class="sect" id="vfmhead" tabindex="-1">7. Value for money: the business case for UK geothermal</h1>
+    <!-- THE SEGUE FROM PANEL 6, 23 Nov 2026 - Simon. This was the only
+         numbered section with no lede: the reader came out of a panel about
+         2050 targets and landed on a bare benefit-cost ratio with nothing
+         between. It sits OUTSIDE #capitalpanel on purpose, so the handoff
+         is there whether or not the payload has arrived - the panel below
+         is display:none until it does.
+         The scope statement it carries was previously only in step 2 of the
+         fold; that step has been re-led so the two do not say it twice. -->
+    <p class="lede" id="vfmlede"><b>A target is a quantity; a decision needs a
+      case.</b> The networks that would carry those terawatt-hours are
+      committed either way — the trenches and the connections are in the plan
+      whatever ends up feeding them. What is still open is the heat source,
+      and that is the only thing appraised here: what choosing geothermal
+      costs over the alternative, and what it returns.</p>
       <div id="capitalpanel" style="display:none">
 
         <!-- EVERYTHING BUT THE RATIO, THE SENTENCE AND THE BARS MOVED
@@ -1857,13 +1855,19 @@
              things at length. It was also the only .kind in the fold, so it
              broke the one-treatment-per-role rule as well as repeating. -->
 
-        <p class="basis"><b>This does not ask whether to build the networks.</b>
-          Government has committed to heat networks supplying about 20% of UK heat by
-          2050, up from about 3% today, on more than £80bn of investment — roughly
-          87 TWh a year of delivered heat. The pipes, the trenches and the connections
-          are in that number either way. What is still open is what sits at the head
-          of them. The model compares geothermal as the source and store of thermal
-          energy to an air-source heat pump system.</p>
+        <!-- RE-LED 23 Nov 2026 - Simon. This opened "This does not ask whether
+             to build the networks", then gave the commitment and repeated that
+             the pipes are in it either way. The lede under the section heading
+             now carries that scope statement, so this step keeps only what the
+             lede does not say: the size of the commitment, and what is being
+             compared with what. -->
+        <p class="basis"><b>The commitment is the starting point, not the
+          question.</b> Government has committed to heat networks supplying about
+          20% of UK heat by 2050, up from about 3% today, on more than £80bn of
+          investment — roughly 87 TWh a year of delivered heat. The model compares
+          geothermal as the source and store of thermal energy, at the head of
+          those networks, with an air-source heat pump system at the head of the
+          same ones.</p>
 
         <!-- plain prose, not a second lead: one green mark per step is the
              rule the fold now follows. This previously carried a grey-ruled
@@ -2507,7 +2511,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.62.0';
+const SITE_VERSION = '9.64.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
