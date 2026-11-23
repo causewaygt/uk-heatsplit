@@ -93,21 +93,24 @@
            opacity:0;visibility:hidden;transform:translate(-50%,10px);
            transition:opacity .18s ease,transform .18s ease,visibility .18s}
   .backnav.show{opacity:1;visibility:visible;transform:translate(-50%,0)}
-  .backnav button{font-family:"IBM Plex Mono";font-size:15px;letter-spacing:.02em;
+  /* The contact link is an <a>, so it has to be given the button's own
+     treatment rather than inheriting it. 22 Nov 2026. */
+  .backnav button, .backnav .navmail{font-family:"IBM Plex Mono";font-size:15px;letter-spacing:.02em;
                   background:none;color:var(--paper);border:1px solid var(--line);
                   border-radius:6px;padding:11px 18px;cursor:pointer;
-                  white-space:nowrap;line-height:1.1}
-  .backnav button:hover{color:var(--geo);border-color:var(--geo);
+                  white-space:nowrap;line-height:1.1;
+                  text-decoration:none;display:inline-flex;align-items:center}
+  .backnav button:hover, .backnav .navmail:hover{color:var(--geo);border-color:var(--geo);
                         background:rgba(58,170,53,.10)}
-  .backnav button:focus-visible{outline:2px solid var(--geo);outline-offset:3px;
+  .backnav button:focus-visible, .backnav .navmail:focus-visible{outline:2px solid var(--geo);outline-offset:3px;
                                 color:var(--geo)}
-  .backnav button b{color:var(--geo);font-weight:500;margin-right:8px;
+  .backnav button b, .backnav .navmail b{color:var(--geo);font-weight:500;margin-right:8px;
                     font-size:1.05em}
   @media (max-width:620px){
     .backnav{left:12px;right:12px;bottom:12px;transform:translateY(10px);
              justify-content:center;padding:8px;gap:8px}
     .backnav.show{transform:translateY(0)}
-    .backnav button{flex:1;padding:12px 6px;font-size:14px}
+    .backnav button, .backnav .navmail{flex:1;padding:12px 6px;font-size:14px}
   }
   @media (prefers-reduced-motion:reduce){
     .backnav{transition:opacity .01s;transform:translate(-50%,0)}
@@ -1486,7 +1489,10 @@
         borehole thermal energy storage — circulates fluid through a
         sealed array of closed loops and stores the heat in the rock around
         them. It needs no aquifer and so works almost anywhere, at the cost
-        of more drilling for the same capacity.</p>
+        of more drilling for the same capacity. Both sit inside the wider
+        family of geothermal systems set out in
+        <a href="#appendixbhead" style="color:var(--geo)">Appendix B</a>,
+        which says which of them this site models and which it does not.</p>
       <p class="costnote"><b>What each chart is doing with that.</b> The
         left-hand bars are <b>not three technologies</b>: they are the same
         heat pump working across three different gaps — outside air,
@@ -1511,8 +1517,13 @@
   <section id="routes" hidden>
     <h1 class="sect" id="gridhead" tabindex="-1">4. Geothermal infrastructure
       supports the electrification pathway</h1>
-    <p class="lede">The electricity system was not designed for electrified
-      heat, and where the heat comes from decides how much has to be built.</p>
+    <!-- Written by the block below from window.__SITE_SCOP.peak, the same
+         design-condition COPs panel 3 publishes. The fallback here is what
+         shows if those cannot be computed - never a typed multiple.
+         22 Nov 2026 - Simon. -->
+    <p class="lede" id="gridlede">The electricity system was not designed for
+      electrified heat, and where the heat comes from decides how much has to
+      be built.</p>
 
     <!-- CHART B, 21 Nov 2026 - Simon. The projection the rest of this panel
          is missing: everything below measures today's system, and the
@@ -2414,10 +2425,18 @@
   public-interest tool.
 </div></footer>
 
-<nav class="backnav" id="backnav" aria-label="Back to top sections">
-  <!-- "The starting point" went with the old panel 1 on 21 Nov 2026. The
-       jump target is the cost panel, which is now where the reader starts. -->
-  <button type="button" data-to="costhead"><b>&uarr;</b>What heat costs</button>
+<!-- RETARGETED TO THE TOP, 22 Nov 2026 - Simon. The button said "What
+     heat costs" and jumped to panel 1, which from panel 6 or an appendix
+     is not where a reader wanting to start again expects to land - it
+     dropped them a third of the way in. It goes to the top of the page
+     now and says so.
+     The contact button sits beside it because the whole site invites
+     challenge and the only address was in the footer, past everything.
+     It is a mailto, so it needs no form and works from any device. -->
+<nav class="backnav" id="backnav" aria-label="Page navigation">
+  <button type="button" data-to="__top"><b>&uarr;</b>Back to the top</button>
+  <a class="navmail" href="mailto:contact@causewaygt.com?subject=UK%20Heat%20Split"
+     rel="noopener"><b>&#9993;</b>Contact us</a>
 </nav>
 
 <script>
@@ -2425,7 +2444,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.57.0';
+const SITE_VERSION = '9.59.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -4054,6 +4073,12 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     nav.addEventListener('click', ev => {
       const b = ev.target.closest('button');
       if(!b) return;
+      // "__top" is the page itself rather than a section: scrolling to an
+      // element would leave the masthead above the viewport.
+      if(b.dataset.to === '__top'){
+        window.scrollTo({top: 0, behavior: reduce ? 'auto' : 'smooth'});
+        return;
+      }
       const t = document.getElementById(b.dataset.to);
       if(!t) return;
       t.scrollIntoView({behavior: reduce ? 'auto' : 'smooth', block: 'start'});
@@ -5097,6 +5122,29 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       };
     }
 
+    // PANEL 4'S BYLINE, 22 Nov 2026 - Simon. Written from here because
+    // this is where the design-condition COPs are computed; panel 4 reads
+    // __SITE_SCOP.peak for its charts, and a second derivation of the same
+    // ratio in that panel would be a second place for it to drift.
+    //
+    // PEAK COPs, NOT SEASONAL ONES. The claim is about what a given amount
+    // of GRID CAPACITY can deliver, and capacity is sized for the coldest
+    // hour - when the air-source COP has collapsed and the network's has
+    // barely moved. On seasonal figures the same sentence would read 1.8x
+    // and would be answering a different question.
+    (function(){
+      const gl = document.getElementById('gridlede');
+      const P  = (window.__SITE_SCOP || {}).peak;
+      if(!gl || !P || !P.air || !P.network) return;
+      gl.innerHTML =
+        'The electricity system was not designed for electrified heat, and ' +
+        'where the heat comes from decides how much has to be built. At the ' +
+        'coldest hour, <b style="color:' + css('--geo') + '">more than ' +
+        (Math.floor(10 * P.network / P.air) / 10).toFixed(1) + ' times ' +
+        'more heat</b> can be delivered by geothermal heat pumps than by ' +
+        'air-source units drawing on the same wires.';
+    })();
+
     const wTop = sAir ? 1 / sAir : 1 / sVirgin, sTop = 1 / eer;
     box.innerHTML =
       '<div class="useasons">' +
@@ -6063,8 +6111,16 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
           (deepShare < 0.05
             ? 'almost none of what little it has is deep'
             : 'only ' + Math.round(100 * deepShare) + '% of it is deep') +
-          ' \u2014 but every country above it drilled the same rock with ' +
-          'the same machines\u2020.';
+          // CORRECTED 22 Nov 2026 - Simon. This read "every country above
+          // it drilled the same rock with the same machines", which is
+          // false twice over: Iceland is volcanic high-enthalpy geology
+          // that Britain does not have and tops this chart at 6,554
+          // W/head, and "the same" overstates the rest - comparable
+          // sedimentary basins and comparable drilling, not identical.
+          // The claim only needed to be that the geology is no excuse.
+          ' \u2014 and apart from Iceland, which sits on volcanic heat ' +
+          'Britain does not have, the countries above it are working ' +
+          'similar rock with similar machines\u2020.';
         const bf = document.getElementById('benchfold');
         if(bf) bf.innerHTML =
           '<b>What the country chart counts.</b> ' + (gb.basis || '') + ' ' +
@@ -6276,10 +6332,25 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     // other rows run to 2050 invites the reader to check it against this
     // year's sales rather than read the trajectory. The payload still
     // carries it.
+    // CAGR ON EACH TARGET, 22 Nov 2026 - Simon. A target in TWh says
+    // where to get to and nothing about what it demands; the growth rate
+    // needed to reach it is the number a reader can weigh against what
+    // other industries have actually managed. Computed from the base year
+    // the payload was built in, not a typed one, so it tightens on its own
+    // as the years pass and the same target gets harder.
+    const BASE_YR = +(String(d.updated || '').slice(0, 4)) || new Date().getFullYear();
+    const cagr = (v, yr) => {
+      const n = yr - BASE_YR, t0 = geo.annual_TWh.today;
+      if(!(n > 0) || !t0 || !(v > 0)) return '';
+      return ' · <b>' + (100 * (Math.pow(v / t0, 1 / n) - 1)).toFixed(0) +
+             '%/yr</b> to get there';
+    };
     const rows = [
-      ["Today",  geo.annual_TWh.today,         false, geo.tags.today],
-      ["2031",   geo.annual_TWh.forecast_2031, true,  geo.tags.forecast_2031],
-      ["2050",   geo.annual_TWh.ambition_2050, true,  geo.tags.ambition_2050],
+      ["Today",  geo.annual_TWh.today,         false, geo.tags.today, ''],
+      ["2031",   geo.annual_TWh.forecast_2031, true,  geo.tags.forecast_2031,
+       cagr(geo.annual_TWh.forecast_2031, 2031)],
+      ["2050",   geo.annual_TWh.ambition_2050, true,  geo.tags.ambition_2050,
+       cagr(geo.annual_TWh.ambition_2050, 2050)],
     ];
     const maxv = Math.max(...rows.map(r=>r[1]));
     // TAGS OFF THE FACE, 22 Nov 2026 - Simon. Each bar carried a
@@ -6290,11 +6361,11 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     const holder = document.getElementById('geobars');
     const tagbox = document.getElementById('geotagfold');
     const tags = [];
-    rows.forEach(([lab,v,isFc,tag])=>{
+    rows.forEach(([lab,v,isFc,tag,rate])=>{
       const row = document.createElement('div');
       row.className = 'geobar';
       row.innerHTML =
-        `<div class="lab">${lab} · ${v} TWh/yr</div>` +
+        `<div class="lab">${lab} · ${v} TWh/yr${rate || ''}</div>` +
         `<div class="track"><div class="fill${isFc?' fc':''}"></div></div>`;
       holder.appendChild(row);
       const fill = row.querySelector('.fill');
