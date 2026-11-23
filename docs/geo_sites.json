@@ -1,7 +1,7 @@
 {
  "schema": 1,
  "title": "UK geothermal register",
- "updated": "2026-11-22",
+ "updated": "2026-11-23",
  "threshold_kWth": 45,
  "threshold_note": "45 kWth is the MCS ceiling (MIS 3005) and the Boiler Upgrade Scheme limit. Above it a system sits outside the domestic certification regime and is designed bespoke, so it is a defensible line between 'a building's system' and 'a household's appliance'.",
  "privacy": {
@@ -1775,6 +1775,40 @@
    "loop": null,
    "failure_mode": null,
    "designer": null,
+   "driller": null
+  },
+  {
+   "id": "astrazeneca-discovery-centre-disc-cambridge",
+   "name": "AstraZeneca Discovery Centre (DISC), Cambridge Biomedical Campus",
+   "operator": "AstraZeneca",
+   "town": "Cambridge",
+   "region": "Cambridgeshire",
+   "nation": "England",
+   "lat": 52.1736,
+   "lon": 0.1419,
+   "location_precision": "address",
+   "type": "gshp",
+   "capacity_kWth": null,
+   "does_heating": true,
+   "does_cooling": true,
+   "has_storage": null,
+   "commissioned_year": 2021,
+   "status": "operating",
+   "verification": "verified",
+   "confidence": "medium",
+   "meets_threshold": true,
+   "source_urls": [
+    "https://www.astrazeneca.com/media-centre/press-releases/2021/astrazeneca-unveils-the-discovery-centre-disc-in-cambridge.html",
+    "https://www.astrazeneca.com/media-centre/articles/2024/embedding-sustainability-across-r-d-centres.html",
+    "https://www.architectsdatafile.co.uk/news/discovery-mission/",
+    "https://www.pharmaceutical-technology.com/projects/astrazeneca-cambridge/"
+   ],
+   "notes": "174 closed-loop boreholes serving a ground source heat pump with hybrid cooling towers, heating and cooling a laboratory building on the Cambridge Biomedical Campus. Opened November 2021; construction from 2015 (Skanska to 2018, then Mace). BREEAM Excellent for design and construction. Described by the architects as thought to be the UK’s largest renewable-heat-certified ground source system, which is a claim rather than a measured ranking. | NO CAPACITY PUBLISHED. No kWth, borehole depth or array spacing is given in any source found, so capacity_kWth is null and meets_threshold is set true on the array size alone. An Ofgem non-domestic RHI accreditation would carry the rated capacity if the RHI register can be reached. | DISCREPANCIES. Cooling towers: four in the 2021 press release and the architects’ account, five in AstraZeneca’s own 2024 sustainability article. Floor area: 19,000-19,905 m² is the laboratory element; the building as a whole is about 70,000 m², so the smaller figure should not be quoted as the served area. | THE \"TWO HOUSEHOLDS\" CLAIM IS NOT SUPPORTED. A widely shared figure puts the building’s carbon footprint at that of two UK households; no source found states it, and it is not plausible for a 24/7 laboratory of this size. The published claim is different and is about savings, not footprint: the heat pump \"will save enough energy to power 2,500 homes\" (AstraZeneca, 2021). Treated as unsubstantiated pending a primary source. | STORAGE. Sources say the boreholes \"store and provide\" geothermal energy, but nothing describes a designed seasonal store, and the hybrid cooling towers imply surplus heat is rejected rather than banked. has_storage left null rather than recorded as BTES. | SITING UNVERIFIED. Placed 23 Nov 2026 from the published postal address (1 Francis Crick Avenue, Cambridge CB2 0AA) without geocoder access in this session - no source gives coordinates. Flagged for a Google Earth check before the point is trusted at address precision.",
+   "nameplate_kWth": null,
+   "effective_kWth": null,
+   "loop": "closed",
+   "failure_mode": null,
+   "designer": "BDP (building services); Herzog & de Meuron (architect)",
    "driller": null
   }
  ],
