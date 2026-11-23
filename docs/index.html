@@ -1787,9 +1787,22 @@
         <button class="pngbtn" onclick="exportPanel5()">⬇ PNG FOR SLIDES</button>
     </div>
 
-    <!-- ---- register map: the one part of this site that is not an estimate ---- -->
+    <!-- The register map moved to Appendix C; this marker is all that is
+         left of it here. -->
 
-
+    <!-- PANEL 6 -> 7 SHIFTER, 23 Nov 2026 - Simon. This was the only
+         transition on the page without one: the reader came off the
+         benchmark chart and fell straight into a section heading, where
+         every other panel hands over. Same markup and same cadence as the
+         other five - recap clause, then a bolded forward promise that names
+         the destination. #vfmhead already carries the tabindex the
+         delegated handler needs, from 22 Nov. -->
+    <button type="button" class="panelnext" data-to="vfmhead">
+      <span class="arrow">&darr;</span>
+      <span>Those targets are a rate of building, not a decision to build.
+        <b>What the decision costs, and what it returns — on the
+        government’s own appraisal rules.</b></span>
+    </button>
   </section>
 
   <section>
@@ -1806,12 +1819,18 @@
          is display:none until it does.
          The scope statement it carries was previously only in step 2 of the
          fold; that step has been re-led so the two do not say it twice. -->
-    <p class="lede" id="vfmlede"><b>A target is a quantity; a decision needs a
-      case.</b> The networks that would carry those terawatt-hours are
-      committed either way — the trenches and the connections are in the plan
-      whatever ends up feeding them. What is still open is the heat source,
-      and that is the only thing appraised here: what choosing geothermal
-      costs over the alternative, and what it returns.</p>
+    <!-- RE-LED 23 Nov 2026 - Simon. This opened "A target is a quantity; a
+         decision needs a case", which is the pivot the shifter at the foot
+         of panel 6 now makes. The two sit about an inch apart, so the lede
+         leads on the scope instead: the shifter turns targets into a
+         decision, the lede says which decision. "what it returns" also
+         moved to "what that buys" so the two do not close on the same
+         phrase. -->
+    <p class="lede" id="vfmlede"><b>The networks are committed; the heat
+      source is not.</b> The trenches and the connections are in the plan
+      whatever ends up feeding them, so the only thing appraised here is the
+      choice at the head of them — what geothermal costs over the
+      alternative, and what that buys.</p>
       <div id="capitalpanel" style="display:none">
 
         <!-- EVERYTHING BUT THE RATIO, THE SENTENCE AND THE BARS MOVED
@@ -2511,7 +2530,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.64.0';
+const SITE_VERSION = '9.65.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
