@@ -914,7 +914,7 @@
     heats and cools itself, and what would change if geothermal adoption were
     accelerated. Every week is priced at its own week&rsquo;s tariff, cap and
     carbon, so this is a comparison rather than a forecast. Estimates, not
-    measurements. <a href="uk-heatsplit-methodology.pdf"
+    measurements. <a href="UK-Heat-Split-methodology.pdf"
     style="color:var(--geo)">Methodology</a>.</p>
 
   <h1 class="ask">How much would Britain have saved if a fifth of its
@@ -2485,7 +2485,7 @@
 </div>
 
 <footer><div class="wrap">
-  <b><a href="uk-heatsplit-methodology.pdf" style="color:var(--geo)">Full
+  <b><a href="UK-Heat-Split-methodology.pdf" style="color:var(--geo)">Full
   methodology (PDF)</a></b> — data sources, equations, figures, limitations
   and declared corrections. Under peer review; comment welcome.<br>
   † Causeway Energies estimate – challenge and input welcome:
@@ -2530,7 +2530,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.65.0';
+const SITE_VERSION = '9.66.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -2629,15 +2629,21 @@ window.exportPanel5 = async function(){
   const gd2 = null;
   if(!window.Plotly || !gd1 || !gd1.data || !gd1.data.length) return;
   const has2 = !!(gd2 && gd2.data && gd2.data.length);
-  // PORTRAIT, half a 16:9 slide BY WIDTH - 800x900 - so it sits in the left
-  // or right half of a landscape slide at full height.
+  // LANDSCAPE, 23 Nov 2026 - Simon. This was portrait 800x900, inherited
+  // from the two-chart export: a tall canvas suited a stacked pair. The
+  // pair is gone and what is left is a NINETEEN-CATEGORY bar chart with
+  // angled country labels, which needs width and not height. At 800 wide
+  // the categories were 38px apart and the labels could not fit between
+  // them whatever the margin.
   //
-  // Type is set LARGE relative to this canvas - around 2.7% of width for
-  // tick labels against 1.25% on the full-slide exports. In practice the
-  // graphic is rarely placed at the full half-width: it gets scaled down to
-  // fit beside other content, and everything shrinks with it. Sizing for
-  // the nominal placement produced type too small to read on the slide.
-  const W = 800, H = 900, PAD = 26, HEAD = 92, FOOT = 62, GAP = 38;
+  // 1200x760 is 16:10. It drops into a slide, and it is close enough to
+  // 1200x630 that a social crop loses only the footer.
+  //
+  // Type is still set large relative to the canvas, because the graphic is
+  // usually scaled down to sit beside other content and everything shrinks
+  // with it. The exception is the x axis, which carries nineteen labels and
+  // is sized separately in prep() below.
+  const W = 1200, H = 760, PAD = 30, HEAD = 96, FOOT = 62, GAP = 38;
   const c = document.createElement('canvas');
   c.width = W * 2; c.height = H * 2;
   const x = c.getContext('2d'); x.scale(2, 2);
@@ -2645,11 +2651,16 @@ window.exportPanel5 = async function(){
 
   x.fillStyle = '#1a1a1a';
   x.font = '700 32px Lato, system-ui, sans-serif';
-  x.fillText('The empty bar', PAD, 34);
+  // RETITLED 23 Nov 2026 - Simon. "The empty bar" and its subtitle described
+  // the what-if hardware chart, which was removed on 22 November. The export
+  // was repointed at the benchmark chart the same day but kept the old
+  // heading, so every PNG since has been captioned as a chart it does not
+  // contain. The caption now names what is actually drawn.
+  x.fillText('Where Britain stands', PAD, 34);
   x.fillStyle = '#5c6672';
   x.font = '400 19px Lato, system-ui, sans-serif';
-  x.fillText('installed hardware against the 20% what-if,', PAD, 62);
-  x.fillText('and the same fleets as a share of national heat', PAD, 84);
+  x.fillText('geothermal heat delivered a year, by country,', PAD, 62);
+  x.fillText('with installed capacity per person alongside', PAD, 84);
 
   const pw = W - 2 * PAD, tot = H - HEAD - FOOT - (has2 ? GAP : 0);
   const h1 = has2 ? Math.round(tot * 0.56) : tot, h2 = tot - h1;
@@ -2658,7 +2669,14 @@ window.exportPanel5 = async function(){
     lay.paper_bgcolor = '#ffffff'; lay.plot_bgcolor = '#ffffff';
     lay.font = Object.assign({}, lay.font,
       {color: '#1a1a1a', family: 'Lato', size: sub ? 21 : 22});
-    lay.margin = {l: 86, r: 14, t: sub ? 20 : 52, b: 54};
+    // MARGINS, 23 Nov 2026 - Simon. b was 54 while this function RAISED the
+    // tick font from the page's 11px to 22px, so the -45 degree country
+    // labels were cut off at the bottom and the left: every PNG since the
+    // repoint has read "weden", "urkiye", "inland". The page itself uses
+    // b:80 at 11px; the margin has to move with the type, not stay behind.
+    // r is no longer 14 either - this chart carries a right-hand axis with
+    // its own title, which was printing over its own tick labels.
+    lay.margin = {l: 96, r: 96, t: sub ? 20 : 56, b: 130};
     if(lay.legend){
       // at 800 wide a horizontal legend of three long labels will not fit
       // on one line, so let Plotly wrap it rather than clip it
@@ -2673,6 +2691,13 @@ window.exportPanel5 = async function(){
       lay[a].tickfont = {color: '#3d4148', size: sub ? 20 : 22};
       if(lay[a].title) lay[a].title.font = {color: '#3d4148', size: 21};
     });
+    // The x axis is sized SEPARATELY: it carries nineteen country names at
+    // -45 degrees, and 22px put them shoulder to shoulder. The y axes keep
+    // the large type, because they carry four or five short labels each.
+    if(lay.xaxis){
+      lay.xaxis.tickfont = {color: '#3d4148', size: 15};
+      lay.xaxis.tickangle = -45;   // stated, not inherited
+    }
     const dat = recolour(JSON.parse(JSON.stringify(gd.data)));
     dat.forEach(t => {
       // bar value labels are drawn by Plotly as text on the trace
