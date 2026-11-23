@@ -1697,7 +1697,7 @@
     <details class="fold" id="fold_carb"><summary>METHOD —
       <b>carbon per useful kWh, and the UK-origin share behind it</b></summary>
     <div class="foldbody">
-    <p class="costnote" id="indignote2">—</p>
+    <div id="indignote2"></div>
     <table class="costtable">
       <thead><tr><th>Route</th><th class="num">gCO2e per useful kWh</th></tr></thead>
       <tbody id="carbrows"></tbody>
@@ -2444,7 +2444,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.59.0';
+const SITE_VERSION = '9.61.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -4628,7 +4628,12 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
     });
     routeBars('carbchart', cb.routes_g_per_useful_kwh || [],
               'g_per_useful_kwh', 'gCO2e per useful kWh');
-    document.getElementById('carbnote').textContent = cb.note;
+    // Given a lead to match the four paragraphs beside it, 22 Nov 2026 -
+    // it was the only one in this fold without one. innerHTML rather than
+    // textContent because of the tag; cb.note is the site's own payload,
+    // not third-party input.
+    document.getElementById('carbnote').innerHTML =
+      '<b>The factors behind the emissions bars.</b> ' + cb.note;
 
     // ---- the same routes, measured on where the energy comes from --------
     // EVERY ROUTE'S EFFICIENCY IS ALREADY ON THE EMISSIONS CHART, which is
@@ -4693,18 +4698,54 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
         'more of the heat already in the ground†.';
       const n2 = document.getElementById('indignote2');
       const hl = (d.headlines || {});
-      if(n2) n2.innerHTML =
-        '<b>Where the UK-origin shares come from.</b> Gas at <b>' +
-        Math.round(100 * O.gas) + '%</b> and electricity at <b>' +
-        Math.round(100 * O.elec) + '%</b> are the same shares behind the ' +
-        'indigenous figure on the card at the top of this page; harvested ' +
-        'ambient and ground heat count as <b>100%</b>, consistent with the ' +
-        'Eurostat and DUKES renewable-supply convention. Each route’s ' +
-        'split between bought energy and harvested heat is taken from its ' +
-        'own bar on the emissions chart beside this one — grid intensity ' +
-        'divided by gCO₂e per useful kWh gives the COP — so the two ' +
-        'charts cannot disagree about the same machine. ' +
-        (hl.indig_note ? String(hl.indig_note) : '');
+      // RESTRUCTURED 22 Nov 2026 - Simon. This was 228 words in one
+      // paragraph: the static lead-in, then d.headlines.indig_note appended
+      // whole. Both of them stated the 42% / 75% / 100% shares and the
+      // Eurostat-DUKES convention, so the reader met the same sentence
+      // twice inside one block - the third instance of that pattern found
+      // on this site, after the Appendix C note and panel 1's costnote.
+      //
+      // The payload text is a single blob and cannot be structured where
+      // it is written, so the structure is applied here and indig_note is
+      // no longer printed raw. If its substance changes in build.py, this
+      // has to change with it - which is the cost of the arrangement and
+      // the reason for this comment.
+      if(n2){
+        var IP = [];
+        IP.push('<b>Where the UK-origin shares come from.</b> Gas at <b>' +
+          Math.round(100 * O.gas) + '%</b> and electricity at <b>' +
+          Math.round(100 * O.elec) + '%</b> are the same shares behind the ' +
+          'indigenous figure on the card at the top of this page. Harvested ' +
+          'ambient and ground heat counts as <b>100%</b>, which is the ' +
+          'Eurostat and DUKES renewable-supply convention rather than a ' +
+          'choice made here.');
+
+        IP.push('<b>Measured on heat delivered, not on fuel bought.</b> Each ' +
+          'service inherits the origin of its energy input, and ' +
+          'cooling’s delivered multiple inherits its ' +
+          'electricity’s share — thermodynamic leverage is not an ' +
+          'energy origin. On a purchased-energy basis the shares are lower ' +
+          'and barely move with geothermal, because ground heat is never ' +
+          'purchased. That is the point rather than an artefact.');
+
+        IP.push('<b>The two charts cannot disagree.</b> Each route’s ' +
+          'split between bought energy and harvested heat is taken from its ' +
+          'own bar on the emissions chart beside this one: grid intensity ' +
+          'divided by gCO₂e per useful kWh gives back the COP. The same ' +
+          'machine therefore reads the same on both.');
+
+        IP.push('<b>What the 20% what-if assumes.</b> One-fifth of heat on ' +
+          'SCOP-5 networks, four-fifths of that being ground heat. SCOP 5 is ' +
+          'a blended estimate across depths and system types, including ' +
+          'seasonally balanced and UTES-coupled networks — so storage ' +
+          'and the recovery of rejected heat are already inside it rather ' +
+          'than additional to it†. Cooling is one-fifth near-passive at ' +
+          'COP 20†.');
+
+        n2.innerHTML = IP.map(function(t){
+          return '<p class="costnote">' + t + '</p>';
+        }).join('');
+      }
     })();
   }
 
