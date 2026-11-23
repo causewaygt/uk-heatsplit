@@ -725,7 +725,11 @@
   #capitalpanel #fold_vfm .note{max-width:none}
   /* The step heading is already a separator, so a block rule directly
      under one draws a second line against the first. */
-  #capitalpanel #fold_vfm .foldstep + .block{
+  /* 23 Nov 2026: every step now opens with a .basis lead, which displaced
+     the block by one element and let its border-top draw a second rule two
+     lines under the heading's own. The lead counts as the separator. */
+  #capitalpanel #fold_vfm .foldstep + .block,
+  #capitalpanel #fold_vfm .foldstep + .basis + .block{
       border-top:0;padding-top:0;margin-top:14px}
   #capitalpanel .vfmlive{margin-top:16px;padding-top:14px;
                          border-top:1px solid var(--line)}
@@ -1847,7 +1851,11 @@
           the government’s own appraisal rules?</b></p>
 
         <h2 class="foldstep"><span>2</span>How the case is structured</h2>
-        <div class="kind">One counterfactual, on Green Book conventions — not a full appraisal</div>
+        <!-- .kind REMOVED 23 Nov 2026 - Simon. It read "One counterfactual,
+             on Green Book conventions - not a full appraisal", which is a
+             compression of the .caveat two elements below that says both
+             things at length. It was also the only .kind in the fold, so it
+             broke the one-treatment-per-role rule as well as repeating. -->
 
         <p class="basis"><b>This does not ask whether to build the networks.</b>
           Government has committed to heat networks supplying about 20% of UK heat by
@@ -1861,8 +1869,12 @@
              rule the fold now follows. This previously carried a grey-ruled
              variant of .basis set inline, which was the same weaker-copy
              device removed from .fixed. 22 Nov 2026. -->
-        <p class="caveat"><b>What this appraisal
-          is, and is not.</b> It is <b>one counterfactual</b>: geothermal
+        <!-- SPLIT IN TWO, 23 Nov 2026 - Simon. 153 words making two separate
+             disclaimers - the scope of the comparison, and the scope of the
+             appraisal - against a fold that now runs at about 70 words a
+             paragraph. The .kind subtitle above compressed both into a line
+             and has gone; this says them once each. -->
+        <p class="caveat"><b>One counterfactual, not a field.</b> Geothermal
           against an air-source-led network with separate air-cooled chillers.
           That is a real and increasingly likely alternative, because zoning is
           designating networks without settling their source — but it is
@@ -1871,9 +1883,9 @@
           pumps, energy from waste, or a hybrid of several. <b>Nothing here
           establishes that geothermal is the preferred national source</b>; it
           establishes how geothermal compares with one named alternative on
-          Green Book conventions.
-          It is also <b>not a full Green Book appraisal</b>. It applies Green
-          Book conventions — the sixty-year horizon, the declining discount
+          Green Book conventions.</p>
+        <p class="caveat"><b>And not a full Green Book appraisal.</b> It applies
+          Green Book conventions — the sixty-year horizon, the declining discount
           rate, DESNZ carbon values, optimism bias — to the increment
           between two sources. It does not carry a full options appraisal, a
           distributional analysis, or unmonetisable effects, all of which the
@@ -1881,11 +1893,26 @@
 
         <div class="deal">
           <div class="deallab">The comparison</div>
-          <p class="dealnote" id="dealnote"></p>
+          <!-- A CONTAINER, NOT A PARAGRAPH, 23 Nov 2026 - Simon. 196 words in
+               one paragraph, and in an order that put the 742-unit anchor for
+               the air-source figure about a hundred words after the figure it
+               justifies. Now three: the geothermal side, the counterfactual,
+               and what the pair produces. .dealnote goes on the children. -->
+          <div id="dealnote"></div>
         </div>
 
-        <h2 class="foldstep"><span>3</span>The key parameters, and what is not in the numbers</h2>
-        <p class="note" id="coolnote"></p>
+        <!-- STEP 3 REORDERED, 23 Nov 2026 - Simon. The six paragraphs ran
+             parameter, conventions, parameter, scope, governance, parameter -
+             three kinds of statement interleaved by the order they were
+             written in. They are now grouped: what is fixed by the Green
+             Book, then what sets the size of the answer, then what is being
+             disclosed. The exclusions that used to share this heading are
+             step 4. -->
+        <h2 class="foldstep"><span>3</span>The key parameters</h2>
+        <p class="basis"><b>What follows is grouped in three:</b> the
+          conventions this is appraised on, which are fixed rather than
+          chosen here; the parameters that set the size of the answer; and
+          what is being disclosed about scope and interest.</p>
         <p class="fixed" id="fixed"></p>
         <p class="caveat" id="pkfixed">The <b>avoided winter peak is fixed at
           £75/kW·yr</b> across distribution, transmission and generation
@@ -1894,13 +1921,26 @@
           panel 4 prices avoided peak at the same rate, and a reader tuning
           it here would be moving a figure quoted two panels earlier as
           settled.</p>
+        <p class="note" id="coolnote"></p>
+        <!-- A CONTAINER, NOT A PARAGRAPH, 23 Nov 2026 - Simon. This was one
+             <p> carrying 298 words - the longest paragraph on the site -
+             making six separate moves. The renderer now writes five short
+             bold-lead paragraphs into it, the same treatment as the hero's
+             fold and panel 5's indignote2. .caveat is applied to the
+             children, so the styling is unchanged. -->
+        <div id="devex"></div>
         <p class="caveat" id="caveat"></p>
         <p class="caveat" id="whopays"></p>
-        <p class="caveat" id="devex"></p>
 
-        <!-- RISK -->
+        <!-- RISK. PROMOTED TO ITS OWN STEP, 23 Nov 2026 - Simon. This block
+             carried half of step 3's 1,200 words while its own h3 repeated
+             the second half of that step's heading. The h3 is gone because
+             the step heading now says it once. -->
+        <h2 class="foldstep"><span>4</span>What is not in the numbers</h2>
+        <p class="basis"><b>Four things sit outside the figures above.</b>
+          Each is named rather than folded into a contingency, so what is
+          unquantified stays visible.</p>
         <div class="block">
-          <h3>What is not in the numbers</h3>
           <dl>
             <dt>Subsurface risk — the size is priced, the remedy is not</dt>
             <dd>There is little or no UK experience of geothermal systems at this
@@ -1946,7 +1986,11 @@
           </dl>
         </div>
 
-        <h2 class="foldstep"><span>4</span>Move the assumptions and watch the ratio</h2>
+        <h2 class="foldstep"><span>5</span>Move the assumptions and watch the ratio</h2>
+        <p class="basis"><b>Every number above that is a judgement rather than
+          a convention is a slider here.</b> The ratio and both bars are
+          repeated beside them, so an assumption can be moved and its effect
+          read without scrolling back to the top of the panel.</p>
         <div class="verdict" style="margin-top:4px">
           <div class="side" id="s1">—<small>net present social value</small></div>
           <div class="side" id="s2">—<small>social cost, 60 years</small></div>
@@ -2000,11 +2044,12 @@
           <div class="lever">
             <label for="lv_loss">Subsurface shortfall <b id="lv_loss_v"></b></label>
             <input type="range" id="lv_loss" min="0" max="40" step="2" value="10">
-            <div class="hint">Rated capacity the ground does not deliver — a
-              failed well, too little recharge, a store driven warm by over-reinjection, or a
-              round-trip below design. Gas makes up the gap, so less heat is
-              electrified. The counterfactual has no equivalent: the atmosphere does
-              not run down.</div>
+            <!-- The four failure modes were listed here verbatim and again
+                 in step 4's subsurface-risk entry. Named once, there. -->
+            <div class="hint">Rated capacity the ground does not deliver, on
+              the failure modes set out in step 4. Gas makes up the gap, so
+              less heat is electrified. The counterfactual has no equivalent:
+              the atmosphere does not run down.</div>
           </div>
           <div class="lever">
             <label for="lv_cool">Connections taking cooling <b id="lv_cool_v"></b></label>
@@ -2017,16 +2062,25 @@
             <label for="lv_sizing">Plant sized at <b id="lv_sizing_v"></b></label>
             <input type="range" id="lv_sizing" min="40" max="100" step="5" value="50">
             <div class="hint">Of the winter peak, with top-up gas boilers above — applied
-              to BOTH routes. Draft TS1 requires this to be optimised on whole-life
-              cost, not assumed, so it is a lever.</div>
+              to BOTH routes. It is a lever because draft TS1 requires it to be
+              optimised rather than assumed, on the terms in step 3.</div>
           </div>
         </div>
         </div>
 
-        <h2 class="foldstep"><span>5</span>Key sensitivities and insights</h2>
+        <!-- RETITLED 23 Nov 2026 - Simon. "Key sensitivities and insights"
+             named nothing: the step holds the switching values, the ratio in
+             plain terms and the scale invariance, which is what the hidden
+             grid's own h3 already called it. That h3 is now "Sensitivity
+             grid" so the two do not repeat each other when it renders. -->
+        <h2 class="foldstep"><span>6</span>What moves the answer, and what does not</h2>
+        <p class="basis"><b>The useful test of an appraisal is not its point
+          estimate but how far the inputs can move before the answer
+          changes.</b> That distance is below, with the ratio restated in
+          plain terms.</p>
         <!-- THE ASK -->
         <div class="block" id="sensblock" style="display:none">
-          <h3>Sensitivity — what moves the answer, and what does not</h3>
+          <h3>Sensitivity grid</h3>
           <p class="caveat" id="sensnote">—</p>
           <table class="geotbl" id="senstbl" style="margin-top:14px"><tbody></tbody></table>
           <p class="caveat" id="sensfoot" style="margin-top:14px">—</p>
@@ -2039,11 +2093,20 @@
              field is not currently emitted, so the grid stays hidden. -->
         <p class="note" id="switch"></p>
         <p class="plain" id="plain"></p>
-        <p class="sub" id="sub"></p>
+        <!-- id=sub REMOVED 23 Nov 2026 - Simon. It listed five Green Book
+             conventions - long-run variable cost because levies are
+             transfers, DESNZ carbon, a declining STPR, the sixty-year
+             horizon, optimism bias on capital - every one of which is
+             already in id=fixed in step 3, with its numbers. A strict
+             subset, so it said nothing twice. The writer in the renderer
+             went with it. -->
 
         <p class="caveat" id="invar"></p>
 
-        <h2 class="foldstep"><span>6</span>Conclusion</h2>
+        <h2 class="foldstep"><span>7</span>Conclusion</h2>
+        <p class="basis"><b>If the ratio above survives scrutiny, four things
+          follow</b> — none of them a commitment to build, all of them about
+          how the decision already being taken gets made.</p>
         <div class="block">
           <h3>What would change on the strength of this</h3>
           <ol>
@@ -2444,7 +2507,7 @@
 //   x: major - new data source or new panel
 //   y: minor - update to an existing data source or anchor (e.g. price cap, ECUK)
 //   z: patch - wording or formatting change
-const SITE_VERSION = '9.61.0';
+const SITE_VERSION = '9.62.0';
 document.addEventListener('DOMContentLoaded', () => {
   const el = document.getElementById('siteversion');
   if(el) el.textContent = 'v' + SITE_VERSION + ' \u00b7 ';
@@ -3759,11 +3822,9 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       (BB ? ' \u2014 and between <b>\u00a3' + BB.lo.bcr.toFixed(2) +
             '</b> and <b>\u00a3' + BB.hi.bcr.toFixed(2) + '</b> across the ' +
             'full range of the one assumption the saving rests on' : '') + '.';
-    el('sub').textContent=
-      'Appraised on HM Treasury conventions: energy at long-run variable cost ' +
-      'because taxes and levies are transfers, carbon at DESNZ values, a ' +
-      'declining social time preference rate, a sixty-year horizon, and optimism ' +
-      'bias on capital.';
+    // el('sub') removed 23 Nov 2026 - Simon. Every convention it listed is
+    // in el('fixed') in step 3, with the numbers. See the note at the
+    // element's old position in the body.
 
     // A band that crosses 1.0 while the point estimate does not is the whole
     // reason for publishing a band. At a 30bn capital the central ratio is
@@ -3788,31 +3849,41 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       '<small>net present social value</small>';
     el('s2').innerHTML=gbp(a.cost)+'<small>social cost, 60 years</small>';
 
-    el('dealnote').innerHTML='<b>Geothermal</b> as source and store, at an '+
-      'assumed blended seasonal factor of <b>SPF* '+GEO.spf.toFixed(1)+'</b>'+
+    // THREE PARAGRAPHS, 23 Nov 2026 - Simon. One per side of the comparison,
+    // then what the pair produces. The defrost concession has moved up to sit
+    // with the air-source figure it explains rather than closing the block.
+    var DN = [];
+    DN.push('<b>Geothermal</b> as source and store, at an assumed blended ' +
+      'seasonal factor of <b>SPF* ' + GEO.spf.toFixed(1) + '</b>' +
       (BB ? ' <b>(' + BB.lo.spf.toFixed(1) + '\u2013' + BB.hi.spf.toFixed(1) +
-            ')</b>' : '') + ' '+
-      '\u2014 an assumed blend across geothermal archetypes wired to an '+
-      'assumed '+GEO.src+' \u00b0C source and the same Carnot fraction as the '+
-      'monitored routes, not a measured fleet figure\u2020. <b>Neither the '+
-      'factor nor the source is independently evidenced</b>, so the range is '+
-      'the candid presentation and it is carried through to the ratio above '+
-      '\u2014 against '+
-      '<b>a network-scale air-source energy centre at '+
-      CF.spf.toFixed(1)+'</b> \u2014 same pipes, same connections, same buildings. '+
-      'Both rated at <b>'+S.sizing+'% of the winter peak</b> with top-up gas '+
-      'boilers above. At a <b>'+S.loss+'%</b> subsurface shortfall the geothermal '+
-      'plant delivers '+effSizing().toFixed(0)+'% of peak, serving <b>'+
-      Math.round(100*servedNow())+'%</b> of the heat electrically, with gas '+
-      'making up the rest on either side. That leaves <b>'+
-      avoidedTWh().toFixed(1)+' TWh a year</b> of electricity avoided and <b>'+
-      avoidedGW().toFixed(1)+' GW</b> at the winter peak, where the instantaneous '+
-      'COPs are '+CF.peak.toFixed(2)+' against '+GEO.peak.toFixed(2)+'\u2020. '+
-      'Electrification of Heat, 742 monitored units, gives 2.80; the extra 0.10 '+
-      'concedes the defrost mitigation that is the only air-specific improvement '+
-      'available \u2014 and defrost costs 12% at +2\u00b0C and nothing at the '+
-      '\u22125\u00b0C design condition, so it lifts the seasonal figure and leaves '+
-      'the peak untouched.';
+            ')</b>' : '') +
+      ' \u2014 an assumed blend across geothermal archetypes wired to an ' +
+      'assumed ' + GEO.src + ' \u00b0C source and the same Carnot fraction as ' +
+      'the monitored routes, not a measured fleet figure\u2020. <b>Neither the ' +
+      'factor nor the source is independently evidenced</b>, so the range is ' +
+      'the candid presentation and it is carried through to the ratio above.');
+
+    DN.push('<b>Against a network-scale air-source energy centre at ' +
+      CF.spf.toFixed(1) + '</b> \u2014 same pipes, same connections, same ' +
+      'buildings. Electrification of Heat, 742 monitored units, gives 2.80; ' +
+      'the extra 0.10 concedes the defrost mitigation that is the only ' +
+      'air-specific improvement available \u2014 and defrost costs 12% at ' +
+      '+2\u00b0C and nothing at the \u22125\u00b0C design condition, so it ' +
+      'lifts the seasonal figure and leaves the peak untouched.');
+
+    DN.push('<b>Both rated at ' + S.sizing + '% of the winter peak</b> with ' +
+      'top-up gas boilers above. At a <b>' + S.loss + '%</b> subsurface ' +
+      'shortfall the geothermal plant delivers ' + effSizing().toFixed(0) +
+      '% of peak, serving <b>' + Math.round(100 * servedNow()) + '%</b> of ' +
+      'the heat electrically, with gas making up the rest on either side. ' +
+      'That leaves <b>' + avoidedTWh().toFixed(1) + ' TWh a year</b> of ' +
+      'electricity avoided and <b>' + avoidedGW().toFixed(1) + ' GW</b> at ' +
+      'the winter peak, where the instantaneous COPs are ' +
+      CF.peak.toFixed(2) + ' against ' + GEO.peak.toFixed(2) + '\u2020.');
+
+    el('dealnote').innerHTML = DN.map(function(t){
+      return '<p class="dealnote">' + t + '</p>';
+    }).join('');
 
     const parts=[['Energy at resource cost',a.en,'var(--geo)'],
                  ['Avoided winter peak',a.pk,'var(--elec)'],
@@ -3898,10 +3969,13 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       'are rebought every ' + CHILLER_LIFE_Y + ' years against boreholes ' +
       'lasting 50 to 100. Cooling also avoids ' + cbx.elecTWh.toFixed(1) +
       ' TWh of electricity a year at a ground COP of ' + GEO_COOL_COP +
-      ' against an air-cooled EER of ' + CF_COOL_EER + '. The increment is the ' +
-      'least evidenced figure on this panel: no UK study separates a shared ' +
-      'heating-and-cooling loop from a heat-only one, so it is an estimate on a ' +
-      'range of \u00a30\u2013150/kW.';
+      ' against an air-cooled EER of ' + CF_COOL_EER + '. The increment is ' +
+      'the least evidenced figure on the panel, on a range of ' +
+      '\u00a30\u2013150/kW; why, in step 4.';
+      // The reason - no UK study separating a shared loop from a heat-only
+      // one - was stated here in full and again in step 4's cooling-increment
+      // entry about 400 words later. Step 4 keeps it, since that step exists
+      // to hold exactly this kind of statement. 23 Nov 2026 - Simon.
   el('fixed').textContent=
       'Fixed at Green Book conventions: a sixty-year horizon for infrastructure; ' +
       'a declining social time preference rate of 3.5% to year 30, 3.0% to 75 and ' +
@@ -3944,37 +4018,52 @@ let PEAK_TH=32.1;                   // GW thermal peak for the programme
       'is choosing how to fund its own network \u2014 not to a programme ' +
       'government is enabling rather than procuring. Causeway Energies develops ' +
       'geothermal networks, so this panel is published against interest.';
-    el('devex').innerHTML=
-      '<b>Pre-FID development capital is inside the figures above</b>, at ' +
-      (100 * DEVEX_PCT).toFixed(1) + '% of the subsurface increment \u2014 ' +
-      gbp(capNow() * DEVEX_PCT) + ' before optimism bias. It was previously ' +
-      'excluded on the ground that a developer carries it at a development ' +
-      'return rather than infrastructure capital at financial close. That is ' +
-      'a financing argument: a social appraisal counts a resource cost ' +
-      'whoever bears it, and must count the prospects that never reached ' +
-      'close. ' +
-      '<b>The blend\u2020:</b> shallow underground storage and closed loop at ' +
-      '4% of capex on roughly full success, 60% of the scenario; intermediate ' +
-      'doublets at 10% on an 80% success rate, 40%. Dividing by the success ' +
-      'rate is the point \u2014 money spent on prospects that did not proceed ' +
-      'is still a cost per delivered megawatt \u2014 so the doublet enters at ' +
-      '12.5% and the blend at ' + (100 * DEVEX_PCT).toFixed(1) + '%. A closed ' +
-      'loop is installed rather than found and carries no resource risk; a ' +
-      'doublet does. The 10% is scenario-wide, not project-specific: ' +
-      'Causeway\u2019s own hospital case runs at 15%, and two further hospital ' +
-      'projects are de-risked by legacy oil and gas data \u2014 a UK-specific ' +
-      'asset, not a general condition. ' +
-      '<b>Against the benchmarks:</b> Rystad put pre-FID at about 2% of global ' +
-      'geothermal capex, but that counts only schemes reaching final ' +
+    // RESTRUCTURED 23 Nov 2026 - Simon. Was one 298-word paragraph, the
+    // longest on the site, carrying six moves: that devex is in, why it used
+    // to be out, the blend arithmetic, the scenario-versus-project point, the
+    // international benchmarks, and the missing UK risk fund. One paragraph
+    // each, bold lead, same treatment as the hero's fold.
+    var DX = [];
+    DX.push('<b>Pre-FID development capital is inside the figures above</b>, ' +
+      'at ' + (100 * DEVEX_PCT).toFixed(1) + '% of the subsurface increment ' +
+      '\u2014 ' + gbp(capNow() * DEVEX_PCT) + ' before optimism bias. It was ' +
+      'previously excluded on the ground that a developer carries it at a ' +
+      'development return rather than infrastructure capital at financial ' +
+      'close. That is a financing argument: a social appraisal counts a ' +
+      'resource cost whoever bears it, and must count the prospects that ' +
+      'never reached close.');
+
+    DX.push('<b>The blend\u2020.</b> Shallow underground storage and closed ' +
+      'loop at 4% of capex on roughly full success, 60% of the scenario; ' +
+      'intermediate doublets at 10% on an 80% success rate, 40%. Dividing by ' +
+      'the success rate is the point \u2014 money spent on prospects that did ' +
+      'not proceed is still a cost per delivered megawatt \u2014 so the ' +
+      'doublet enters at 12.5% and the blend at ' +
+      (100 * DEVEX_PCT).toFixed(1) + '%. A closed loop is installed rather ' +
+      'than found and carries no resource risk; a doublet does.');
+
+    DX.push('<b>Scenario-wide, not project-specific.</b> The 10% is a ' +
+      'programme figure. Causeway\u2019s own hospital case runs at 15%, and ' +
+      'two further hospital projects are de-risked by legacy oil and gas ' +
+      'data \u2014 a UK-specific asset, not a general condition.');
+
+    DX.push('<b>Against the benchmarks.</b> Rystad put pre-FID at about 2% of ' +
+      'global geothermal capex, but that counts only schemes reaching final ' +
       'investment decision and is dominated by large deep power projects; ' +
       'European geothermal district heating averages about 10 MWth, where ' +
       'fixed development cost is a larger share. Well failure rates run under ' +
       '10% in Germany and Hungary to 30% in the Netherlands, and UK maturity ' +
-      '\u2014 20 MWt of geothermal heat today \u2014 sits nearer the Dutch ' +
-      'end. In more mature markets that exposure is underwritten by shared ' +
-      'instruments: the Netherlands, France, Germany, Denmark, Iceland and ' +
-      'Switzerland all operate national resource risk funds. <b>The UK has ' +
-      'none</b>, which is why the success rate falls on the developer.';
+      '\u2014 20 MWt of geothermal heat today \u2014 sits nearer the Dutch end.');
+
+    DX.push('<b>And nothing underwrites it here.</b> In more mature markets ' +
+      'that exposure is carried by shared instruments: the Netherlands, ' +
+      'France, Germany, Denmark, Iceland and Switzerland all operate national ' +
+      'resource risk funds. <b>The UK has none</b>, which is why the success ' +
+      'rate falls on the developer.');
+
+    el('devex').innerHTML = DX.map(function(t){
+      return '<p class="caveat">' + t + '</p>';
+    }).join('');
   }
   ['cap','ob','spf','sizing','loss','cool'].forEach(k=>{
     const i=el('lv_'+k);
